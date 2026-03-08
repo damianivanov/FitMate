@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <RtTargetFile>..\..\client\src\types\backend.ts</RtTargetFile>
+    <RtConfigurationMethod>FitMate.Web.Infrastructure.ReinforcedTypingsConfiguration.Configure</RtConfigurationMethod>
+    <RtDivideTypesAmongFiles>false</RtDivideTypesAmongFiles>
+    <RtBypassTypeScriptCompilation>true</RtBypassTypeScriptCompilation>
+    <RtDisable>false</RtDisable>
+    <RtSuppress>RTW0013;RTW0014</RtSuppress>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RtAdditionalAssembly Include="FitMate.Core" />
+    <RtAdditionalAssembly Include="FitMate.DB" />
+  </ItemGroup>
+</Project>
