@@ -10,6 +10,17 @@ public class AppDbContext : IdentityDbContext<User, Role, long>
     public DbSet<Error> Errors => Set<Error>();
     public DbSet<Token> Tokens => Set<Token>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Exercise> Exercises => Set<Exercise>();
+    public DbSet<ExerciseSet> ExerciseSets => Set<ExerciseSet>();
+    public DbSet<WorkoutExercise> WorkoutExercises => Set<WorkoutExercise>();
+    public DbSet<Workout> Workouts => Set<Workout>();
+    public DbSet<WorkoutTemplate> WorkoutTemplates => Set<WorkoutTemplate>();
+    public DbSet<UserBodyMetric> UserBodyMetrics => Set<UserBodyMetric>();
+    public DbSet<MuscleGroup> MuscleGroups => Set<MuscleGroup>();
+    public DbSet<TemplateExercise> TemplateExercises => Set<TemplateExercise>();
+    public DbSet<TemplateExerciseGroup> TemplateExerciseGroups => Set<TemplateExerciseGroup>();
+    public DbSet<WorkoutExerciseGroup> WorkoutExerciseGroups => Set<WorkoutExerciseGroup>();
+    public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)

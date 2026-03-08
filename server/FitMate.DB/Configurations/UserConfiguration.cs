@@ -8,6 +8,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
+        builder.Property(x => x.AvatarUrl)
+            .HasMaxLength(2048)
+            .IsRequired(false);
+
         builder.Property(x => x.FirstName)
             .HasMaxLength(100)
             .IsRequired(false);
