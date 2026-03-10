@@ -1,13 +1,17 @@
-import { createBrowserRouter } from 'react-router-dom'
-import Layout from '@/components/Layout'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Profile from './pages/Profile'
+import { createBrowserRouter } from "react-router-dom";
+import Layout from "@/components/Layout";
+import AccessGate from "@/components/guards/AccessGate";
+import { UserRole } from "@/types";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
+import ExerciseGrid from "./pages/ExerciseGrid";
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Layout />,
     children: [
       {
@@ -24,8 +28,28 @@ export const router = createBrowserRouter([
       },
       {
         path: "profile",
-        element: <Profile />,
+        element: (
+          <AccessGate requireAuthenticated>
+            <Profile />
+          </AccessGate>
+        ),
+      },
+      {
+        path: "management",
+        element: (
+          <AccessGate requireAuthenticated allowRoles={[UserRole.Admin]}>
+            <AdminDashboard />
+          </AccessGate>
+        ),
+      },
+      {
+        path: "management/exercises",
+        element: (
+          <AccessGate requireAuthenticated allowRoles={[UserRole.Admin]}>
+            <ExerciseGrid />
+          </AccessGate>
+        ),
       },
     ],
   },
-])
+]);

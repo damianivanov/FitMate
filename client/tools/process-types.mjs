@@ -20,6 +20,7 @@ const namespaceRegex =
 
 let match;
 const namespaces = new Map();
+const emittedTypes = [];
 
 // Extract all namespaces
 while ((match = namespaceRegex.exec(content)) !== null) {
@@ -30,7 +31,7 @@ while ((match = namespaceRegex.exec(content)) !== null) {
 
   // Match interfaces
   const interfaceRegex =
-    /export\s+interface\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\n\t\}/g;
+    /export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\n\t\}/g;
   let typeMatch;
 
   while ((typeMatch = interfaceRegex.exec(namespaceContent)) !== null) {
@@ -38,7 +39,11 @@ while ((match = namespaceRegex.exec(content)) !== null) {
       .split("\n")
       .map((line) => (line.startsWith("\t") ? line.substring(1) : line))
       .join("\n");
-    types.push(typeContent);
+    types.push({
+      kind: "interface",
+      name: typeMatch[1],
+      content: typeContent,
+    });
   }
 
   //Match classes
@@ -49,7 +54,11 @@ while ((match = namespaceRegex.exec(content)) !== null) {
       .split("\n")
       .map((line) => (line.startsWith("\t") ? line.substring(1) : line))
       .join("\n");
-    types.push(typeContent);
+    types.push({
+      kind: "class",
+      name: typeMatch[1],
+      content: typeContent,
+    });
   }
 
   //Match enums
@@ -60,7 +69,11 @@ while ((match = namespaceRegex.exec(content)) !== null) {
       .split("\n")
       .map((line) => (line.startsWith("\t") ? line.substring(1) : line))
       .join("\n");
-    types.push(typeContent);
+    types.push({
+      kind: "enum",
+      name: typeMatch[1],
+      content: typeContent,
+    });
   }
 
   if (types.length > 0) namespaces.set(namespaceName, types);
@@ -71,11 +84,15 @@ const topLevelTypes = [];
 
 // interfaces
 const topLevelInterfaceRegex =
-  /^export\s+interface\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\n\}/gm;
+  /^export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\n\}/gm;
 let topLevelMatch;
 
 while ((topLevelMatch = topLevelInterfaceRegex.exec(content)) !== null) {
-  topLevelTypes.push(topLevelMatch[0]);
+  topLevelTypes.push({
+    kind: "interface",
+    name: topLevelMatch[1],
+    content: topLevelMatch[0],
+  });
 }
 
 // classes
@@ -83,14 +100,22 @@ const topLevelClassRegex =
   /^export\s+class\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\n\}/gm;
 
 while ((topLevelMatch = topLevelClassRegex.exec(content)) !== null) {
-  topLevelTypes.push(topLevelMatch[0]);
+  topLevelTypes.push({
+    kind: "class",
+    name: topLevelMatch[1],
+    content: topLevelMatch[0],
+  });
 }
 
 //enums
 const topLevelEnumRegex = /^export\s+enum\s+(\w+)\s*\{[\s\S]*?\n\}/gm;
 
 while ((topLevelMatch = topLevelEnumRegex.exec(content)) !== null) {
-  topLevelTypes.push(topLevelMatch[0]);
+  topLevelTypes.push({
+    kind: "enum",
+    name: topLevelMatch[1],
+    content: topLevelMatch[0],
+  });
 }
 
 if (topLevelTypes.length > 0) {
@@ -157,21 +182,15 @@ namespaces.forEach((types, namespaceName) => {
   }
 
   // Write each type to a separate file
-  types.forEach((typeContent) => {
-    //include enums too
-    const typeNameMatch = typeContent.match(
-      /export\s+(?:interface|class|enum)\s+(\w+)/
-    );
-    if (!typeNameMatch) return;
-
-    const typeName = typeNameMatch[1];
+  types.forEach((typeDef) => {
+    const typeName = typeDef.name;
     const fileName = `${typeName}.ts`;
     const filePath = path.join(targetDir, fileName);
 
-    const needsJsonModelsImport = hasNamespaceRefs(typeContent);
-    const needsEnumsImport = hasEnumsRefs(typeContent);
+    const needsJsonModelsImport = hasNamespaceRefs(typeDef.content);
+    const needsEnumsImport = hasEnumsRefs(typeDef.content);
 
-    let finalContent = typeContent.trim();
+    let finalContent = typeDef.content.trim();
 
     if (needsJsonModelsImport || needsEnumsImport) {
       const relative = path.relative(targetDir, path.dirname(generatedFile));
@@ -187,33 +206,76 @@ namespaces.forEach((types, namespaceName) => {
 
     fs.writeFileSync(filePath, finalContent + "\n", "utf8");
     totalFiles++;
+    emittedTypes.push({
+      namespaceName,
+      typeName,
+      kind: typeDef.kind,
+    });
   });
 });
 
-// Generate barrel file (index.ts)
-function walk(dir) {
-  const out = [];
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) out.push(...walk(full));
-    else if (e.isFile() && e.name.endsWith(".ts") && e.name !== "index.ts")
-      out.push(full);
+// Generate barrel file (index.ts) with named exports (no wildcard exports).
+const indexExports = emittedTypes
+  .map((typeDef) => {
+    let relativePath = "";
+    if (typeDef.namespaceName === "__root__") {
+      relativePath = `./${typeDef.typeName}`;
+    } else if (typeDef.namespaceName.startsWith("JsonModels.")) {
+      const namespacePath = typeDef.namespaceName
+        .substring("JsonModels.".length)
+        .replace(/\./g, "/");
+      relativePath = `./${namespacePath}/${typeDef.typeName}`;
+    } else {
+      relativePath = `./${typeDef.namespaceName.replace(/\./g, "/")}/${typeDef.typeName}`;
+    }
+
+    if (typeDef.kind === "enum") {
+      return `export { ${typeDef.typeName} } from "${relativePath}";`;
+    }
+
+    return `export type { ${typeDef.typeName} } from "${relativePath}";`;
+  })
+  .sort((a, b) => a.localeCompare(b));
+
+fs.writeFileSync(path.join(outputDir, "index.ts"), indexExports.join("\n") + "\n", "utf8");
+
+// Generate app-level type aliases for ergonomic imports.
+const appTypesFile = path.resolve("src/types/index.ts");
+const aliasNames = new Set(emittedTypes.map((t) => t.typeName));
+const aliases = [];
+
+for (const typeDef of emittedTypes) {
+  if (!typeDef.namespaceName.startsWith("JsonModels.") || typeDef.kind === "enum") {
+    continue;
   }
-  return out;
+
+  if (!typeDef.typeName.endsWith("Model")) {
+    continue;
+  }
+
+  const aliasName = typeDef.typeName.slice(0, -"Model".length);
+  if (!aliasName || aliasNames.has(aliasName)) {
+    continue;
+  }
+
+  const namespacePath = typeDef.namespaceName.replace("JsonModels.", "");
+  aliases.push({
+    aliasName,
+    target: `JsonModels.${namespacePath}.${typeDef.typeName}`,
+  });
+  aliasNames.add(aliasName);
 }
 
-const files = walk(outputDir);
-const exports =
-  files
-    .map(
-      (f) =>
-        "./" +
-        path
-          .relative(outputDir, f)
-          .replace(/\\/g, "/")
-          .replace(/\.ts$/, "")
-    )
-    .map((p) => `export * from "${p}";`)
-    .join("\n") + "\n";
+const appTypeLines = ['export * from "./JsonModels";'];
+if (aliases.length > 0) {
+  appTypeLines.push("");
+  appTypeLines.push('import type { JsonModels } from "./backend";');
+  appTypeLines.push("");
 
-fs.writeFileSync(path.join(outputDir, "index.ts"), exports, "utf8");
+  for (const alias of aliases.sort((a, b) => a.aliasName.localeCompare(b.aliasName))) {
+    appTypeLines.push(`export type ${alias.aliasName} = ${alias.target};`);
+  }
+}
+
+appTypeLines.push("");
+fs.writeFileSync(appTypesFile, appTypeLines.join("\n"), "utf8");

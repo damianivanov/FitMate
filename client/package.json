@@ -12,6 +12,10 @@
     "gen:types": "echo Run 'dotnet build .\\server\\FitMate.Web\\FitMate.Web.csproj' from repo root, then run 'npm run process-types'"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "@mui/x-data-grid": "^8.27.4",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.7.0",
     "react": "^19.2.0",

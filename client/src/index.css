@@ -163,6 +163,7 @@ input:focus {
 }
 
 .liquid-primary-btn {
+  border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.78);
   color: #eff7ff;
   background:

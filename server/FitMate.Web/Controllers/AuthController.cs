@@ -105,8 +105,6 @@ namespace FitMate.Web.Controllers
             var response = new AuthResponse
             {
                 Success = true,
-                Token = token,
-                RefreshToken = refreshToken,
                 User = BuildUserModel(user, [.. roles]),
             };
 
@@ -190,9 +188,9 @@ namespace FitMate.Web.Controllers
 
         [AllowAnonymous]
         [HttpPost("refresh")]
-        public async Task<ActionResult> RefreshToken([FromBody] RefreshTokenRequest? model = null)
+        public async Task<ActionResult> RefreshToken()
         {
-            var refreshToken = model?.RefreshToken ?? Request.Cookies["RefreshToken"];
+            var refreshToken = Request.Cookies["RefreshToken"];
             if (string.IsNullOrWhiteSpace(refreshToken))
             {
                 return this.ReturnJsonError("Refresh token is required.");
@@ -265,8 +263,6 @@ namespace FitMate.Web.Controllers
             var response = new AuthResponse
             {
                 Success = true,
-                Token = newToken,
-                RefreshToken = newRefreshToken,
                 User = BuildUserModel(user, [.. roles]),
             };
 
@@ -278,7 +274,7 @@ namespace FitMate.Web.Controllers
         public async Task<ActionResult> Logout()
         {
             var revokedAtUtc = DateTime.UtcNow;
-            var accessToken = Request.Cookies["AccessToken"];
+            var accessToken = Request.Cookies["Token"] ?? Request.Cookies["AccessToken"];
             var refreshToken = Request.Cookies["RefreshToken"];
 
             await RevokeAccessTokenIfActiveAsync(accessToken, revokedAtUtc);
@@ -399,6 +395,7 @@ namespace FitMate.Web.Controllers
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
                 new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             };
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -435,12 +432,13 @@ namespace FitMate.Web.Controllers
                 Expires = DateTimeOffset.UtcNow.AddDays(UserService.ApplicationSettings.RefreshTokenExpirationDays),
             };
 
-            Response.Cookies.Append("AccessToken", token, accessCookieOptions);
+            Response.Cookies.Append("Token", token, accessCookieOptions);
             Response.Cookies.Append("RefreshToken", refreshToken, refreshCookieOptions);
         }
 
         private void ClearAuthCookies()
         {
+            Response.Cookies.Delete("Token");
             Response.Cookies.Delete("AccessToken");
             Response.Cookies.Delete("RefreshToken");
         }

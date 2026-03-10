@@ -8,12 +8,63 @@ export namespace Enums {
 		Admin = 2
 	}
 }
+export namespace JsonModels.MuscleGroups {
+	export interface MuscleGroupModel
+	{
+		id: number;
+		name: string;
+	}
+}
+export namespace JsonModels.Exercises {
+	export interface CreateExerciseRequest
+	{
+		name: string;
+		slug: string;
+		description?: string;
+		imageUrl?: string;
+		videoUrl?: string;
+		primaryMuscleGroupId: number;
+		secondaryMuscleGroupId?: number;
+	}
+	export interface ExerciseModel
+	{
+		id: number;
+		userId?: number;
+		name: string;
+		slug: string;
+		description?: string;
+		imageUrl?: string;
+		videoUrl?: string;
+		primaryMuscleGroupId: number;
+		secondaryMuscleGroupId?: number;
+		dateCreated: string;
+		dateModified?: string;
+	}
+	export interface ExerciseQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+		isGlobal?: boolean;
+		userId?: number;
+	}
+}
+export namespace JsonModels.Common {
+	export interface PagedRequest
+	{
+		page: number;
+		pageSize: number;
+	}
+	export interface PagedResponse<T>
+	{
+		items: T[];
+		totalCount: number;
+		page: number;
+		pageSize: number;
+	}
+}
 export namespace JsonModels.Auth {
 	export interface AuthResponse
 	{
 		success: boolean;
-		token?: string;
-		refreshToken?: string;
 		message?: string;
 		user?: JsonModels.Auth.UserModel;
 	}
@@ -21,10 +72,6 @@ export namespace JsonModels.Auth {
 	{
 		email: string;
 		password: string;
-	}
-	export interface RefreshTokenRequest
-	{
-		refreshToken?: string;
 	}
 	export interface RegisterRequest
 	{

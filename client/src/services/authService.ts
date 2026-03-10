@@ -1,25 +1,32 @@
-import type { JsonData, JsonModels } from "@/types/backend";
+import type {
+  AuthResponse,
+  JsonData,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+  User,
+} from "@/types";
 import api from "@/lib/api";
 
 export const authService = {
-  async login(payload: JsonModels.Auth.LoginRequest) {
-    return api.post<JsonData<JsonModels.Auth.AuthResponse>>("auth/login", payload);
+  async login(payload: LoginRequest) {
+    return api.post<JsonData<AuthResponse>>("auth/login", payload);
   },
 
-  async register(payload: JsonModels.Auth.RegisterRequest) {
-    return api.post<JsonData<JsonModels.Auth.AuthResponse>>("auth/register", payload);
+  async register(payload: RegisterRequest) {
+    return api.post<JsonData<AuthResponse>>("auth/register", payload);
   },
 
-  async refresh(refreshToken: string) {
-    return api.post<JsonData<JsonModels.Auth.AuthResponse>>("auth/refresh", { refreshToken });
+  async refresh() {
+    return api.post<JsonData<AuthResponse>>("auth/refresh");
   },
 
   async getCurrentUser() {
-    return api.get<JsonData<JsonModels.Auth.UserModel>>("auth/current-user");
+    return api.get<JsonData<User>>("auth/current-user");
   },
 
-  async updateProfile(payload: JsonModels.Auth.UpdateProfileRequest) {
-    return api.put<JsonData<JsonModels.Auth.UserModel>>("auth/profile", payload);
+  async updateProfile(payload: UpdateProfileRequest) {
+    return api.put<JsonData<User>>("auth/profile", payload);
   },
 
   async logout() {

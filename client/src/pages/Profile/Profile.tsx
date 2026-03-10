@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FC, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { useUserStore } from "@/stores/userStore";
 
@@ -30,10 +29,7 @@ function valuesAreEqual(a: ProfileFormValues, b: ProfileFormValues): boolean {
 }
 
 const Profile: FC = () => {
-  const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
-  const isInitialized = useUserStore((state) => state.isInitialized);
-  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
   const isLoading = useUserStore((state) => state.isLoading);
   const error = useUserStore((state) => state.error);
   const updateProfile = useUserStore((state) => state.updateProfile);
@@ -52,12 +48,6 @@ const Profile: FC = () => {
   useEffect(() => {
     setFormValues(initialFormValues);
   }, [initialFormValues]);
-
-  useEffect(() => {
-    if (isInitialized && !isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, isInitialized, navigate]);
 
   const isDirty = useMemo(
     () => !valuesAreEqual(formValues, initialFormValues),

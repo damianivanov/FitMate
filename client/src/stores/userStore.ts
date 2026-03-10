@@ -1,17 +1,10 @@
 import { create } from "zustand";
 import axios from "axios";
-import type { JsonModels } from "@/types/backend";
+import type { LoginRequest, RegisterRequest, UpdateProfileRequest, User } from "@/types";
 import { authService } from "@/services/authService";
-
-const SESSION_FLAG_KEY = "fitmate_has_session";
-
-type UserModel = JsonModels.Auth.UserModel;
-type LoginRequest = JsonModels.Auth.LoginRequest;
-type RegisterRequest = JsonModels.Auth.RegisterRequest;
-type UpdateProfileRequest = JsonModels.Auth.UpdateProfileRequest;
-
-type UserStoreState = {
-  user: UserModel | null;
+import { isAdmin as hasAdminRole } from "@/lib/access";
+export type UserStoreState = {
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isInitialized: boolean;
@@ -23,18 +16,6 @@ type UserStoreState = {
   fetchCurrentUser: () => Promise<boolean>;
   logout: () => Promise<void>;
 };
-
-function hasSessionFlag(): boolean {
-  return localStorage.getItem(SESSION_FLAG_KEY) === "1";
-}
-
-function markSessionPresent(): void {
-  localStorage.setItem(SESSION_FLAG_KEY, "1");
-}
-
-function clearSessionFlag(): void {
-  localStorage.removeItem(SESSION_FLAG_KEY);
-}
 
 export const useUserStore = create<UserStoreState>((set, get) => ({
   user: null,
@@ -48,18 +29,22 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
       return;
     }
 
-    if (!hasSessionFlag()) {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isInitialized: true,
-      });
-      return;
-    }
-
     set({ isLoading: true, error: null });
 
-    const isFetched = await get().fetchCurrentUser();
+    let isFetched = await get().fetchCurrentUser();
+
+    // current-user can return anonymous payload (id=0) instead of 401.
+    // Try one silent refresh to restore access token from refresh cookie.
+    if (!isFetched) {
+      try {
+        const refreshResponse = await authService.refresh();
+        if (refreshResponse.data.success) {
+          isFetched = await get().fetchCurrentUser();
+        }
+      } catch {
+        // Not authenticated or refresh expired; remain logged out.
+      }
+    }
 
     set({
       isInitialized: true,
@@ -82,8 +67,6 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
         });
         return false;
       }
-
-      markSessionPresent();
 
       const isFetched = await get().fetchCurrentUser();
 
@@ -124,7 +107,6 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
         return false;
       }
 
-      clearSessionFlag();
       set({
         user: null,
         isAuthenticated: false,
@@ -186,17 +168,12 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
   },
 
   fetchCurrentUser: async () => {
-    // Skip current-user call when there is no active session marker.
-    if (!hasSessionFlag()) {
-      return false;
-    }
-
     try {
       const response = await authService.getCurrentUser();
       const result = response.data;
       const user = result.data;
 
-      if (!result.success || !user) {
+      if (!result.success || !user || user.id <= 0) {
         set({
           user: null,
           isAuthenticated: false,
@@ -213,7 +190,6 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
       return true;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        clearSessionFlag();
         set({
           user: null,
           isAuthenticated: false,
@@ -230,15 +206,12 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
   },
 
   logout: async () => {
-    if (hasSessionFlag()) {
-      try {
-        await authService.logout();
-      } catch {
-        // Client state should still be cleared even if server logout fails.
-      }
+    try {
+      await authService.logout();
+    } catch {
+      // Client state should still be cleared even if server logout fails.
     }
 
-    clearSessionFlag();
     set({
       user: null,
       isAuthenticated: false,
@@ -246,3 +219,6 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
     });
   },
 }));
+
+export const userRoles = (state: UserStoreState) => state.user?.roles ?? [];
+export const isAdmin = (state: UserStoreState) => hasAdminRole(state.user);

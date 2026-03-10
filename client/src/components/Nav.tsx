@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.svg";
-import { useUserStore } from "@/stores/userStore";
+import { isAdmin, useUserStore } from "@/stores/userStore";
 
 function buildDisplayName(firstName?: string, lastName?: string): string {
   return [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ").trim();
@@ -25,10 +25,10 @@ function buildInitials(firstName?: string, lastName?: string, email?: string): s
 }
 
 export default function Nav() {
-  const location = useLocation();
   const isAuthenticated = useUserStore((state) => state.isAuthenticated);
   const isInitialized = useUserStore((state) => state.isInitialized);
   const user = useUserStore((state) => state.user);
+  const isAdminUser = useUserStore(isAdmin);
   const logout = useUserStore((state) => state.logout);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -48,10 +48,6 @@ export default function Nav() {
     () => buildInitials(user?.firstName, user?.lastName, user?.email),
     [user?.firstName, user?.lastName, user?.email],
   );
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname]);
 
   useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
@@ -120,9 +116,20 @@ export default function Nav() {
                 </div>
 
                 <div className="pt-0">
+                  {isAdminUser && (
+                    <Link
+                      to="/management"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block px-4 py-2 text-sm font-medium text-slate-800 hover:bg-white/45"
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <Link
                     to="/profile"
                     role="menuitem"
+                    onClick={() => setIsMenuOpen(false)}
                     className="block px-4 py-2 text-sm font-medium text-slate-800 hover:bg-white/45"
                   >
                     Profile

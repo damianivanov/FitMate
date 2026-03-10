@@ -1,6 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
-const SESSION_FLAG_KEY = "fitmate_has_session";
 const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || "/api";
 axios.defaults.baseURL = apiBaseUrl;
 axios.defaults.headers.common["Content-Type"] = "application/json";
@@ -29,21 +28,6 @@ const processQueue = (error: Error | null = null) => {
   });
   failedQueue = [];
 };
-
-api.interceptors.request.use((config) => {
-  const url = (config.url || "").toLowerCase();
-  const isCurrentUserEndpoint = url.includes("current-user");
-
-  if (isCurrentUserEndpoint) {
-    const hasSession = localStorage.getItem(SESSION_FLAG_KEY) === "1";
-    if (!hasSession) {
-      // Prevent current-user network calls when no token is available.
-      return Promise.reject(new AxiosError("Missing auth session", "ERR_MISSING_SESSION", config));
-    }
-  }
-
-  return config;
-});
 
 // Response Interceptor: Handle 401 and refresh token automatically.
 api.interceptors.response.use(
@@ -77,26 +61,15 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      const hasSession = localStorage.getItem(SESSION_FLAG_KEY) === "1";
-      if (!hasSession) {
-        isRefreshing = false;
-        return Promise.reject(error);
-      }
-
       originalRequest._retry = true;
       isRefreshing = true;
       refreshAttempts++;
 
       try {
         // Refresh using HttpOnly cookie (server reads refresh token from cookie).
-        const response = await axios.post(
-          `${apiBaseUrl}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
+        const response = await api.post("auth/refresh");
 
         if (response.status === 200 && response.data?.success) {
-          localStorage.setItem(SESSION_FLAG_KEY, "1");
           isRefreshing = false;
           refreshAttempts = 0;
           processQueue();
@@ -106,7 +79,6 @@ api.interceptors.response.use(
 
         throw new Error("Refresh failed");
       } catch (refreshError) {
-        localStorage.removeItem(SESSION_FLAG_KEY);
         isRefreshing = false;
         refreshAttempts = 0;
         processQueue(refreshError as Error);
