@@ -10,6 +10,7 @@ internal class MuscleGroupConfiguration : BaseConfiguration<MuscleGroup>
     public override void Configure(EntityTypeBuilder<MuscleGroup> builder)
     {
         base.Configure(builder);
+        builder.Property(x => x.ImageUrl).HasMaxLength(2048).IsRequired(false);
         builder.HasIndex(x => x.Name).IsUnique();
     }
 }

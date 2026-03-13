@@ -1,28 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.svg";
+import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import { isAdmin, useUserStore } from "@/stores/userStore";
-
-function buildDisplayName(firstName?: string, lastName?: string): string {
-  return [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ").trim();
-}
-
-function buildInitials(firstName?: string, lastName?: string, email?: string): string {
-  const first = firstName?.trim() ?? "";
-  const last = lastName?.trim() ?? "";
-
-  if (first || last) {
-    const firstInitial = first.charAt(0);
-    const secondInitial = last.charAt(0) || first.charAt(1);
-    const initials = `${firstInitial}${secondInitial}`.trim().toUpperCase();
-    if (initials) {
-      return initials;
-    }
-  }
-
-  const prefix = (email ?? "").split("@")[0].replace(/[^A-Za-z0-9]/g, "");
-  return prefix.slice(0, 2).toUpperCase() || "U";
-}
 
 export default function Nav() {
   const isAuthenticated = useUserStore((state) => state.isAuthenticated);
@@ -31,11 +11,18 @@ export default function Nav() {
   const isAdminUser = useUserStore(isAdmin);
   const logout = useUserStore((state) => state.logout);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const handleLogout = () => {
     logout();
+    setIsMenuOpen(false);
+  };
+
+  const handleToggleMenu = () => {
+    setIsMenuOpen((isOpen) => !isOpen);
+  };
+
+  const handleCloseMenu = () => {
     setIsMenuOpen(false);
   };
 
@@ -66,25 +53,10 @@ export default function Nav() {
     };
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => {
-      setIsScrolled(window.scrollY > 12);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, []);
-
   return (
-    <nav className="sticky top-0 z-50 flex justify-center px-2 pt-3 md:px-4 md:pt-4">
+    <nav className="z-50 flex justify-center px-2 pt-3 md:px-4 md:pt-4">
       <div
-        className={`liquid-surface liquid-nav flex items-center justify-between rounded-3xl px-4 py-3 md:px-5 w-4/5 ${
-          isScrolled ? "is-scrolled" : "is-top"
-        }`}
+        className='liquid-surface liquid-nav flex items-center justify-between rounded-3xl px-4 py-3 md:px-5 w-4/5'
       >
         <Link to="/" className="flex items-center gap-2.5 text-lg font-extrabold text-slate-900 transition-opacity hover:opacity-80">
           <img src={logo} alt="FitMate" className="w-12 h-12" />
@@ -97,7 +69,7 @@ export default function Nav() {
           <div className="relative" ref={menuRef}>
             <button
               type="button"
-              onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+              onClick={handleToggleMenu}
               className="liquid-pill flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-slate-800"
               aria-haspopup="menu"
               aria-expanded={isMenuOpen}
@@ -107,7 +79,7 @@ export default function Nav() {
             </button>
 
             {isMenuOpen && (
-              <div className="liquid-surface absolute right-0 mt-5 w-48 rounded-2xl p-0" role="menu">
+              <div className="liquid-surface liquid-menu absolute right-0 mt-5 w-48 rounded-2xl p-0" role="menu">
                 <div className="px-3 py-2 border-b border-white/30">
                   <p className="text-sm font-semibold text-slate-900">
                     {displayName || "No name set"}
@@ -120,7 +92,7 @@ export default function Nav() {
                     <Link
                       to="/management"
                       role="menuitem"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={handleCloseMenu}
                       className="block px-4 py-2 text-sm font-medium text-slate-800 hover:bg-white/45"
                     >
                       Admin
@@ -129,7 +101,7 @@ export default function Nav() {
                   <Link
                     to="/profile"
                     role="menuitem"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={handleCloseMenu}
                     className="block px-4 py-2 text-sm font-medium text-slate-800 hover:bg-white/45"
                   >
                     Profile

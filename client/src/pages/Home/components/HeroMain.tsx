@@ -3,6 +3,9 @@ import { useNavigate } from "react-router";
 
 export default function HeroMain() {
   const navigate = useNavigate();
+  const handleOpenFitMate = () => {
+    navigate("/");
+  };
 
   return (
     <div className="liquid-surface relative overflow-hidden rounded-3xl p-8 md:p-10">
@@ -22,7 +25,7 @@ export default function HeroMain() {
       </p>
 
       <div className="mt-8 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <PrimaryButton className="w-full md:w-auto" onClick={() => navigate("/")}>
+        <PrimaryButton className="w-full md:w-auto" onClick={handleOpenFitMate}>
           Open FitMate
         </PrimaryButton>
 

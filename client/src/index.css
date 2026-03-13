@@ -104,17 +104,16 @@ input:focus {
   transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
 
-.liquid-nav.is-top {
+.liquid-nav {
   background: linear-gradient(132deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.1));
   border-color: rgba(255, 255, 255, 0.42);
   box-shadow: 0 10px 30px rgba(23, 52, 87, 0.11), inset 0 -1px 0 rgba(255, 255, 255, 0.66);
 }
 
-.liquid-nav.is-scrolled {
-  background: linear-gradient(132deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.4));
-  border-color: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 22px 48px rgba(23, 52, 87, 0.24), inset 0 -1px 0 rgba(255, 255, 255, 0.78);
-  transform: translateY(-1px);
+.liquid-menu {
+  background: linear-gradient(136deg, rgba(247, 252, 255, 0.64), rgba(231, 242, 254, 0.96));
+  border-color: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 32px rgba(23, 52, 87, 0.2), inset 0 -1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .liquid-pill {
@@ -141,6 +140,7 @@ input:focus {
   caret-color: #0f172a;
   user-select: text;
   -webkit-user-select: text;
+  padding: 12px 20px;
 }
 
 .liquid-input::placeholder {
@@ -203,6 +203,41 @@ textarea {
 .liquid-input:focus,
 .liquid-input:active {
   cursor: text !important;
+}
+
+.liquid-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(72, 121, 176, 0.66) rgba(255, 255, 255, 0.3);
+}
+
+.liquid-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.liquid-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.liquid-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(180deg, rgba(103, 175, 255, 0.84), rgba(61, 120, 196, 0.88));
+}
+
+.liquid-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(80, 152, 235, 0.92), rgba(47, 101, 172, 0.96));
+}
+
+.liquid-scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.liquid-scrollbar-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 @keyframes liquidFloatA {

@@ -1,5 +1,7 @@
+import { getCurrentYear } from "@/lib/helpers";
+
 export default function HomeFooter() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = getCurrentYear();
 
   return (
     <div className="px-4 pb-4">

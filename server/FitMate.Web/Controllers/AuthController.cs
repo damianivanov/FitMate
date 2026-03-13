@@ -274,10 +274,10 @@ namespace FitMate.Web.Controllers
         public async Task<ActionResult> Logout()
         {
             var revokedAtUtc = DateTime.UtcNow;
-            var accessToken = Request.Cookies["Token"] ?? Request.Cookies["AccessToken"];
+            var token = Request.Cookies["Token"];
             var refreshToken = Request.Cookies["RefreshToken"];
 
-            await RevokeAccessTokenIfActiveAsync(accessToken, revokedAtUtc);
+            await RevokeTokenIfActiveAsync(token, revokedAtUtc);
             await RevokeRefreshTokenIfActiveAsync(refreshToken, revokedAtUtc);
 
             await DbContext.SaveChangesAsync(UserService.LoggedInUserId);
@@ -369,6 +369,7 @@ namespace FitMate.Web.Controllers
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
                 new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             };
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -439,7 +440,6 @@ namespace FitMate.Web.Controllers
         private void ClearAuthCookies()
         {
             Response.Cookies.Delete("Token");
-            Response.Cookies.Delete("AccessToken");
             Response.Cookies.Delete("RefreshToken");
         }
 
@@ -480,19 +480,19 @@ namespace FitMate.Web.Controllers
             return null;
         }
 
-        private async Task RevokeAccessTokenIfActiveAsync(string? accessToken, DateTime revokedAtUtc)
+        private async Task RevokeTokenIfActiveAsync(string? token, DateTime revokedAtUtc)
         {
-            if (string.IsNullOrWhiteSpace(accessToken))
+            if (string.IsNullOrWhiteSpace(token))
             {
                 return;
             }
 
-            var storedAccessToken = await DbContext.Tokens
-                .FirstOrDefaultAsync(x => x.Value == accessToken && x.RevokedAtUtc == null);
+            var storedToken = await DbContext.Tokens
+                .FirstOrDefaultAsync(x => x.Value == token && x.RevokedAtUtc == null);
 
-            if (storedAccessToken != null)
+            if (storedToken != null)
             {
-                storedAccessToken.RevokedAtUtc = revokedAtUtc;
+                storedToken.RevokedAtUtc = revokedAtUtc;
             }
         }
 

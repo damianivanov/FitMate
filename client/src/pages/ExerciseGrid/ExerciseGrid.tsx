@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEventHandler } from "react";
 import type { GridPaginationModel } from "@mui/x-data-grid";
 import { useSearchParams } from "react-router-dom";
 import { EntityGrid } from "@/shared/components/tables";
 import { exerciseService } from "@/services/exerciseService";
-import { muscleGroupService } from "@/services/muscleGroupService";
-import type { Exercise, MuscleGroup, CreateExerciseRequest } from "@/types";
+import type { Exercise, CreateExerciseRequest } from "@/types";
+import { useMuscleGroups } from "@/hooks/useMuscleGroups";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { createExerciseGridColumns } from "./columns";
 import { ExerciseEditorModal, type ExerciseFormValues } from "./components/ExerciseEditorModal";
 
@@ -16,15 +17,6 @@ const emptyFormValues: ExerciseFormValues = {
   primaryMuscleGroupId: "",
   secondaryMuscleGroupId: "",
 };
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
 
 function toFormValues(item: Exercise): ExerciseFormValues {
   return {
@@ -51,20 +43,20 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
 export default function ExerciseGrid() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState<Exercise[]>([]);
-  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([]);
+  const { muscleGroups, error: muscleGroupsError } = useMuscleGroups();
   const [rowCount, setRowCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput.trim());
   const [isSaving, setIsSaving] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formValues, setFormValues] = useState<ExerciseFormValues>(emptyFormValues);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
-    pageSize: 10,
+    pageSize: 100,
   });
 
   const loadRows = useCallback(async () => {
@@ -75,7 +67,7 @@ export default function ExerciseGrid() {
       const response = await exerciseService.list({
         page: paginationModel.page + 1,
         pageSize: paginationModel.pageSize,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         isGlobal: true,
       });
 
@@ -96,31 +88,15 @@ export default function ExerciseGrid() {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel.page, paginationModel.pageSize, search]);
+  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize]);
 
   useEffect(() => {
     void loadRows();
   }, [loadRows]);
 
   useEffect(() => {
-    const loadMuscleGroups = async () => {
-      try {
-        const response = await muscleGroupService.getLookup();
-        const result = response.data;
-
-        if (!result.success || !result.data) {
-          setPageError(result.error ?? "Unable to load muscle groups.");
-          return;
-        }
-
-        setMuscleGroups(result.data);
-      } catch {
-        setPageError("Unable to load muscle groups.");
-      }
-    };
-
-    void loadMuscleGroups();
-  }, []);
+    setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
+  }, [debouncedSearch]);
 
   const openCreateEditor = useCallback(() => {
     setEditingId(null);
@@ -203,39 +179,12 @@ export default function ExerciseGrid() {
     [onDelete, openEditEditor, resolveMuscleGroupName],
   );
 
-  const onSearchInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     setSearchInput(event.target.value);
   };
 
-  const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSearch(searchInput.trim());
-    setPaginationModel((current) => ({ ...current, page: 0 }));
-  };
-
-  const onFormFieldChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = event.target;
-
-    setFormValues((current) => {
-      if (name === "name" && !editingId) {
-        return {
-          ...current,
-          name: value,
-          slug: slugify(value),
-        };
-      }
-
-      return {
-        ...current,
-        [name]: value,
-      };
-    });
-  };
-
-  const onSave = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const payload = toRequest(formValues);
+  const onSave = async (values: ExerciseFormValues) => {
+    const payload = toRequest(values);
     if (!payload.name || !payload.slug || !payload.primaryMuscleGroupId) {
       setEditorError("Name, slug and primary muscle group id are required.");
       return;
@@ -263,9 +212,11 @@ export default function ExerciseGrid() {
     }
   };
 
+  const visiblePageError = pageError ?? muscleGroupsError;
+
   return (
     <div className="w-full flex-1 px-5 py-8">
-      <div className="mx-auto w-full max-w-6xl space-y-6">
+      <div className="mx-auto w-full max-w-[79dvw] space-y-6">
         <header className="space-y-2">
           <h1 className="text-3xl font-extrabold text-slate-900">Exercise Grid</h1>
           <p className="text-sm text-slate-600">Global exercise CRUD for management users.</p>
@@ -273,31 +224,23 @@ export default function ExerciseGrid() {
 
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <form onSubmit={onSearchSubmit} className="flex w-full max-w-md items-center gap-2">
-              <input
-                value={searchInput}
-                onChange={onSearchInputChange}
-                placeholder="Search by name or slug"
-                className="liquid-input w-full rounded-xl px-3 py-2.5"
-              />
-              <button
-                type="submit"
-                className="liquid-primary-btn rounded-xl px-4 py-2.5 text-sm font-semibold"
-              >
-                Search
-              </button>
-            </form>
+            <input
+              value={searchInput}
+              onChange={onSearchInputChange}
+              placeholder="Search by name or slug"
+              className="liquid-input w-full max-w-md rounded-full px-3 py-2.5"
+            />
 
             <button
               type="button"
-              className="liquid-pill rounded-xl px-4 py-2.5 text-sm font-semibold"
+              className="liquid-pill rounded-full px-4 py-2.5 text-sm font-semibold"
               onClick={openCreateEditor}
             >
               New Exercise
             </button>
           </div>
 
-          {pageError && <p className="mb-4 text-sm text-red-700">{pageError}</p>}
+          {visiblePageError && <p className="mb-4 text-sm text-red-700">{visiblePageError}</p>}
 
           <EntityGrid
             rows={rows}
@@ -320,7 +263,6 @@ export default function ExerciseGrid() {
         error={editorError}
         onClose={closeEditor}
         onSubmit={onSave}
-        onFieldChange={onFormFieldChange}
       />
     </div>
   );

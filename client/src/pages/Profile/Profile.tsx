@@ -103,7 +103,7 @@ const Profile: FC = () => {
               value={formValues.firstName}
               onChange={onFieldChange}
               autoComplete="given-name"
-              className="liquid-input w-full rounded-xl px-3 py-2.5 mt-2"
+              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
               placeholder="Enter your first name"
             />
           </div>
@@ -118,7 +118,7 @@ const Profile: FC = () => {
               value={formValues.lastName}
               onChange={onFieldChange}
               autoComplete="family-name"
-              className="liquid-input w-full rounded-xl px-3 py-2.5 mt-2"
+              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
               placeholder="Enter your last name"
             />
           </div>
@@ -131,7 +131,7 @@ const Profile: FC = () => {
               id="email"
               readOnly
               value={user?.email ?? ""}
-              className="liquid-input w-full rounded-xl px-3 py-2.5 mt-2 text-slate-500 cursor-not-allowed"
+              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2 text-slate-500 cursor-not-allowed"
             />
           </div>
 

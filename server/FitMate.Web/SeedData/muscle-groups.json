@@ -1,0 +1,94 @@
+[
+    {
+        "name":  "Abductors",
+        "imageUrl":  "/images/muscle-groups/abductors.png"
+    },
+    {
+        "name":  "Abs",
+        "imageUrl":  "/images/muscle-groups/abs.png"
+    },
+    {
+        "name":  "Adductors",
+        "imageUrl":  "/images/muscle-groups/adductors.png"
+    },
+    {
+        "name":  "Back",
+        "imageUrl":  "/images/muscle-groups/upper-back.png"
+    },
+    {
+        "name":  "Biceps",
+        "imageUrl":  "/images/muscle-groups/biceps.png"
+    },
+    {
+        "name":  "Calves",
+        "imageUrl":  "/images/muscle-groups/calves.png"
+    },
+    {
+        "name":  "Chest",
+        "imageUrl":  "/images/muscle-groups/chest.png"
+    },
+    {
+        "name":  "Forearms",
+        "imageUrl":  "/images/muscle-groups/forearms.png"
+    },
+    {
+        "name":  "Front Deltoids",
+        "imageUrl":  "/images/muscle-groups/shoulder.png"
+    },
+    {
+        "name":  "Full Body",
+        "imageUrl":  "/images/muscle-groups/full-body.png"
+    },
+    {
+        "name":  "Glutes",
+        "imageUrl":  "/images/muscle-groups/glutes.png"
+    },
+    {
+        "name":  "Hamstrings",
+        "imageUrl":  "/images/muscle-groups/hamstrings.png"
+    },
+    {
+        "name":  "Lateral Deltoids",
+        "imageUrl":  "/images/muscle-groups/shoulder.png"
+    },
+    {
+        "name":  "Lats",
+        "imageUrl":  "/images/muscle-groups/lats.png"
+    },
+    {
+        "name":  "Lower Back",
+        "imageUrl":  "/images/muscle-groups/lower-back.png"
+    },
+    {
+        "name":  "Obliques",
+        "imageUrl":  "/images/muscle-groups/obliques.png"
+    },
+    {
+        "name":  "Quads",
+        "imageUrl":  "/images/muscle-groups/quads.png"
+    },
+    {
+        "name":  "Rear Deltoids",
+        "imageUrl":  "/images/muscle-groups/rear-delts.png"
+    },
+    {
+        "name":  "Rhomboids",
+        "imageUrl":  "/images/muscle-groups/upper-back.png"
+    },
+    {
+        "name":  "Shoulders",
+        "imageUrl":  "/images/muscle-groups/shoulder.png"
+    },
+    {
+        "name":  "Traps",
+        "imageUrl":  "/images/muscle-groups/neck.png"
+    },
+    {
+        "name":  "Triceps",
+        "imageUrl":  "/images/muscle-groups/triceps.png"
+    },
+    {
+        "name":  "Upper Chest",
+        "imageUrl":  "/images/muscle-groups/chest.png"
+    }
+]

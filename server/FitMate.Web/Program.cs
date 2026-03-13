@@ -109,7 +109,7 @@ builder.Services
 
                 if (string.IsNullOrEmpty(token))
                 {
-                    token = context.Request.Cookies["Token"] ?? context.Request.Cookies["AccessToken"];
+                    token = context.Request.Cookies["Token"];
                 }
 
                 if (!string.IsNullOrEmpty(token))

@@ -1,11 +1,13 @@
 export { UserRole } from "./Enums/UserRole";
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { CreateExerciseRequest } from "./Exercises/CreateExerciseRequest";
+export type { CreateMuscleGroupRequest } from "./MuscleGroups/CreateMuscleGroupRequest";
 export type { ExerciseModel } from "./Exercises/ExerciseModel";
 export type { ExerciseQueryRequest } from "./Exercises/ExerciseQueryRequest";
 export type { JsonData } from "./JsonData";
 export type { LoginRequest } from "./Auth/LoginRequest";
 export type { MuscleGroupModel } from "./MuscleGroups/MuscleGroupModel";
+export type { MuscleGroupQueryRequest } from "./MuscleGroups/MuscleGroupQueryRequest";
 export type { PagedRequest } from "./Common/PagedRequest";
 export type { PagedResponse } from "./Common/PagedResponse";
 export type { RegisterRequest } from "./Auth/RegisterRequest";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { useUserStore } from "@/stores/userStore";
@@ -26,6 +26,14 @@ export default function Login() {
     }
   };
 
+  const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setEmail(event.target.value);
+  };
+
+  const handlePasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setPassword(event.target.value);
+  };
+
   return (
     <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
       <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
@@ -44,13 +52,13 @@ export default function Login() {
               type="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={handleEmailChange}
               autoComplete="username"
               inputMode="email"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="liquid-input w-full rounded-xl px-3 py-2.5 mt-2"
+              className="liquid-input w-full rounded-full  px-3 py-2.5 mt-2"
             />
           </div>
 
@@ -64,9 +72,9 @@ export default function Login() {
               type="password"
               required
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={handlePasswordChange}
               autoComplete="current-password"
-              className="liquid-input w-full rounded-xl px-3 py-2.5 mt-2"
+              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
             />
           </div>
 

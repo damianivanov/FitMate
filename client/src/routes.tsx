@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { Outlet, createBrowserRouter } from "react-router-dom";
 import Layout from "@/components/Layout";
 import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import ExerciseGrid from "./pages/ExerciseGrid";
+import MuscleGroupGrid from "./pages/MuscleGroupGrid";
 
 export const router = createBrowserRouter([
   {
@@ -38,17 +39,23 @@ export const router = createBrowserRouter([
         path: "management",
         element: (
           <AccessGate requireAuthenticated allowRoles={[UserRole.Admin]}>
-            <AdminDashboard />
+            <Outlet />
           </AccessGate>
         ),
-      },
-      {
-        path: "management/exercises",
-        element: (
-          <AccessGate requireAuthenticated allowRoles={[UserRole.Admin]}>
-            <ExerciseGrid />
-          </AccessGate>
-        ),
+        children: [
+          {
+            index: true,
+            element: <AdminDashboard />,
+          },
+          {
+            path: "exercises",
+            element: <ExerciseGrid />,
+          },
+          {
+            path: "muscle-groups",
+            element: <MuscleGroupGrid />,
+          },
+        ],
       },
     ],
   },

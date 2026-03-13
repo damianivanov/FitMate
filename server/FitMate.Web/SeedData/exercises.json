@@ -1,0 +1,1002 @@
+[
+    {
+        "userId":  null,
+        "name":  "Incline Dumbbell Press",
+        "slug":  "incline-dumbbell-press",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/096159fc-b401-42f4-a13d-b02871d8f5c4/20250516T192011921Z-IMG_9484.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Pulley Row",
+        "slug":  "pulley-row",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/0978b82d-722d-4ba4-9773-d9ae839b5196/20250507T225714486Z-pulley-row.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Back",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Super Horizontal Multi Press",
+        "slug":  "super-horizontal-multi-press",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/0979d2f3-e112-4dcf-87ee-ed83ae06c1b4/20250805T174510963Z-IMG_0210.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Chest"
+    },
+    {
+        "userId":  null,
+        "name":  "High Row",
+        "slug":  "high-row",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/09a5a68b-d527-4a86-b6f9-a060965bfc76/20250507T225512937Z-high-row.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Back",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Seated Chest Press",
+        "slug":  "seated-chest-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "T-bar row",
+        "slug":  "t-bar-row",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Back",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Crossover",
+        "slug":  "cable-crossover",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Front Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Abs Side to Side",
+        "slug":  "abs-side-to-side",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Abs",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Lateral Raise",
+        "slug":  "cable-lateral-raise",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/11d52e49-c3b5-4612-ab26-835762f6e889/20250510T160528551Z-IMG_9374.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lateral Deltoids",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Pec Deck",
+        "slug":  "pec-deck",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Pull-Through",
+        "slug":  "cable-pull-through",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Glutes",
+        "secondaryMuscleGroupName":  "Hamstrings"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Shoulder Press",
+        "slug":  "dumbbell-shoulder-press",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Deltoid Press Circular",
+        "slug":  "deltoid-press-circular",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Leg Curl",
+        "slug":  "leg-curl",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Hamstrings",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Incline Biceps Curl",
+        "slug":  "incline-biceps-curl",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/2828ccd5-3db4-4f7c-805e-7370314e45e4/20250714T122311747Z-IMG_0051.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Kettlebell Swing",
+        "slug":  "kettlebell-swing",
+        "description":  "Equipment: Kettlebell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Glutes",
+        "secondaryMuscleGroupName":  "Hamstrings"
+    },
+    {
+        "userId":  null,
+        "name":  "Abs Swing",
+        "slug":  "abs-swing",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Abs",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Lat Pulldown circular",
+        "slug":  "lat-pulldown-circular",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/2dd6fe08-e975-4922-8af8-dab10afea389/20250715T182533424Z-IMG_0065.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Rear Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Weighted Pull-ups",
+        "slug":  "weighted-pull-ups",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/30d51b09-5210-42e2-81cc-ccdb56995f96/20250507T230841082Z-IMG_9350.png",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Back"
+    },
+    {
+        "userId":  null,
+        "name":  "Calves Raises",
+        "slug":  "calves-raises",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Calves",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Woodchopper",
+        "slug":  "cable-woodchopper",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Obliques",
+        "secondaryMuscleGroupName":  "Abs"
+    },
+    {
+        "userId":  null,
+        "name":  "Kettlebell Goblet Squat",
+        "slug":  "kettlebell-goblet-squat",
+        "description":  "Equipment: Kettlebell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Biceps Curl",
+        "slug":  "cable-biceps-curl",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/36e404d7-6c6d-4e9e-9742-614b353e7062/20250517T183644578Z-26561101-Cable-One-Arm-Biceps-Curl-_VERSION-2__Upper-Arms_small.png",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Bulgarian Split Squat",
+        "slug":  "dumbbell-bulgarian-split-squat",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Squat",
+        "slug":  "barbell-squat",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Rope Triceps extensions",
+        "slug":  "rope-triceps-extensions",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Lateral Deltoid",
+        "slug":  "lateral-deltoid",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/3b25df97-d402-453b-b87a-52d4734bf4c2/20250507T225552798Z-lateral_deltoid.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lateral Deltoids",
+        "secondaryMuscleGroupName":  "Traps"
+    },
+    {
+        "userId":  null,
+        "name":  "Hammer Curls",
+        "slug":  "hammer-curls",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/3b83157f-da18-4c3b-b266-25c88acced68/20250527T192229329Z-IMG_9652.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Hip Adduction Machine",
+        "slug":  "hip-adduction-machine",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Adductors",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Standing Multi Flight",
+        "slug":  "standing-multi-flight",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Lateral Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Reverse Barbell Curl",
+        "slug":  "reverse-barbell-curl",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/4d3979c5-8de6-4e5b-ab9a-82869bf6daf0/20250508T192208981Z-IMG_9361.png",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Forearms",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Curl",
+        "slug":  "barbell-curl",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Super High Row",
+        "slug":  "super-high-row",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/53350045-1fca-40af-bc59-15ec2f663f41/20250507T225825525Z-super-high-row.jpg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Back",
+        "secondaryMuscleGroupName":  "Rear Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Shrug",
+        "slug":  "barbell-shrug",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Traps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Smith Machine Squat",
+        "slug":  "smith-machine-squat",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Biceps curl machine",
+        "slug":  "biceps-curl-machine",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Romanian Deadlift",
+        "slug":  "barbell-romanian-deadlift",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Hamstrings",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Preacher Curl",
+        "slug":  "preacher-curl",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/5d89f42f-140c-475e-9140-86b2342db7f4/20251119T184118109Z-IMG_2106.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Lat Pulldown",
+        "slug":  "lat-pulldown",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/5e16c67f-2e6d-4d28-9e65-98f30a04537e/20250514T182724262Z-IMG_9453.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Chest Fly",
+        "slug":  "dumbbell-chest-fly",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Front Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Assisted Pull-Up",
+        "slug":  "assisted-pull-up",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Deadlift",
+        "slug":  "barbell-deadlift",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Hamstrings",
+        "secondaryMuscleGroupName":  "Lower Back"
+    },
+    {
+        "userId":  null,
+        "name":  "Standing Total Arms",
+        "slug":  "standing-total-arms",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/6572641f-9bbf-40ff-921e-e8203517c5f7/20250507T225815539Z-standing_total_arms.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Dips",
+        "slug":  "dips",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  "Chest"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Hammer Curls",
+        "slug":  "cable-hammer-curls",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Lunge",
+        "slug":  "lunge",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Pullover Machine",
+        "slug":  "pullover-machine",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/742691be-6556-458f-9b77-74b838215b23/20250514T190350911Z-IMG_9460.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Chest"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable cross- back shoulder",
+        "slug":  "cable-cross-back-shoulder",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  "Back"
+    },
+    {
+        "userId":  null,
+        "name":  "Leg Extension",
+        "slug":  "leg-extension",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/81f81a69-20dd-4deb-98a1-e42859537f09/20250519T183742972Z-IMG_9513.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Single Arm Pushdown",
+        "slug":  "cable-single-arm-pushdown",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/82e203d2-e336-40ff-a61f-3e945fe33787/20250510T163239937Z-IMG_9378.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Row",
+        "slug":  "dumbbell-row",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Rhomboids"
+    },
+    {
+        "userId":  null,
+        "name":  "Vertical chest press circular",
+        "slug":  "vertical-chest-press-circular",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/842344a3-d5b1-4574-8f01-415c2d45f59f/20250510T154911729Z-IMG_9372.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Leg Press",
+        "slug":  "leg-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Biceps curl machine",
+        "slug":  "biceps-curl-machine-2",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/8d137653-684b-40c6-b0ea-73a3ade62041/20250709T180519955Z-IMG_0021.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Pectoral Machine",
+        "slug":  "pectoral-machine",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/8de18106-5498-4fd0-b762-bfa9f4dd7719/20250507T225752472Z-pectoral_machine.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Front Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Super Vertical Chest Press",
+        "slug":  "super-vertical-chest-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/8ef9e3fd-244d-4438-924f-ef4f797383c0/20250507T225625324Z-super_vertical_chest_press.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Romanian Deadlift with Dumbbells",
+        "slug":  "romanian-deadlift-with-dumbbells",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/904d40d8-d749-472e-9a35-68b8b0951389/20250519T190208555Z-IMG_9515.gif",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Deltoid Press",
+        "slug":  "deltoid-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/9050eb1d-707a-4be0-8802-e2f1df8c0cec/20250507T225528799Z-deltoid_press.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Pullover",
+        "slug":  "cable-pullover",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/91afb963-26ba-41c4-ad1f-c6f8b8ce8334/20250508T190825263Z-IMG_9359.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Rhomboids",
+        "secondaryMuscleGroupName":  "Lats"
+    },
+    {
+        "userId":  null,
+        "name":  "Hip Abduction Machine",
+        "slug":  "hip-abduction-machine",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Abductors",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Triceps Kickback",
+        "slug":  "dumbbell-triceps-kickback",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dual pulley row",
+        "slug":  "dual-pulley-row",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Rhomboids"
+    },
+    {
+        "userId":  null,
+        "name":  "Battle Ropes",
+        "slug":  "battle-ropes",
+        "description":  "Equipment: Other. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  "Forearms"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Overhead Press",
+        "slug":  "barbell-overhead-press",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Super Middle Chest Flight Machine",
+        "slug":  "super-middle-chest-flight-machine",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/9932813e-036e-429b-bd41-a485bdf384e4/20250507T225638083Z-super_middle_chest_flight_machine.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Shoulders"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Bench Press",
+        "slug":  "dumbbell-bench-press",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Plank",
+        "slug":  "plank",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Abs",
+        "secondaryMuscleGroupName":  "Transverse Abdominis"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Face Pull",
+        "slug":  "cable-face-pull",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Rear Deltoids",
+        "secondaryMuscleGroupName":  "Traps"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Triceps Pushdown",
+        "slug":  "cable-triceps-pushdown",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Hip Thrust",
+        "slug":  "barbell-hip-thrust",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Glutes",
+        "secondaryMuscleGroupName":  "Hamstrings"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Biceps Curl (2 Hands)",
+        "slug":  "cable-biceps-curl-2-hands",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  "Front Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Alternate Arm Curl 120",
+        "slug":  "alternate-arm-curl-120",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/b2e3b42b-0506-4a52-a287-ac4165bd5179/20250508T191617788Z-IMG_9360.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  "Forearms"
+    },
+    {
+        "userId":  null,
+        "name":  "Front Bar Raise",
+        "slug":  "front-bar-raise",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/b3247b7e-a6b4-4355-8d98-50d98511e30c/20251126T181114036Z-IMG_2187.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Front Deltoids",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Super Rowing",
+        "slug":  "super-rowing",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/b334b74b-cadb-482e-b565-63a7dda452ce/20250514T183539307Z-IMG_9454.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Back",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Bicep Curl",
+        "slug":  "dumbbell-bicep-curl",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Inclined chest press circular",
+        "slug":  "inclined-chest-press-circular",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Shoulders"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Bench Press",
+        "slug":  "barbell-bench-press",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Power Smith Machine Dual System",
+        "slug":  "power-smith-machine-dual-system",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/bc543320-f7f8-4237-8b92-3bf6e87e0bdf/20250510T161110150Z-IMG_9375.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Biceps two hand curl",
+        "slug":  "biceps-two-hand-curl",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Seated Row",
+        "slug":  "seated-row",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Rhomboids"
+    },
+    {
+        "userId":  null,
+        "name":  "Sled Push",
+        "slug":  "sled-push",
+        "description":  "Equipment: Other. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Full Body",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Pull-Up",
+        "slug":  "pull-up",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Biceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Lunge",
+        "slug":  "barbell-lunge",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Shoulder raises",
+        "slug":  "barbell-shoulder-raises",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Shoulders",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Goblet Squat",
+        "slug":  "dumbbell-goblet-squat",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Smith Machine Bench Press",
+        "slug":  "smith-machine-bench-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "Super Inclined chest press",
+        "slug":  "super-inclined-chest-press",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/d1226df1-d434-4120-b25c-f7f422b6c379/20251030T171445011Z-IMG_1992.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Front Deltoids"
+    },
+    {
+        "userId":  null,
+        "name":  "Super Shrug Machine",
+        "slug":  "super-shrug-machine",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Rhomboids",
+        "secondaryMuscleGroupName":  "Back"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Lateral Raise",
+        "slug":  "dumbbell-lateral-raise",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lateral Deltoids",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Deadlift",
+        "slug":  "dumbbell-deadlift",
+        "description":  "Equipment: Dumbbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Hamstrings",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Hyperextensions",
+        "slug":  "hyperextensions",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/d4f25445-dfa7-4e3d-b2ae-e43c9244ced0/20250902T064419578Z-IMG_0482.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lower Back",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Fly",
+        "slug":  "cable-fly",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/d63bcad6-3f85-43b0-b31d-be4514daada7/20250510T153813770Z-IMG_9371.png",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Super Inclined Bench Press",
+        "slug":  "super-inclined-bench-press",
+        "description":  "Equipment: Machine. Category: Strength.",
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/d707a124-64a9-433a-9dbc-f4c5d17268ec/20250507T225702137Z-super_inclined_bench_press.webp",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Upper Chest",
+        "secondaryMuscleGroupName":  "Shoulders"
+    },
+    {
+        "userId":  null,
+        "name":  "Dumbbell Shrugs",
+        "slug":  "dumbbell-shrugs",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Rhomboids",
+        "secondaryMuscleGroupName":  "Back"
+    },
+    {
+        "userId":  null,
+        "name":  "Plate Lateral Raises",
+        "slug":  "plate-lateral-raises",
+        "description":  null,
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lateral Deltoids",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Barbell Bent-Over Row",
+        "slug":  "barbell-bent-over-row",
+        "description":  "Equipment: Barbell. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Lats",
+        "secondaryMuscleGroupName":  "Rhomboids"
+    },
+    {
+        "userId":  null,
+        "name":  "Cable Overhead Triceps Extension",
+        "slug":  "cable-overhead-triceps-extension",
+        "description":  "Equipment: Cable. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Triceps",
+        "secondaryMuscleGroupName":  null
+    },
+    {
+        "userId":  null,
+        "name":  "Bodyweight Squat",
+        "slug":  "bodyweight-squat",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Quads",
+        "secondaryMuscleGroupName":  "Glutes"
+    },
+    {
+        "userId":  null,
+        "name":  "Push-Up",
+        "slug":  "push-up",
+        "description":  "Equipment: Bodyweight. Category: Strength.",
+        "imageUrl":  null,
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Chest",
+        "secondaryMuscleGroupName":  "Triceps"
+    },
+    {
+        "userId":  null,
+        "name":  "EZ Bar Curl",
+        "slug":  "ez-bar-curl",
+        "description":  null,
+        "imageUrl":  "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/fd94073f-10ef-4ee7-acc6-108a93c68cce/20250527T182416841Z-IMG_9643.jpeg",
+        "videoUrl":  null,
+        "primaryMuscleGroupName":  "Biceps",
+        "secondaryMuscleGroupName":  null
+    }
+]

@@ -9,10 +9,20 @@ export namespace Enums {
 	}
 }
 export namespace JsonModels.MuscleGroups {
+	export interface CreateMuscleGroupRequest
+	{
+		name: string;
+		imageUrl?: string;
+	}
 	export interface MuscleGroupModel
 	{
 		id: number;
 		name: string;
+		imageUrl?: string;
+	}
+	export interface MuscleGroupQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
 	}
 }
 export namespace JsonModels.Exercises {

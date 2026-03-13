@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { LuX } from "react-icons/lu";
 
 type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "default";
@@ -58,6 +58,10 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
     setIsClosing(true);
   };
 
+  const handleModalContentClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+  };
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
@@ -74,7 +78,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
         className={`liquid-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl transition-transform duration-200 ${
           isClosing ? "scale-95" : "scale-100"
         }`}
-        onClick={(event) => event.stopPropagation()}
+        onClick={handleModalContentClick}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-white/40 px-5 py-4">

@@ -1,5 +1,7 @@
-import type { ChangeEvent, FormEvent } from "react";
-import { Modal } from "@/shared/components";
+import { useEffect, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { LookupDropdown, Modal } from "@/shared/components";
+import { slugify } from "@/lib/helpers";
 import type { MuscleGroup } from "@/types";
 
 export type ExerciseFormValues = {
@@ -18,8 +20,7 @@ type ExerciseEditorModalProps = {
   muscleGroups: MuscleGroup[];
   error: string | null;
   onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onFieldChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onSubmit: (values: ExerciseFormValues) => Promise<void> | void;
 };
 
 export function ExerciseEditorModal({
@@ -31,10 +32,53 @@ export function ExerciseEditorModal({
   error,
   onClose,
   onSubmit,
-  onFieldChange,
 }: ExerciseEditorModalProps) {
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, dirtyFields },
+  } = useForm<ExerciseFormValues>({
+    defaultValues: values,
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    reset(values);
+  }, [isOpen, reset, values]);
+
+  const watchedName = watch("name");
+  useEffect(() => {
+    if (isEditing || dirtyFields.slug) {
+      return;
+    }
+
+    setValue("slug", slugify(watchedName), { shouldDirty: false });
+  }, [dirtyFields.slug, isEditing, setValue, watchedName]);
+
+  const primaryOptions = useMemo(
+    () =>
+      muscleGroups.map((group) => ({
+        value: String(group.id),
+        label: group.name,
+        imageUrl: group.imageUrl ?? undefined,
+      })),
+    [muscleGroups],
+  );
+  const secondaryOptions = useMemo(
+    () => [{ value: "", label: "None" }, ...primaryOptions],
+    [primaryOptions],
+  );
+
   const fieldClassName =
-    "liquid-input w-full rounded-xl border-white/70 px-3 py-2.5 outline-none focus:outline-none";
+    "liquid-input w-full rounded-full border-white/70 px-3 py-2.5 outline-none focus:outline-none";
+  const labelClassName = "block rounded-full pb-2";
 
   return (
     <Modal
@@ -43,90 +87,92 @@ export function ExerciseEditorModal({
       title={isEditing ? "Edit Exercise" : "Create Exercise"}
       maxWidth="2xl"
     >
-      <form className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 md:p-6" onSubmit={onSubmit}>
-        <label className="space-y-3 text-sm font-medium text-slate-700">
-          Name
-          </label>
+      <form className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 md:p-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="text-sm font-medium text-slate-700">
+          <label htmlFor="exercise-name" className={labelClassName}>Name</label>
           <input
-            name="name"
-            value={values.name}
-            onChange={onFieldChange}
+            id="exercise-name"
             className={fieldClassName}
-            required
+            {...register("name", { required: "Name is required." })}
           />
+          {errors.name ? <p className="text-sm text-red-700">{errors.name.message}</p> : null}
+        </div>
 
-        <label className="space-y-3 text-sm font-medium text-slate-700">
-          Slug
+        <div className="text-sm font-medium text-slate-700">
+          <label htmlFor="exercise-slug" className={labelClassName}>Slug</label>
           <input
-            name="slug"
-            value={values.slug}
-            onChange={onFieldChange}
+            id="exercise-slug"
             className={fieldClassName}
-            required
+            {...register("slug", { required: "Slug is required." })}
           />
-        </label>
+          {errors.slug ? <p className="text-sm text-red-700">{errors.slug.message}</p> : null}
+        </div>
 
-        <label className="space-y-3 text-sm font-medium text-slate-700 md:col-span-2">
-          Description
+        <div className="text-sm font-medium text-slate-700 md:col-span-2">
+          <label htmlFor="exercise-description" className={labelClassName}>Description</label>
           <textarea
-            name="description"
-            value={values.description}
-            onChange={onFieldChange}
+            id="exercise-description"
             className={`${fieldClassName} min-h-24`}
+            {...register("description")}
           />
-        </label>
+        </div>
 
-        <label className="space-y-3 text-sm font-medium text-slate-700">
-          Primary Muscle Group
-          <select
-            name="primaryMuscleGroupId"
-            value={values.primaryMuscleGroupId}
-            onChange={onFieldChange}
-            className={fieldClassName}
-            required
-          >
-            <option value="">Select muscle group</option>
-            {muscleGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Controller
+          control={control}
+          name="primaryMuscleGroupId"
+          rules={{ required: "Primary muscle group is required." }}
+          render={({ field, fieldState }) => (
+            <LookupDropdown
+              id="exercise-primary-muscle-group"
+              label="Primary Muscle Group"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              options={primaryOptions}
+              containerClassName="text-sm font-medium text-slate-700"
+              labelClassName={labelClassName}
+              placeholder="Select muscle group"
+              required
+              error={fieldState.error?.message}
+            />
+          )}
+        />
 
-        <label className="space-y-3 text-sm font-medium text-slate-700">
-          Secondary Muscle Group
-          <select
-            name="secondaryMuscleGroupId"
-            value={values.secondaryMuscleGroupId}
-            onChange={onFieldChange}
-            className={fieldClassName}
-          >
-            <option value="">None</option>
-            {muscleGroups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Controller
+          control={control}
+          name="secondaryMuscleGroupId"
+          render={({ field, fieldState }) => (
+            <LookupDropdown
+              id="exercise-secondary-muscle-group"
+              label="Secondary Muscle Group"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              options={secondaryOptions}
+              containerClassName="text-sm font-medium text-slate-700"
+              labelClassName={labelClassName}
+              placeholder="None"
+              error={fieldState.error?.message}
+            />
+          )}
+        />
 
         {error && <p className="text-sm text-red-700 md:col-span-2">{error}</p>}
 
-        <div className="flex items-center gap-3 md:col-span-2">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="liquid-primary-btn rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
-          >
-            {isSaving ? "Saving..." : isEditing ? "Update Exercise" : "Create Exercise"}
-          </button>
+        <div className="flex w-full items-center justify-between gap-3 md:col-span-2">
           <button
             type="button"
-            className="liquid-pill rounded-xl px-4 py-2.5 text-sm font-semibold"
+            className="liquid-pill rounded-full px-4 py-2.5 text-sm font-semibold"
             onClick={onClose}
           >
             Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="liquid-primary-btn rounded-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          >
+            {isSaving ? "Saving..." : isEditing ? "Update Exercise" : "Create Exercise"}
           </button>
         </div>
       </form>
