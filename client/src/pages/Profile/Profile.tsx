@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FC, FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { useUserStore } from "@/stores/userStore";
 
@@ -28,7 +28,7 @@ function valuesAreEqual(a: ProfileFormValues, b: ProfileFormValues): boolean {
   return left.firstName === right.firstName && left.lastName === right.lastName;
 }
 
-const Profile: FC = () => {
+function Profile() {
   const user = useUserStore((state) => state.user);
   const isLoading = useUserStore((state) => state.isLoading);
   const error = useUserStore((state) => state.error);
@@ -149,6 +149,6 @@ const Profile: FC = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Profile;

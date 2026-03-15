@@ -3,7 +3,7 @@ import { RouterProvider } from 'react-router-dom'
 import { router } from '@/routes'
 import { useUserStore } from '@/stores/userStore'
 
-function App() {
+export default function App() {
   const initialize = useUserStore((state) => state.initialize)
 
   useEffect(() => {
@@ -12,5 +12,3 @@ function App() {
 
   return <RouterProvider router={router} />
 }
-
-export default App
