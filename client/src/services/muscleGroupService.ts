@@ -29,6 +29,6 @@ export const muscleGroupService = {
   },
 
   async remove(id: number) {
-    return api.delete<JsonData<string>>(`admin/musclegroups/${id}`);
+    return api.delete<JsonData<boolean>>(`admin/musclegroups/${id}`);
   },
 };

@@ -7,6 +7,76 @@ export namespace Enums {
 		User = 1,
 		Admin = 2
 	}
+	export enum ExerciseSetType {
+		Warmup = 1,
+		Working = 2,
+		Dropset = 3,
+		Failure = 4
+	}
+}
+export namespace JsonModels.Workouts {
+	export interface CreateWorkoutExerciseRequest
+	{
+		exerciseId: number;
+		notes?: string;
+		sets: JsonModels.Workouts.CreateWorkoutSetRequest[];
+	}
+	export interface CreateWorkoutRequest
+	{
+		title: string;
+		startedAt?: string;
+		finishedAt?: string;
+		notes?: string;
+		exercises: JsonModels.Workouts.CreateWorkoutExerciseRequest[];
+	}
+	export interface CreateWorkoutSetRequest
+	{
+		setType: Enums.ExerciseSetType;
+		weightKg?: number;
+		reps?: number;
+		durationSeconds?: number;
+		distanceMeters?: number;
+		rpe?: number;
+		notes?: string;
+	}
+	export interface PreviousExerciseSetModel
+	{
+		setNumber: number;
+		setType: Enums.ExerciseSetType;
+		weightKg?: number;
+		reps?: number;
+		durationSeconds?: number;
+		distanceMeters?: number;
+		rpe?: number;
+		notes?: string;
+	}
+	export interface PreviousExerciseSetsModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		workoutId: number;
+		workoutTitle: string;
+		workoutStartedAt: string;
+		sets: JsonModels.Workouts.PreviousExerciseSetModel[];
+	}
+	export interface PreviousExerciseSetsQueryRequest
+	{
+		exerciseIds: number[];
+	}
+	export interface PreviousExerciseSetsResponse
+	{
+		items: JsonModels.Workouts.PreviousExerciseSetsModel[];
+	}
+	export interface WorkoutCreatedModel
+	{
+		workoutId: number;
+		title: string;
+		startedAt: string;
+		finishedAt?: string;
+		exerciseCount: number;
+		setCount: number;
+		totalVolumeKg?: number;
+	}
 }
 export namespace JsonModels.MuscleGroups {
 	export interface CreateMuscleGroupRequest
@@ -35,6 +105,28 @@ export namespace JsonModels.Exercises {
 		videoUrl?: string;
 		primaryMuscleGroupId: number;
 		secondaryMuscleGroupId?: number;
+	}
+	export interface ExerciseLookupModel
+	{
+		id: number;
+		name: string;
+		slug: string;
+		description?: string;
+		imageUrl?: string;
+		videoUrl?: string;
+		primaryMuscleGroupId: number;
+		primaryMuscleGroupName: string;
+		secondaryMuscleGroupId?: number;
+		secondaryMuscleGroupName?: string;
+		creatorUserId?: number;
+		creatorDisplayName?: string;
+		dateCreated: string;
+	}
+	export interface ExerciseLookupRequest
+	{
+		search?: string;
+		muscleGroupId?: number;
+		take: number;
 	}
 	export interface ExerciseModel
 	{
