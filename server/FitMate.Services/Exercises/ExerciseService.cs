@@ -1,0 +1,439 @@
+using System.Linq.Expressions;
+using System.Threading;
+using FitMate.Core.Exceptions;
+using FitMate.Core.JsonModels.Common;
+using FitMate.Core.JsonModels.Exercises;
+using FitMate.DB;
+using FitMate.DB.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+
+namespace FitMate.Services.Exercises;
+
+public class ExerciseService : IExerciseService
+{
+    private const string LookupCacheKeyPrefix = "exercise_lookup";
+    private static long lookupCacheVersion = 1;
+
+    private readonly AppDbContext dbContext;
+    private readonly IMemoryCache memoryCache;
+
+    public ExerciseService(AppDbContext dbContext, IMemoryCache memoryCache)
+    {
+        this.dbContext = dbContext;
+        this.memoryCache = memoryCache;
+    }
+
+    public async Task<PagedResponse<ExerciseModel>> ListAsync(ExerciseQueryRequest request)
+    {
+        var page = request.Page <= 0 ? 1 : request.Page;
+        var pageSize = request.PageSize <= 0 ? 10 : Math.Min(request.PageSize, 100);
+        var search = request.Search?.Trim();
+
+        var query = dbContext.Exercises.AsNoTracking().AsQueryable();
+
+        if (request.IsGlobal.HasValue)
+        {
+            query = request.IsGlobal.Value
+                ? query.Where(x => x.UserId == null)
+                : query.Where(x => x.UserId != null);
+        }
+
+        if (request.UserId.HasValue)
+        {
+            query = query.Where(x => x.UserId == request.UserId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(x => x.Name.Contains(search) || x.Slug.Contains(search));
+        }
+
+        query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(MapToModelExpression())
+            .ToListAsync();
+
+        return new PagedResponse<ExerciseModel>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+        };
+    }
+
+    public async Task<ExerciseModel?> GetByIdAsync(long id)
+    {
+        return await dbContext.Exercises
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(MapToModelExpression())
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<ExerciseModel> CreateManagedGlobalAsync(
+        CreateExerciseRequest request,
+        long? actorUserId)
+    {
+        return await CreateAsync(request, exerciseOwnerUserId: null, actorUserId);
+    }
+
+    public async Task<ExerciseModel> CreateCommunityGlobalAsync(
+        CreateExerciseRequest request,
+        long creatorUserId)
+    {
+        if (creatorUserId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        return await CreateAsync(request, creatorUserId, creatorUserId);
+    }
+
+    public async Task<ExerciseModel> UpdateAsync(
+        long id,
+        CreateExerciseRequest request,
+        long? actorUserId)
+    {
+        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
+        if (exercise == null)
+        {
+            throw new FitMateException("Exercise not found.");
+        }
+
+        var normalized = NormalizeRequest(request);
+        var validationError = await ValidateRequestAsync(normalized, id);
+        if (validationError != null)
+        {
+            throw new FitMateException(validationError);
+        }
+
+        exercise.Name = normalized.Name;
+        exercise.Slug = normalized.Slug;
+        exercise.Description = normalized.Description;
+        exercise.ImageUrl = normalized.ImageUrl;
+        exercise.VideoUrl = normalized.VideoUrl;
+        exercise.PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId;
+        exercise.SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId;
+
+        await dbContext.SaveChangesAsync(actorUserId);
+        InvalidateLookupCache();
+
+        return MapToModel(exercise);
+    }
+
+    public async Task<bool> DeleteAsync(long id, long? actorUserId)
+    {
+        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
+        if (exercise == null)
+        {
+            throw new FitMateException("Exercise not found.");
+        }
+
+        dbContext.Exercises.Remove(exercise);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(actorUserId);
+            InvalidateLookupCache();
+        }
+        catch (DbUpdateException)
+        {
+            throw new FitMateException("Exercise is used in other records and cannot be deleted.");
+        }
+
+        return true;
+    }
+
+    public async Task<IReadOnlyList<ExerciseLookupModel>> LookupAsync(ExerciseLookupRequest request)
+    {
+        var normalizedSearch = request.Search?.Trim();
+        var muscleGroupId = request.MuscleGroupId > 0 ? request.MuscleGroupId : null;
+        var take = request.Take <= 0 ? 30 : Math.Min(request.Take, 100);
+        var cacheVersion = GetLookupCacheVersion();
+        var cacheKey = BuildLookupCacheKey(cacheVersion, normalizedSearch, muscleGroupId, take);
+
+        if (memoryCache.TryGetValue<IReadOnlyList<ExerciseLookupModel>>(cacheKey, out var cachedItems) && cachedItems != null)
+        {
+            return cachedItems;
+        }
+
+        var query = dbContext.Exercises
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (muscleGroupId.HasValue)
+        {
+            query = query.Where(x =>
+                x.PrimaryMuscleGroupId == muscleGroupId.Value || x.SecondaryMuscleGroupId == muscleGroupId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            query = query.Where(x =>
+                x.Name.Contains(normalizedSearch)
+                || x.Slug.Contains(normalizedSearch)
+                || x.PrimaryMuscleGroup.Name.Contains(normalizedSearch)
+                || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
+        }
+
+        var rawItems = await query
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.Id)
+            .Take(take)
+            .Select(x => new ExerciseLookupProjection
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Slug = x.Slug,
+                Description = x.Description,
+                ImageUrl = x.ImageUrl,
+                VideoUrl = x.VideoUrl,
+                PrimaryMuscleGroupId = x.PrimaryMuscleGroupId,
+                PrimaryMuscleGroupName = x.PrimaryMuscleGroup.Name,
+                SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
+                SecondaryMuscleGroupName = x.SecondaryMuscleGroup != null ? x.SecondaryMuscleGroup.Name : null,
+                CreatorUserId = x.UserId,
+                CreatorFirstName = x.User != null ? x.User.FirstName : null,
+                CreatorLastName = x.User != null ? x.User.LastName : null,
+                CreatorEmail = x.User != null ? x.User.Email : null,
+                DateCreated = x.DateCreated,
+            })
+            .ToListAsync();
+
+        var items = rawItems
+            .Select(x => new ExerciseLookupModel
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Slug = x.Slug,
+                Description = x.Description,
+                ImageUrl = x.ImageUrl,
+                VideoUrl = x.VideoUrl,
+                PrimaryMuscleGroupId = x.PrimaryMuscleGroupId,
+                PrimaryMuscleGroupName = x.PrimaryMuscleGroupName,
+                SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
+                SecondaryMuscleGroupName = x.SecondaryMuscleGroupName,
+                CreatorUserId = x.CreatorUserId,
+                CreatorDisplayName = BuildCreatorDisplayName(x.CreatorFirstName, x.CreatorLastName, x.CreatorEmail),
+                DateCreated = x.DateCreated,
+            })
+            .ToList()
+            .AsReadOnly();
+
+        memoryCache.Set(
+            cacheKey,
+            items,
+            new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(8),
+                SlidingExpiration = TimeSpan.FromMinutes(2),
+            });
+
+        return items;
+    }
+
+    private async Task<ExerciseModel> CreateAsync(
+        CreateExerciseRequest request,
+        long? exerciseOwnerUserId,
+        long? actorUserId)
+    {
+        var normalized = NormalizeRequest(request);
+        var validationError = await ValidateRequestAsync(normalized, null);
+        if (validationError != null)
+        {
+            throw new FitMateException(validationError);
+        }
+
+        var exercise = new Exercise
+        {
+            UserId = exerciseOwnerUserId,
+            Name = normalized.Name,
+            Slug = normalized.Slug,
+            Description = normalized.Description,
+            ImageUrl = normalized.ImageUrl,
+            VideoUrl = normalized.VideoUrl,
+            PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId,
+            SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId,
+        };
+
+        dbContext.Exercises.Add(exercise);
+        await dbContext.SaveChangesAsync(actorUserId);
+        InvalidateLookupCache();
+
+        return MapToModel(exercise);
+    }
+
+    private static string BuildLookupCacheKey(long version, string? search, long? muscleGroupId, int take)
+    {
+        var normalizedSearch = string.IsNullOrWhiteSpace(search)
+            ? "_"
+            : search.Trim().ToLowerInvariant();
+
+        var normalizedMuscleGroup = muscleGroupId?.ToString() ?? "all";
+        return $"{LookupCacheKeyPrefix}:v{version}:mg:{normalizedMuscleGroup}:take:{take}:q:{normalizedSearch}";
+    }
+
+    private static long GetLookupCacheVersion()
+    {
+        return Interlocked.Read(ref lookupCacheVersion);
+    }
+
+    private static void InvalidateLookupCache()
+    {
+        Interlocked.Increment(ref lookupCacheVersion);
+    }
+
+    private static CreateExerciseRequest NormalizeRequest(CreateExerciseRequest request)
+    {
+        return new CreateExerciseRequest
+        {
+            Name = (request.Name ?? string.Empty).Trim(),
+            Slug = (request.Slug ?? string.Empty).Trim().ToLowerInvariant(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
+            VideoUrl = string.IsNullOrWhiteSpace(request.VideoUrl) ? null : request.VideoUrl.Trim(),
+            PrimaryMuscleGroupId = request.PrimaryMuscleGroupId,
+            SecondaryMuscleGroupId = request.SecondaryMuscleGroupId,
+        };
+    }
+
+    private async Task<string?> ValidateRequestAsync(
+        CreateExerciseRequest request,
+        long? existingExerciseId = null)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return "Name is required.";
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Slug))
+        {
+            return "Slug is required.";
+        }
+
+        if (request.PrimaryMuscleGroupId <= 0)
+        {
+            return "Primary muscle group id is required.";
+        }
+
+        if (request.SecondaryMuscleGroupId.HasValue && request.SecondaryMuscleGroupId <= 0)
+        {
+            return "Secondary muscle group id is invalid.";
+        }
+
+        if (request.SecondaryMuscleGroupId == request.PrimaryMuscleGroupId)
+        {
+            return "Primary and secondary muscle groups must be different.";
+        }
+
+        var slugAlreadyExists = await dbContext.Exercises
+            .AnyAsync(x =>
+                x.Slug == request.Slug
+                && (!existingExerciseId.HasValue || x.Id != existingExerciseId.Value));
+
+        if (slugAlreadyExists)
+        {
+            return "Exercise slug already exists.";
+        }
+
+        var primaryExists = await dbContext.MuscleGroups
+            .AnyAsync(x => x.Id == request.PrimaryMuscleGroupId);
+
+        if (!primaryExists)
+        {
+            return "Primary muscle group does not exist.";
+        }
+
+        if (request.SecondaryMuscleGroupId.HasValue)
+        {
+            var secondaryExists = await dbContext.MuscleGroups
+                .AnyAsync(x => x.Id == request.SecondaryMuscleGroupId.Value);
+
+            if (!secondaryExists)
+            {
+                return "Secondary muscle group does not exist.";
+            }
+        }
+
+        return null;
+    }
+
+    private static ExerciseModel MapToModel(Exercise entity)
+    {
+        return new ExerciseModel
+        {
+            Id = entity.Id,
+            UserId = entity.UserId,
+            Name = entity.Name,
+            Slug = entity.Slug,
+            Description = entity.Description,
+            ImageUrl = entity.ImageUrl,
+            VideoUrl = entity.VideoUrl,
+            PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
+            SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            DateCreated = entity.DateCreated,
+            DateModified = entity.DateModified,
+        };
+    }
+
+    private static Expression<Func<Exercise, ExerciseModel>> MapToModelExpression()
+    {
+        return entity => new ExerciseModel
+        {
+            Id = entity.Id,
+            UserId = entity.UserId,
+            Name = entity.Name,
+            Slug = entity.Slug,
+            Description = entity.Description,
+            ImageUrl = entity.ImageUrl,
+            VideoUrl = entity.VideoUrl,
+            PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
+            SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            DateCreated = entity.DateCreated,
+            DateModified = entity.DateModified,
+        };
+    }
+
+    private static string? BuildCreatorDisplayName(string? firstName, string? lastName, string? email)
+    {
+        var trimmedFirst = firstName?.Trim();
+        var trimmedLast = lastName?.Trim();
+
+        var fullName = string.Join(
+            " ",
+            new[] { trimmedFirst, trimmedLast }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            return fullName;
+        }
+
+        return string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+    }
+
+    private class ExerciseLookupProjection
+    {
+        public long Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? VideoUrl { get; set; }
+        public long PrimaryMuscleGroupId { get; set; }
+        public string PrimaryMuscleGroupName { get; set; } = string.Empty;
+        public long? SecondaryMuscleGroupId { get; set; }
+        public string? SecondaryMuscleGroupName { get; set; }
+        public long? CreatorUserId { get; set; }
+        public string? CreatorFirstName { get; set; }
+        public string? CreatorLastName { get; set; }
+        public string? CreatorEmail { get; set; }
+        public DateTime DateCreated { get; set; }
+    }
+}
