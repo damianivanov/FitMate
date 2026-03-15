@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { LookupDropdown, Modal } from "@/shared/components";
 import { slugify } from "@/lib/helpers";
+import { LookupDropdown, Modal } from "@/shared/components";
 import type { MuscleGroup } from "@/types";
 
-export type ExerciseFormValues = {
+export type CreateExerciseFormValues = {
   name: string;
   slug: string;
   description: string;
@@ -12,27 +12,31 @@ export type ExerciseFormValues = {
   secondaryMuscleGroupId: string;
 };
 
-type ExerciseEditorModalProps = {
+type CreateExerciseModalProps = {
   isOpen: boolean;
   isSaving: boolean;
-  isEditing: boolean;
-  values: ExerciseFormValues;
   muscleGroups: MuscleGroup[];
   error: string | null;
   onClose: () => void;
-  onSubmit: (values: ExerciseFormValues) => Promise<void> | void;
+  onSubmit: (values: CreateExerciseFormValues) => Promise<void> | void;
 };
 
-export function ExerciseEditorModal({
+const emptyValues: CreateExerciseFormValues = {
+  name: "",
+  slug: "",
+  description: "",
+  primaryMuscleGroupId: "",
+  secondaryMuscleGroupId: "",
+};
+
+export function CreateExerciseModal({
   isOpen,
   isSaving,
-  isEditing,
-  values,
   muscleGroups,
   error,
   onClose,
   onSubmit,
-}: ExerciseEditorModalProps) {
+}: CreateExerciseModalProps) {
   const {
     register,
     control,
@@ -40,29 +44,30 @@ export function ExerciseEditorModal({
     reset,
     setValue,
     formState: { errors, dirtyFields },
-  } = useForm<ExerciseFormValues>({
-    defaultValues: values,
+  } = useForm<CreateExerciseFormValues>({
+    defaultValues: emptyValues,
   });
+
+  const watchedName = useWatch({
+    control,
+    name: "name",
+  }) ?? "";
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
-    reset(values);
-  }, [isOpen, reset, values]);
+    reset(emptyValues);
+  }, [isOpen, reset]);
 
-  const watchedName = useWatch({
-    control,
-    name: "name",
-  }) ?? "";
   useEffect(() => {
-    if (isEditing || dirtyFields.slug) {
+    if (dirtyFields.slug) {
       return;
     }
 
     setValue("slug", slugify(watchedName), { shouldDirty: false });
-  }, [dirtyFields.slug, isEditing, setValue, watchedName]);
+  }, [dirtyFields.slug, setValue, watchedName]);
 
   const primaryOptions = useMemo(
     () =>
@@ -73,6 +78,7 @@ export function ExerciseEditorModal({
       })),
     [muscleGroups],
   );
+
   const secondaryOptions = useMemo(
     () => [{ value: "", label: "None" }, ...primaryOptions],
     [primaryOptions],
@@ -86,14 +92,14 @@ export function ExerciseEditorModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? "Edit Exercise" : "Create Exercise"}
+      title="Add New Global Exercise"
       maxWidth="2xl"
     >
       <form className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 md:p-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="text-sm font-medium text-slate-700">
-          <label htmlFor="exercise-name" className={labelClassName}>Name</label>
+          <label htmlFor="new-exercise-name" className={labelClassName}>Name</label>
           <input
-            id="exercise-name"
+            id="new-exercise-name"
             className={fieldClassName}
             {...register("name", { required: "Name is required." })}
           />
@@ -101,9 +107,9 @@ export function ExerciseEditorModal({
         </div>
 
         <div className="text-sm font-medium text-slate-700">
-          <label htmlFor="exercise-slug" className={labelClassName}>Slug</label>
+          <label htmlFor="new-exercise-slug" className={labelClassName}>Slug</label>
           <input
-            id="exercise-slug"
+            id="new-exercise-slug"
             className={fieldClassName}
             {...register("slug", { required: "Slug is required." })}
           />
@@ -111,9 +117,9 @@ export function ExerciseEditorModal({
         </div>
 
         <div className="text-sm font-medium text-slate-700 md:col-span-2">
-          <label htmlFor="exercise-description" className={labelClassName}>Description</label>
+          <label htmlFor="new-exercise-description" className={labelClassName}>Description</label>
           <textarea
-            id="exercise-description"
+            id="new-exercise-description"
             className={`${fieldClassName} min-h-24`}
             {...register("description")}
           />
@@ -125,7 +131,7 @@ export function ExerciseEditorModal({
           rules={{ required: "Primary muscle group is required." }}
           render={({ field, fieldState }) => (
             <LookupDropdown
-              id="exercise-primary-muscle-group"
+              id="new-exercise-primary-muscle-group"
               label="Primary Muscle Group"
               value={field.value}
               onChange={field.onChange}
@@ -145,7 +151,7 @@ export function ExerciseEditorModal({
           name="secondaryMuscleGroupId"
           render={({ field, fieldState }) => (
             <LookupDropdown
-              id="exercise-secondary-muscle-group"
+              id="new-exercise-secondary-muscle-group"
               label="Secondary Muscle Group"
               value={field.value}
               onChange={field.onChange}
@@ -174,7 +180,7 @@ export function ExerciseEditorModal({
             disabled={isSaving}
             className="liquid-primary-btn rounded-full px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
           >
-            {isSaving ? "Saving..." : isEditing ? "Update Exercise" : "Create Exercise"}
+            {isSaving ? "Saving..." : "Create Exercise"}
           </button>
         </div>
       </form>

@@ -9,6 +9,8 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import ExerciseGrid from "./pages/ExerciseGrid";
 import MuscleGroupGrid from "./pages/MuscleGroupGrid";
+import WorkoutBuilder from "./pages/WorkoutBuilder";
+import Workouts, { WorkoutHistory } from "./pages/Workouts";
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +36,28 @@ export const router = createBrowserRouter([
             <Profile />
           </AccessGate>
         ),
+      },
+      {
+        path: "workouts",
+        element: (
+          <AccessGate requireAuthenticated>
+            <Outlet />
+          </AccessGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <Workouts />,
+          },
+          {
+            path: "new",
+            element: <WorkoutBuilder />,
+          },
+          {
+            path: "history",
+            element: <WorkoutHistory />,
+          },
+        ],
       },
       {
         path: "management",

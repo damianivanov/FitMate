@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import logo from "@/assets/logo.svg";
 import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import { isAdmin, useUserStore } from "@/stores/userStore";
+
+function getPrimaryNavLinkClassName({ isActive }: { isActive: boolean }): string {
+  const baseClassName =
+    "liquid-pill rounded-full px-3.5 py-2 text-sm font-semibold transition whitespace-nowrap";
+  if (isActive) {
+    return `${baseClassName} bg-white/80 text-slate-900 shadow-[0_10px_20px_rgba(42,78,120,0.2)]`;
+  }
+
+  return `${baseClassName} text-slate-700 hover:bg-white/70`;
+}
 
 export default function Nav() {
   const isAuthenticated = useUserStore((state) => state.isAuthenticated);
@@ -56,12 +66,20 @@ export default function Nav() {
   return (
     <nav className="z-50 flex justify-center px-2 pt-3 md:px-4 md:pt-4">
       <div
-        className='liquid-surface liquid-nav flex items-center justify-between rounded-3xl px-4 py-3 md:px-5 w-4/5'
+        className="liquid-surface liquid-nav flex w-full max-w-6xl items-center justify-between rounded-3xl px-4 py-3 md:px-5"
       >
-        <Link to="/" className="flex items-center gap-2.5 text-lg font-extrabold text-slate-900 transition-opacity hover:opacity-80">
-          <img src={logo} alt="FitMate" className="w-12 h-12" />
-          <span>FitMate</span>
-        </Link>
+        <div className="flex items-center gap-2.5 md:gap-3">
+          <Link to="/" className="flex items-center gap-2.5 text-lg font-extrabold text-slate-900 transition-opacity hover:opacity-80">
+            <img src={logo} alt="FitMate" className="w-12 h-12" />
+            <span>FitMate</span>
+          </Link>
+
+          {isInitialized && isAuthenticated ? (
+            <NavLink to="/workouts" end className={getPrimaryNavLinkClassName}>
+              Workouts
+            </NavLink>
+          ) : null}
+        </div>
 
         {!isInitialized ? (
           <div className="text-sm text-slate-500">...</div>

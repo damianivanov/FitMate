@@ -3,6 +3,7 @@ import type { ChangeEventHandler } from "react";
 import type { GridPaginationModel } from "@mui/x-data-grid";
 import { useSearchParams } from "react-router-dom";
 import { EntityGrid } from "@/shared/components/tables";
+import { invalidateExerciseLookupCache } from "@/hooks/useExerciseLookup";
 import { exerciseService } from "@/services/exerciseService";
 import type { Exercise, CreateExerciseRequest } from "@/types";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
@@ -161,6 +162,7 @@ export default function ExerciseGrid() {
           return;
         }
 
+        invalidateExerciseLookupCache();
         await loadRows();
       } catch {
         setPageError("Delete failed.");
@@ -203,6 +205,7 @@ export default function ExerciseGrid() {
         return;
       }
 
+      invalidateExerciseLookupCache();
       closeEditor();
       await loadRows();
     } catch {
