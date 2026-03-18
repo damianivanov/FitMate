@@ -45,8 +45,15 @@ export default function EntityGrid<TRow extends GridValidRowModel>({
       autoHeight
       sx={{
         border: 0,
+        color: "#1c1c1e",
         "& .MuiDataGrid-columnHeaders": {
-          backgroundColor: "rgba(248, 250, 252, 0.95)",
+          backgroundColor: "#f8fafcf2",
+        },
+        "& .MuiDataGrid-cell": {
+          borderColor: "#1c1c1e0f",
+        },
+        "& .MuiDataGrid-row:hover": {
+          backgroundColor: "#ffffff73",
         },
         ...sx,
       }}

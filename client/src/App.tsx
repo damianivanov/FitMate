@@ -4,11 +4,15 @@ import { router } from '@/routes'
 import { useUserStore } from '@/stores/userStore'
 
 export default function App() {
-  const initialize = useUserStore((state) => state.initialize)
+  const { initUser, userLoaded } = useUserStore()
 
   useEffect(() => {
-    void initialize()
-  }, [initialize])
+    void initUser()
+  }, [initUser])
+
+  if (!userLoaded) {
+    return <></>
+  }
 
   return <RouterProvider router={router} />
 }

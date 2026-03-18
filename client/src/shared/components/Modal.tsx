@@ -54,6 +54,15 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
     return null;
   }
 
+  const overlayBaseClassName =
+    "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200";
+  const overlayStateClassName = isClosing ? "opacity-0" : "opacity-100";
+  const overlayClassName = `${overlayBaseClassName} ${overlayStateClassName}`;
+  const contentBaseClassName =
+    `liquid-surface liquid-modal-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl transition-transform duration-200`;
+  const contentStateClassName = isClosing ? "scale-95" : "scale-100";
+  const contentClassName = `${contentBaseClassName} ${contentStateClassName}`;
+
   const handleClose = () => {
     setIsClosing(true);
   };
@@ -64,29 +73,22 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
-        isClosing ? "opacity-0" : "opacity-100"
-      }`}
+      className={overlayClassName}
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-label={title ?? "Modal"}
     >
-      <div className="absolute inset-0 bg-slate-900/28 backdrop-blur-sm" />
+      <div className="liquid-overlay absolute inset-0" />
 
-      <div
-        className={`liquid-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl transition-transform duration-200 ${
-          isClosing ? "scale-95" : "scale-100"
-        }`}
-        onClick={handleModalContentClick}
-      >
+      <div className={contentClassName} onClick={handleModalContentClick}>
         {title && (
-          <div className="flex items-center justify-between border-b border-white/40 px-5 py-4">
+          <div className="liquid-divider flex items-center justify-between border-b px-5 py-4">
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
             <button
               type="button"
               onClick={handleClose}
-              className="liquid-pill rounded-full p-2 text-slate-700"
+              className="liquid-pill liquid-subtle-text rounded-full p-2"
               aria-label="Close modal"
             >
               <LuX className="h-4 w-4" />
@@ -98,7 +100,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
           <button
             type="button"
             onClick={handleClose}
-            className="liquid-pill absolute right-4 top-4 z-10 rounded-full p-2 text-slate-700"
+            className="liquid-pill liquid-subtle-text absolute right-4 top-4 z-10 rounded-full p-2"
             aria-label="Close modal"
           >
             <LuX className="h-4 w-4" />

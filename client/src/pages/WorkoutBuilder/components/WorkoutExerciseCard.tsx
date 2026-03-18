@@ -104,7 +104,7 @@ export function WorkoutExerciseCard({
           {canRemove ? (
             <button
               type="button"
-              className="rounded-full p-2 text-red-700 hover:bg-red-50"
+              className="liquid-pill liquid-pill-danger rounded-full p-2"
               onClick={() => onRemoveExercise(item.id)}
               aria-label="Remove exercise"
               title="Remove exercise"
@@ -157,7 +157,7 @@ export function WorkoutExerciseCard({
                     <button
                       key={option.id}
                       type="button"
-                      className="w-full rounded-2xl px-3 py-2 text-left transition hover:bg-white/60"
+                      className="liquid-option w-full rounded-2xl px-3 py-2 text-left transition"
                       onClick={() => onSelectExercise(item.id, option)}
                     >
                       <div className="flex items-start gap-3">
@@ -189,7 +189,7 @@ export function WorkoutExerciseCard({
           ) : null}
 
           {item.selectedExercise ? (
-            <div className="rounded-2xl border border-white/50 bg-white/40 px-3 py-2">
+            <div className="liquid-soft-surface rounded-2xl px-3 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-slate-900">
                   Selected: {item.selectedExercise.name}
@@ -291,7 +291,7 @@ export function WorkoutExerciseCard({
                     type="button"
                     onClick={() => onRemoveSet(item.id, setItem.id)}
                     disabled={item.sets.length <= 1}
-                    className="rounded-full p-2 text-red-700 hover:bg-red-50 disabled:opacity-45"
+                    className="liquid-pill liquid-pill-danger rounded-full p-2 disabled:opacity-45"
                     aria-label="Remove set"
                     title="Remove set"
                   >

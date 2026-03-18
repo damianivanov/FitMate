@@ -85,7 +85,7 @@ export function CreateExerciseModal({
   );
 
   const fieldClassName =
-    "liquid-input w-full rounded-full border-white/70 px-3 py-2.5 outline-none focus:outline-none";
+    "liquid-input w-full rounded-full px-3 py-2.5 outline-none focus:outline-none";
   const labelClassName = "block rounded-full pb-2";
 
   return (

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 import { PrimaryButton } from "@/shared/components/Buttons";
+import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";
 
 type ProfileFormValues = {
@@ -29,20 +31,19 @@ function valuesAreEqual(a: ProfileFormValues, b: ProfileFormValues): boolean {
 }
 
 function Profile() {
-  const user = useUserStore((state) => state.user);
-  const isLoading = useUserStore((state) => state.isLoading);
-  const error = useUserStore((state) => state.error);
-  const updateProfile = useUserStore((state) => state.updateProfile);
+  const { user, initUser } = useUserStore();
 
   const [formValues, setFormValues] = useState<ProfileFormValues>({
     firstName: "",
     lastName: "",
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const initialFormValues = useMemo(
-    () => getInitialFormValues(user?.firstName, user?.lastName),
-    [user?.firstName, user?.lastName],
+    () => getInitialFormValues(user.firstName, user.lastName),
+    [user.firstName, user.lastName],
   );
 
   useEffect(() => {
@@ -76,13 +77,30 @@ function Profile() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSuccessMessage(null);
+    setError(null);
+    setIsSaving(true);
 
-    const isSuccess = await updateProfile({
-      firstName: normalizedFormValues.firstName,
-      lastName: normalizedFormValues.lastName || undefined,
-    });
-    if (isSuccess) {
+    try {
+      const response = await authService.updateProfile({
+        firstName: normalizedFormValues.firstName,
+        lastName: normalizedFormValues.lastName || undefined,
+      });
+      const result = response.data;
+
+      if (!result.success) {
+        setError(result.error ?? "Unable to update profile.");
+        return;
+      }
+
+      await initUser();
       setSuccessMessage("Profile updated successfully.");
+    } catch (submissionError) {
+      const message = axios.isAxiosError(submissionError)
+        ? (submissionError.response?.data?.error as string | undefined) ?? submissionError.message
+        : "Unable to update profile.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -130,7 +148,7 @@ function Profile() {
             <input
               id="email"
               readOnly
-              value={user?.email ?? ""}
+              value={user.email}
               className="liquid-input w-full rounded-full px-3 py-2.5 mt-2 text-slate-500 cursor-not-allowed"
             />
           </div>
@@ -140,10 +158,10 @@ function Profile() {
 
           <PrimaryButton
             type="submit"
-            disabled={isLoading || !isDirty || normalizedFormValues.firstName.length === 0}
+            disabled={isSaving || !isDirty || normalizedFormValues.firstName.length === 0}
             className="w-full mt-4"
           >
-            {isLoading ? "Saving..." : "Save Profile"}
+            {isSaving ? "Saving..." : "Save Profile"}
           </PrimaryButton>
         </form>
       </div>

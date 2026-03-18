@@ -1,30 +1,48 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { PrimaryButton } from "@/shared/components/Buttons";
+import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";
 
 export default function Register() {
   const navigate = useNavigate();
-  const register = useUserStore((state) => state.register);
-  const isLoading = useUserStore((state) => state.isLoading);
-  const error = useUserStore((state) => state.error);
+  const { initUser } = useUserStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-    const isSuccess = await register({
-      email,
-      password,
-      firstName: "",
-      lastName: "",
-    });
+    try {
+      const response = await authService.register({
+        email,
+        password,
+        firstName: "",
+        lastName: "",
+      });
+      const result = response.data;
 
-    if (isSuccess) {
+      if (!result.success) {
+        setError(result.error ?? "Registration failed.");
+        return;
+      }
+
+      await initUser();
       navigate("/login");
+    } catch (submissionError) {
+      const message = axios.isAxiosError(submissionError)
+        ? (submissionError.response?.data?.error as string | undefined) ?? submissionError.message
+        : "Registration failed.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -39,6 +39,50 @@ type FloatingDropdownPosition = {
   maxHeight: number;
 };
 
+function getTriggerButtonClassName(disabled: boolean): string {
+  const baseClassName =
+    "liquid-input flex w-full items-center justify-between rounded-full px-3 py-2.5 text-left outline-none transition";
+  const stateClassName = disabled ? "cursor-not-allowed! opacity-70" : "cursor-pointer!";
+
+  return `${baseClassName} ${stateClassName}`;
+}
+
+function getSelectedValueClassName(hasSelection: boolean): string {
+  const baseClassName = "flex min-w-0 items-center gap-2";
+  const stateClassName = hasSelection ? "text-slate-900" : "text-slate-500";
+
+  return `${baseClassName} ${stateClassName}`;
+}
+
+function getChevronIconClassName(isOpen: boolean): string {
+  const baseClassName = "h-4 w-4 text-slate-600 transition-transform";
+  const stateClassName = isOpen ? "rotate-180" : "";
+
+  return `${baseClassName} ${stateClassName}`.trim();
+}
+
+function getMenuClassName(hideScrollbar: boolean): string {
+  const baseClassName =
+    "liquid-panel fixed z-[80] overflow-y-auto rounded-2xl p-1";
+  const stateClassName = hideScrollbar ? "liquid-scrollbar-hidden" : "liquid-scrollbar";
+
+  return `${baseClassName} ${stateClassName}`;
+}
+
+function getOptionClassName(isOptionDisabled: boolean, isSelected: boolean): string {
+  const baseClassName = "rounded-full px-3 py-2 text-sm transition";
+
+  if (isOptionDisabled) {
+    return `${baseClassName} liquid-option-disabled cursor-not-allowed`;
+  }
+
+  if (isSelected) {
+    return `${baseClassName} liquid-option-selected font-semibold`;
+  }
+
+  return `${baseClassName} liquid-option cursor-pointer`;
+}
+
 export function FloatingDropdown({
   id,
   label,
@@ -220,15 +264,13 @@ export function FloatingDropdown({
           type="button"
           disabled={disabled}
           onClick={handleTriggerClick}
-          className={`liquid-input flex w-full items-center justify-between rounded-full border-white/70 px-3 py-2.5 text-left outline-none transition ${
-            disabled ? "cursor-not-allowed! opacity-70" : "cursor-pointer!"
-          }`}
+          className={getTriggerButtonClassName(disabled)}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={menuId}
           aria-invalid={error ? "true" : "false"}
         >
-          <span className={`flex min-w-0 items-center gap-2 ${selectedOption ? "text-slate-900" : "text-slate-500"}`}>
+          <span className={getSelectedValueClassName(Boolean(selectedOption))}>
             {selectedOption?.imageUrl ? (
               <img
                 src={selectedOption.imageUrl}
@@ -240,9 +282,7 @@ export function FloatingDropdown({
             ) : null}
             <span className="truncate">{selectedOption?.label ?? placeholder}</span>
           </span>
-          <LuChevronDown
-            className={`h-4 w-4 text-slate-600 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          />
+          <LuChevronDown className={getChevronIconClassName(isOpen)} />
         </button>
       </div>
 
@@ -251,9 +291,7 @@ export function FloatingDropdown({
             <div
               id={menuId}
               ref={listRef}
-              className={`liquid-surface fixed z-[80] overflow-y-auto rounded-2xl p-1 shadow-[0_14px_36px_rgba(33,63,107,0.28)] ${
-                hideScrollbar ? "liquid-scrollbar-hidden" : "liquid-scrollbar"
-              }`}
+              className={getMenuClassName(hideScrollbar)}
               role="listbox"
               aria-label={label}
               style={menuStyle}
@@ -271,13 +309,7 @@ export function FloatingDropdown({
                     data-option-value={option.value}
                     data-option-disabled={isOptionDisabled ? "true" : "false"}
                     onClick={handleOptionClick}
-                    className={`rounded-full px-3 py-2 text-sm transition ${
-                      isOptionDisabled
-                        ? "cursor-not-allowed text-slate-400"
-                        : isSelected
-                          ? "bg-sky-500/90 font-semibold text-white"
-                          : "cursor-pointer text-slate-800 hover:bg-white/60"
-                    }`}
+                    className={getOptionClassName(isOptionDisabled, isSelected)}
                   >
                     <span className="flex items-center gap-2">
                       {option.imageUrl ? (

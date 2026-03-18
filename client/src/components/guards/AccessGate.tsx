@@ -19,10 +19,10 @@ export default function AccessGate({
   unauthenticatedRedirectTo = "/login",
   unauthorizedRedirectTo = "/",
 }: AccessGateProps) {
-  const { user, isAuthenticated, isInitialized } = useUserStore();
+  const { user, isAuthenticated, userLoaded } = useUserStore();
   const location = useLocation();
 
-  if (!isInitialized) {
+  if (!userLoaded) {
     return (
       <div className="w-full flex-1 flex items-center justify-center px-5 py-8 text-sm text-slate-500">
         Loading...

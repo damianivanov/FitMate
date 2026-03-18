@@ -10,7 +10,8 @@
       "@/*": ["src/*"],
       "@stores/*": ["src/stores/*"],
       "@types/*": ["src/types/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@pages/*": ["src/pages/*"],
     }
   }
 }

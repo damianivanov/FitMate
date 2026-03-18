@@ -69,7 +69,7 @@ export function createMuscleGroupGridColumns({
             </button>
             <button
               type="button"
-              className="rounded-full p-2 text-red-700 hover:bg-red-50"
+              className="liquid-pill liquid-pill-danger rounded-full p-2"
               onClick={handleDeleteClick}
               aria-label="Delete muscle group"
               title="Delete"

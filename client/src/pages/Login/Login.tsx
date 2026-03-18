@@ -1,28 +1,52 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { PrimaryButton } from "@/shared/components/Buttons";
+import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";
 
 export default function Login() {
   const navigate = useNavigate();
-  const login = useUserStore((state) => state.login);
-  const isLoading = useUserStore((state) => state.isLoading);
-  const error = useUserStore((state) => state.error);
+  const { initUser } = useUserStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-    const isSuccess = await login({
-      email,
-      password,
-    });
+    try {
+      const response = await authService.login({
+        email,
+        password,
+      });
+      const result = response.data;
 
-    if (isSuccess) {
-      navigate("/");
+      if (!result.success) {
+        setError(result.error ?? "Login failed.");
+        return;
+      }
+
+      await initUser();
+
+      if (useUserStore.getState().isAuthenticated) {
+        navigate("/");
+        return;
+      }
+
+      setError("Login succeeded but loading the current user failed.");
+    } catch (submissionError) {
+      const message = axios.isAxiosError(submissionError)
+        ? (submissionError.response?.data?.error as string | undefined) ?? submissionError.message
+        : "Login failed.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,7 +109,7 @@ export default function Login() {
           </PrimaryButton>
         </form>
 
-        <p className="text-sm text-slate-600">
+        <p className="flex items-center gap-2 text-sm text-slate-600">
           New to FitMate?{" "}
           <Link to="/register" className="liquid-link font-semibold">
             Create account

@@ -1,23 +1,23 @@
 :root {
-  --bg: #101a2c;
-  --card: rgba(255,255,255,0.06);
-  --card2: rgba(255,255,255,0.09);
-  --text: rgba(255,255,255,0.92);
-  --text-muted: rgba(255,255,255,0.72);
-  --border: rgba(255,255,255,0.12);
-  --accent: #6ee7ff;
-  --accent2: #a78bfa;
-  --shadow: 0 20px 60px rgba(0,0,0,0.45);
+  --bg: #f0f4ff;
+  --card: #ffffffa3;
+  --card2: #ffffffbf;
+  --text: #1c1c1e;
+  --text-muted: #636366;
+  --border: #ffffffd9;
+  --accent: #007aff;
+  --accent2: #af52de;
+  --shadow: 0 20px 60px #0000001a;
 }
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Plus Jakarta Sans", "SF Pro Display", "Segoe UI", sans-serif;
   color: var(--text);
   background:
-     radial-gradient(1500px 900px at 20% 0%, rgba(110,231,255,0.18), transparent 90%),
-     radial-gradient(2000px 2000px at 80% 10%, rgba(167,139,250,0.18), transparent 95%),
-     radial-gradient(1200px 900px at 50% 90%, rgba(16,185,129,0.20), transparent 90%),
+     radial-gradient(1500px 900px at 20% 0%, #f472b42e, #f472b400 90%),
+     radial-gradient(2000px 2000px at 80% 10%, #60a5fa2e, #60a5fa00 95%),
+     radial-gradient(1200px 900px at 50% 90%, #34d39933, #34d39900 90%),
      var(--bg);
   min-height: 100vh;
 }

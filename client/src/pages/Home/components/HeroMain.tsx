@@ -9,14 +9,14 @@ export default function HeroMain() {
 
   return (
     <div className="liquid-surface relative overflow-hidden rounded-3xl p-8 md:p-10">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-200/45 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-blue-300/35 blur-3xl" />
+      <div className="liquid-shell-orb liquid-card-orb-c pointer-events-none absolute -right-16 -top-16 h-52 w-52" />
+      <div className="liquid-shell-orb liquid-card-orb-b pointer-events-none absolute -bottom-20 -left-10 h-56 w-56" />
 
       <p className="mb-4 text-center text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
         Fitness Tracking
       </p>
 
-      <h1 className="text-center text-3xl md:text-5xl font-extrabold leading-tight mb-3 bg-linear-to-r from-slate-900 via-sky-900 to-blue-700 bg-clip-text text-transparent">
+      <h1 className="mb-3 text-center text-3xl font-extrabold leading-tight text-slate-900 md:text-5xl">
         Track workouts, goals, and progress from one place.
       </h1>
 

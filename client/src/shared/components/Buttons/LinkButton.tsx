@@ -8,7 +8,7 @@ interface LinkButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const LinkButton = ({ children, className = '', ...props }: LinkButtonProps) => {
   return (
     <button
-      className={`text-white/70 hover:text-white/90 underline hover:no-underline transition-colors ${className}`}
+      className={`liquid-link underline transition-colors hover:no-underline ${className}`}
       {...props}
     >
       {children}

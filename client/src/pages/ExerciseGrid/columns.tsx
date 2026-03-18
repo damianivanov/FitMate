@@ -36,8 +36,8 @@ export function createExerciseGridColumns({
                     sx: {
                       backgroundColor: "white",
                       color: "#0f172a",
-                      border: "1px solid rgba(255, 255, 255, 0.7)",
-                      boxShadow: "0 18px 36px rgba(23, 52, 87, 0.24)",
+                      border: "1px solid #ffffffb3",
+                      boxShadow: "0 18px 36px #0000001f",
                       borderRadius: "16px",
                       p: 1,
                     },
@@ -116,7 +116,7 @@ export function createExerciseGridColumns({
             </button>
             <button
               type="button"
-              className="rounded-full p-2 text-red-700 hover:bg-red-50"
+              className="liquid-pill liquid-pill-danger rounded-full p-2"
               onClick={handleDeleteClick}
               aria-label="Delete exercise"
               title="Delete"

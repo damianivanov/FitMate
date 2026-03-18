@@ -38,11 +38,11 @@ export default function Workouts() {
     <div className="w-full flex-1 px-5 py-8">
       <div className="mx-auto w-full max-w-[79dvw] space-y-6">
         <section className="liquid-surface relative overflow-hidden rounded-3xl p-6 md:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-sky-300/50 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56 rounded-full bg-blue-300/40 blur-3xl" />
+          <div className="liquid-shell-orb liquid-card-orb-a pointer-events-none absolute -right-20 -top-20 h-64 w-64" />
+          <div className="liquid-shell-orb liquid-card-orb-b pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56" />
 
           <div className="relative z-10 space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/40 px-3 py-1 text-xs font-semibold text-slate-700">
+            <div className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
               <LuSparkles className="h-3.5 w-3.5" />
               Workout Hub
             </div>
@@ -63,10 +63,10 @@ export default function Workouts() {
               <Link
                 key={action.to}
                 to={action.to}
-                className="liquid-surface group rounded-3xl p-5 transition hover:-translate-y-0.5"
+                className="liquid-surface liquid-hover-lift group rounded-3xl p-5 transition"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700">
+                  <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
                     <Icon className="h-3.5 w-3.5" />
                     {action.badge}
                   </span>
@@ -86,7 +86,7 @@ export default function Workouts() {
           </p>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             {upcomingItems.map((item) => (
-              <div key={item} className="rounded-2xl border border-white/60 bg-white/35 p-4">
+              <div key={item} className="liquid-soft-surface rounded-2xl p-4">
                 <p className="text-sm font-semibold text-slate-800">{item}</p>
               </div>
             ))}

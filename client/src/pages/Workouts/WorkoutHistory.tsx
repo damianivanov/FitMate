@@ -20,13 +20,13 @@ export default function WorkoutHistory() {
         </header>
 
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
-          <div className="rounded-2xl border border-white/60 bg-white/40 p-5">
+          <div className="liquid-soft-surface rounded-2xl p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
                 <LuHistory className="h-3.5 w-3.5" />
                 Coming online soon
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
                 <LuListChecks className="h-3.5 w-3.5" />
                 List and filters
               </span>

@@ -417,7 +417,7 @@ export default function WorkoutBuilder() {
               />
             </div>
 
-            <div className="rounded-2xl border border-white/50 bg-white/30 px-4 py-3 text-sm text-slate-700">
+            <div className="liquid-soft-surface rounded-2xl px-4 py-3 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">Workout started at</p>
               <p>{workoutStartedLabel}</p>
             </div>
