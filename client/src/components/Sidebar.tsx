@@ -52,8 +52,8 @@ function getPublicNavItemClassName(isActive: boolean): string {
   const baseClassName =
     "liquid-pill rounded-full px-3.5 py-2 text-sm font-semibold whitespace-nowrap transition";
   const stateClassName = isActive
-    ? "liquid-pill-active text-slate-900"
-    : "text-slate-700";
+    ? "liquid-pill-active text-primary"
+    : "text-secondary";
 
   return `${baseClassName} ${stateClassName}`;
 }
@@ -74,10 +74,10 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
     <div className="space-y-3">
       {navSections.map((section) => (
         <section key={section.section}>
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
             {section.section}
           </p>
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 space-y-2">
             {section.items
               .filter((item) => !item.requiresAdmin || (item.requiresAdmin && isAdminUser))
               .map((item) => {
@@ -110,7 +110,7 @@ function Brand() {
       className="flex items-center gap-2.5 rounded-2xl px-1 py-1 transition hover:opacity-90"
     >
       <img src={logo} alt="FitMate" className="h-10 w-10 rounded-lg object-cover shadow-md" />
-      <span className="text-lg font-extrabold tracking-tight text-slate-900">FitMate</span>
+      <span className="text-lg font-extrabold tracking-tight text-primary">FitMate</span>
     </Link>
   );
 }
@@ -258,3 +258,4 @@ export default function Sidebar() {
 
   return <AuthenticatedNav />;
 }
+

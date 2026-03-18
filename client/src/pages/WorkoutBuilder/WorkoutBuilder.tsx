@@ -398,8 +398,8 @@ export default function WorkoutBuilder() {
     <div className="w-full flex-1 px-5 py-8">
       <div className="mx-auto w-full max-w-[79dvw] space-y-6">
         <header className="space-y-2">
-          <h1 className="text-3xl font-extrabold text-slate-900">Workout Builder</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-3xl font-extrabold text-primary">Workout Builder</h1>
+          <p className="text-sm text-secondary">
             Create workouts, add sets quickly, pull previous working sets, and extend the global exercise catalog.
           </p>
         </header>
@@ -407,7 +407,7 @@ export default function WorkoutBuilder() {
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="workout-title" className="text-sm font-medium text-slate-700">Workout Title</label>
+              <label htmlFor="workout-title" className="text-sm font-medium text-secondary">Workout Title</label>
               <input
                 id="workout-title"
                 value={workoutTitle}
@@ -417,13 +417,13 @@ export default function WorkoutBuilder() {
               />
             </div>
 
-            <div className="liquid-soft-surface rounded-2xl px-4 py-3 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">Workout started at</p>
+            <div className="liquid-soft-surface rounded-2xl px-4 py-3 text-sm text-secondary">
+              <p className="font-semibold text-primary">Workout started at</p>
               <p>{workoutStartedLabel}</p>
             </div>
 
             <div className="md:col-span-2">
-              <label htmlFor="workout-notes" className="text-sm font-medium text-slate-700">Session Notes</label>
+              <label htmlFor="workout-notes" className="text-sm font-medium text-secondary">Session Notes</label>
               <textarea
                 id="workout-notes"
                 value={workoutNotes}
@@ -464,7 +464,7 @@ export default function WorkoutBuilder() {
             </button>
           </div>
 
-          {visiblePageError ? <p className="mt-4 text-sm text-red-700">{visiblePageError}</p> : null}
+          {visiblePageError ? <p className="mt-4 text-sm text-danger">{visiblePageError}</p> : null}
           {pageSuccess ? <p className="mt-4 text-sm text-emerald-700">{pageSuccess}</p> : null}
         </section>
 
@@ -503,3 +503,4 @@ export default function WorkoutBuilder() {
     </div>
   );
 }
+

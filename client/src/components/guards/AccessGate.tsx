@@ -24,7 +24,7 @@ export default function AccessGate({
 
   if (!userLoaded) {
     return (
-      <div className="w-full flex-1 flex items-center justify-center px-5 py-8 text-sm text-slate-500">
+      <div className="w-full flex-1 flex items-center justify-center px-5 py-8 text-sm text-tertiary">
         Loading...
       </div>
     );
@@ -40,3 +40,4 @@ export default function AccessGate({
 
   return <>{children}</>;
 }
+

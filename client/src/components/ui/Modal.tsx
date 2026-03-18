@@ -42,11 +42,11 @@ export default function Modal({ open, onClose, title, size = "md", children, foo
       >
         {/* Header */}
         <div className="liquid-divider flex shrink-0 items-center justify-between border-b px-7 py-5">
-          <h2 className="text-lg font-extrabold tracking-tight text-slate-900">{title}</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-primary">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="liquid-pill liquid-subtle-text flex h-8 w-8 items-center justify-center rounded-lg transition hover:text-slate-800"
+            className="liquid-pill liquid-subtle-text flex h-8 w-8 items-center justify-center rounded-lg transition hover:text-primary"
             aria-label="Close"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,3 +68,4 @@ export default function Modal({ open, onClose, title, size = "md", children, foo
     </div>
   );
 }
+

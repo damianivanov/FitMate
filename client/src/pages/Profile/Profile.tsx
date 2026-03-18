@@ -107,11 +107,11 @@ function Profile() {
   return (
     <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
       <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
-        <h1 className="text-3xl font-extrabold text-slate-900">Your Profile</h1>
+        <h1 className="text-3xl font-extrabold text-primary">Your Profile</h1>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="firstName">
+            <label className="text-sm font-medium text-secondary" htmlFor="firstName">
               First Name
             </label>
             <input
@@ -127,7 +127,7 @@ function Profile() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="lastName">
+            <label className="text-sm font-medium text-secondary" htmlFor="lastName">
               Last Name
             </label>
             <input
@@ -142,18 +142,18 @@ function Profile() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
+            <label className="text-sm font-medium text-secondary" htmlFor="email">
               Email
             </label>
             <input
               id="email"
               readOnly
               value={user.email}
-              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2 text-slate-500 cursor-not-allowed"
+              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2 text-tertiary cursor-not-allowed"
             />
           </div>
 
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
           {successMessage && <p className="text-sm text-emerald-700">{successMessage}</p>}
 
           <PrimaryButton
@@ -170,3 +170,4 @@ function Profile() {
 }
 
 export default Profile;
+

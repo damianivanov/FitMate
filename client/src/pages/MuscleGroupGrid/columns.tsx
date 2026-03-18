@@ -26,7 +26,7 @@ export function createMuscleGroupGridColumns({
       renderCell: (params) => {
         const imageUrl = params.row.imageUrl;
         if (!imageUrl) {
-          return <span className="text-xs text-slate-500">No image</span>;
+          return <span className="text-xs text-tertiary">No image</span>;
         }
 
         return (
@@ -60,7 +60,7 @@ export function createMuscleGroupGridColumns({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="liquid-pill rounded-full p-2 text-slate-800"
+              className="liquid-pill rounded-full p-2 text-primary"
               onClick={handleEditClick}
               aria-label="Edit muscle group"
               title="Edit"
@@ -82,3 +82,4 @@ export function createMuscleGroupGridColumns({
     },
   ];
 }
+

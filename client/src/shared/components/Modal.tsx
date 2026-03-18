@@ -84,7 +84,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
       <div className={contentClassName} onClick={handleModalContentClick}>
         {title && (
           <div className="liquid-divider flex items-center justify-between border-b px-5 py-4">
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+            <h3 className="text-lg font-semibold text-primary">{title}</h3>
             <button
               type="button"
               onClick={handleClose}
@@ -112,3 +112,4 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
     </div>
   );
 }
+

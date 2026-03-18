@@ -18,8 +18,8 @@ export default function FAQ() {
 
   return (
     <section className="mt-8" id="faq">
-      <h2 className="m-0 mb-1 text-2xl md:text-3xl font-extrabold text-slate-900">Frequently Asked Questions</h2>
-      <p className="mb-4 text-sm text-slate-600">Quick answers about scope, roles, and extensibility.</p>
+      <h2 className="m-0 mb-1 text-2xl md:text-3xl font-extrabold text-primary">Frequently Asked Questions</h2>
+      <p className="mb-4 text-sm text-secondary">Quick answers about scope, roles, and extensibility.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {faqs.map((faq, index) => (
           <FeatureCard
@@ -32,3 +32,4 @@ export default function FAQ() {
     </section>
   );
 }
+

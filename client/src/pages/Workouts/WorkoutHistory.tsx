@@ -8,13 +8,13 @@ export default function WorkoutHistory() {
         <header className="space-y-2">
           <Link
             to="/workouts"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 hover:text-slate-900"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-secondary hover:text-primary"
           >
             <LuArrowLeft className="h-4 w-4" />
             Back to Workouts
           </Link>
-          <h1 className="text-3xl font-extrabold text-slate-900">Workout Listing</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-3xl font-extrabold">Workout Listing</h1>
+          <p className="text-sm text-secondary">
             This area is ready for the workouts list integration and is intentionally kept as a focused placeholder.
           </p>
         </header>
@@ -22,17 +22,17 @@ export default function WorkoutHistory() {
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
           <div className="liquid-soft-surface rounded-2xl p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-secondary">
                 <LuHistory className="h-3.5 w-3.5" />
                 Coming online soon
               </span>
-              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-secondary">
                 <LuListChecks className="h-3.5 w-3.5" />
                 List and filters
               </span>
             </div>
 
-            <p className="mt-4 text-sm text-slate-700">
+            <p className="mt-4 text-sm text-secondary">
               Next step here is wiring a real workouts grid/list with search, date filters, and quick re-open actions.
             </p>
 
@@ -47,3 +47,4 @@ export default function WorkoutHistory() {
     </div>
   );
 }
+

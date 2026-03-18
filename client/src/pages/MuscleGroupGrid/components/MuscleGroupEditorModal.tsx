@@ -77,7 +77,7 @@ export function MuscleGroupEditorModal({
       maxWidth="xl"
     >
       <form className="grid grid-cols-1 gap-4 p-5 md:p-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="text-sm font-medium text-slate-700">
+        <div className="text-sm font-medium text-secondary">
           <label htmlFor="muscle-group-name" className={labelClassName}>
             Name
           </label>
@@ -86,7 +86,7 @@ export function MuscleGroupEditorModal({
             className={fieldClassName}
             {...register("name", { required: "Name is required." })}
           />
-          {errors.name ? <p className="text-sm text-red-700">{errors.name.message}</p> : null}
+          {errors.name ? <p className="text-sm text-danger">{errors.name.message}</p> : null}
         </div>
 
         <Controller
@@ -100,7 +100,7 @@ export function MuscleGroupEditorModal({
               onChange={field.onChange}
               onBlur={field.onBlur}
               options={imageOptions}
-              containerClassName="text-sm font-medium text-slate-700"
+              containerClassName="text-sm font-medium text-secondary"
               labelClassName={labelClassName}
               placeholder="Choose an image"
               error={fieldState.error?.message}
@@ -108,7 +108,7 @@ export function MuscleGroupEditorModal({
           )}
         />
 
-        {error && <p className="text-sm text-red-700">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         <div className="flex w-full items-center justify-between gap-3">
           <button
@@ -130,3 +130,4 @@ export function MuscleGroupEditorModal({
     </Modal>
   );
 }
+

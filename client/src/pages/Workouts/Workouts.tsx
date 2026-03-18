@@ -42,14 +42,14 @@ export default function Workouts() {
           <div className="liquid-shell-orb liquid-card-orb-b pointer-events-none absolute -bottom-16 left-1/3 h-56 w-56" />
 
           <div className="relative z-10 space-y-4">
-            <div className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+            <div className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-secondary">
               <LuSparkles className="h-3.5 w-3.5" />
               Workout Hub
             </div>
-            <h1 className="max-w-2xl text-3xl font-extrabold text-slate-900 md:text-4xl">
+            <h1 className="max-w-2xl text-3xl font-extrabold text-primary md:text-4xl">
               Your central space for creating, browsing, and evolving workouts.
             </h1>
-            <p className="max-w-2xl text-sm text-slate-700 md:text-base">
+            <p className="max-w-2xl text-sm text-secondary md:text-base">
               Start a new session in seconds, open workout history, and keep an eye on features already queued next.
             </p>
           </div>
@@ -66,28 +66,28 @@ export default function Workouts() {
                 className="liquid-surface liquid-hover-lift group rounded-3xl p-5 transition"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+                  <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-secondary">
                     <Icon className="h-3.5 w-3.5" />
                     {action.badge}
                   </span>
-                  <LuArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-0.5" />
+                  <LuArrowRight className="h-4 w-4 text-tertiary transition group-hover:translate-x-0.5" />
                 </div>
-                <h2 className="mt-3 text-xl font-bold text-slate-900">{action.title}</h2>
-                <p className="mt-2 text-sm text-slate-600">{action.description}</p>
+                <h2 className="mt-3 text-xl font-bold text-primary">{action.title}</h2>
+                <p className="mt-2 text-sm text-secondary">{action.description}</p>
               </Link>
             );
           })}
         </section>
 
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
-          <h2 className="text-lg font-bold text-slate-900">More to Come</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="text-lg font-bold text-primary">More to Come</h2>
+          <p className="mt-1 text-sm text-secondary">
             The workouts area is expanding. These are the next upgrades planned for this section.
           </p>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             {upcomingItems.map((item) => (
               <div key={item} className="liquid-soft-surface rounded-2xl p-4">
-                <p className="text-sm font-semibold text-slate-800">{item}</p>
+                <p className="text-sm font-semibold text-primary">{item}</p>
               </div>
             ))}
           </div>
@@ -96,3 +96,4 @@ export default function Workouts() {
     </div>
   );
 }
+

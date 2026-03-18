@@ -8,10 +8,11 @@ interface CircleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const CircleButton = ({ children, className = '', ...props }: CircleButtonProps) => {
   return (
     <button
-      className={`liquid-pill h-12 w-12 inline-flex items-center justify-center rounded-full text-slate-700 ${className}`}
+      className={`liquid-pill h-12 w-12 inline-flex items-center justify-center rounded-full text-secondary ${className}`}
       {...props}
     >
       {children}
     </button>
   );
 };
+

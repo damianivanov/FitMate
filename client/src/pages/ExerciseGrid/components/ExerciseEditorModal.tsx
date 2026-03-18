@@ -90,27 +90,27 @@ export function ExerciseEditorModal({
       maxWidth="2xl"
     >
       <form className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 md:p-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="text-sm font-medium text-slate-700">
+        <div className="text-sm font-medium text-secondary">
           <label htmlFor="exercise-name" className={labelClassName}>Name</label>
           <input
             id="exercise-name"
             className={fieldClassName}
             {...register("name", { required: "Name is required." })}
           />
-          {errors.name ? <p className="text-sm text-red-700">{errors.name.message}</p> : null}
+          {errors.name ? <p className="text-sm text-danger">{errors.name.message}</p> : null}
         </div>
 
-        <div className="text-sm font-medium text-slate-700">
+        <div className="text-sm font-medium text-secondary">
           <label htmlFor="exercise-slug" className={labelClassName}>Slug</label>
           <input
             id="exercise-slug"
             className={fieldClassName}
             {...register("slug", { required: "Slug is required." })}
           />
-          {errors.slug ? <p className="text-sm text-red-700">{errors.slug.message}</p> : null}
+          {errors.slug ? <p className="text-sm text-danger">{errors.slug.message}</p> : null}
         </div>
 
-        <div className="text-sm font-medium text-slate-700 md:col-span-2">
+        <div className="text-sm font-medium text-secondary md:col-span-2">
           <label htmlFor="exercise-description" className={labelClassName}>Description</label>
           <textarea
             id="exercise-description"
@@ -131,7 +131,7 @@ export function ExerciseEditorModal({
               onChange={field.onChange}
               onBlur={field.onBlur}
               options={primaryOptions}
-              containerClassName="text-sm font-medium text-slate-700"
+              containerClassName="text-sm font-medium text-secondary"
               labelClassName={labelClassName}
               placeholder="Select muscle group"
               required
@@ -151,7 +151,7 @@ export function ExerciseEditorModal({
               onChange={field.onChange}
               onBlur={field.onBlur}
               options={secondaryOptions}
-              containerClassName="text-sm font-medium text-slate-700"
+              containerClassName="text-sm font-medium text-secondary"
               labelClassName={labelClassName}
               placeholder="None"
               error={fieldState.error?.message}
@@ -159,7 +159,7 @@ export function ExerciseEditorModal({
           )}
         />
 
-        {error && <p className="text-sm text-red-700 md:col-span-2">{error}</p>}
+        {error && <p className="text-sm text-danger md:col-span-2">{error}</p>}
 
         <div className="flex w-full items-center justify-between gap-3 md:col-span-2">
           <button
@@ -181,3 +181,4 @@ export function ExerciseEditorModal({
     </Modal>
   );
 }
+

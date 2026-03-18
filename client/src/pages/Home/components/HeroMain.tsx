@@ -12,15 +12,15 @@ export default function HeroMain() {
       <div className="liquid-shell-orb liquid-card-orb-c pointer-events-none absolute -right-16 -top-16 h-52 w-52" />
       <div className="liquid-shell-orb liquid-card-orb-b pointer-events-none absolute -bottom-20 -left-10 h-56 w-56" />
 
-      <p className="mb-4 text-center text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
+      <p className="mb-4 text-center text-xs font-bold tracking-[0.24em] text-tertiary uppercase">
         Fitness Tracking
       </p>
 
-      <h1 className="mb-3 text-center text-3xl font-extrabold leading-tight text-slate-900 md:text-5xl">
+      <h1 className="mb-3 text-center text-3xl font-extrabold leading-tight text-primary md:text-5xl">
         Track workouts, goals, and progress from one place.
       </h1>
 
-      <p className="mx-auto max-w-2xl text-center text-sm md:text-base leading-relaxed text-slate-600">
+      <p className="mx-auto max-w-2xl text-center text-sm md:text-base leading-relaxed text-secondary">
         FitMate gives you secure access, role-aware flows, and a clean base to grow your fitness platform.
       </p>
 
@@ -44,3 +44,4 @@ export default function HeroMain() {
     </div>
   );
 }
+

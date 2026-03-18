@@ -62,12 +62,12 @@ export default function Login() {
     <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
       <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
         <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-slate-900">Welcome Back</h1>
+          <h1 className="text-3xl font-extrabold text-primary">Welcome Back</h1>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
+            <label className="text-sm font-medium text-secondary" htmlFor="email">
               Email
             </label>
             <input
@@ -87,7 +87,7 @@ export default function Login() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="password">
+            <label className="text-sm font-medium text-secondary" htmlFor="password">
               Password
             </label>
             <input
@@ -102,14 +102,14 @@ export default function Login() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <PrimaryButton type="submit" disabled={isLoading} className="w-full">
             {isLoading ? "Signing in..." : "Sign In"}
           </PrimaryButton>
         </form>
 
-        <p className="flex items-center gap-2 text-sm text-slate-600">
+        <p className="flex items-center gap-2 text-sm text-secondary">
           New to FitMate?{" "}
           <Link to="/register" className="liquid-link font-semibold">
             Create account
@@ -119,3 +119,4 @@ export default function Login() {
     </div>
   );
 }
+

@@ -58,7 +58,7 @@ export function createExerciseGridColumns({
                 }
               >
                 <span
-                  className="liquid-pill inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-700"
+                  className="liquid-pill inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary"
                   aria-label={`Preview ${params.row.name} image`}
                   title="Preview image"
                 >
@@ -107,7 +107,7 @@ export function createExerciseGridColumns({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="liquid-pill rounded-full p-2 text-slate-800"
+              className="liquid-pill rounded-full p-2 text-primary"
               onClick={handleEditClick}
               aria-label="Edit exercise"
               title="Edit"
@@ -129,3 +129,4 @@ export function createExerciseGridColumns({
     },
   ];
 }
+

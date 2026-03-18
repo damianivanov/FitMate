@@ -7,7 +7,7 @@ const MOCK_TEMPLATES: WorkoutTemplate[] = [];
 const MOCK_EXERCISES: Exercise[] = [];
 
 function getTemplateExerciseRowClassName(index: number): string {
-  const baseClassName = "flex items-center gap-2 py-1.5 text-[13px] text-slate-600";
+  const baseClassName = "flex items-center gap-2 py-1.5 text-[13px] text-secondary";
   const stateClassName = index > 0 ? "liquid-divider border-t" : "";
 
   return `${baseClassName} ${stateClassName}`.trim();
@@ -36,8 +36,8 @@ export default function Templates() {
     >
       {templates.length === 0 ? (
         <div className="liquid-surface rounded-2xl px-6 py-16 text-center">
-          <p className="text-sm text-slate-400">No templates yet.</p>
-          <Link to="/templates/new" className="mt-2 inline-block text-sm font-semibold text-sky-600">
+          <p className="text-sm text-muted">No templates yet.</p>
+          <Link to="/templates/new" className="mt-2 inline-block text-sm font-semibold text-sky-500">
             Create your first template
           </Link>
         </div>
@@ -48,11 +48,11 @@ export default function Templates() {
               <div key={t.id} className="liquid-surface rounded-2xl p-5">
                 {/* Header */}
                 <div className="mb-2 flex items-start justify-between">
-                  <span className="text-base font-extrabold tracking-tight text-slate-900">{t.name}</span>
+                  <span className="text-base font-extrabold tracking-tight text-primary">{t.name}</span>
                   <div className="flex gap-1.5">
                     <Link
                       to={`/templates/${t.id}/edit`}
-                      className="liquid-pill flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:text-slate-700"
+                      className="liquid-pill flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:text-primary"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -60,7 +60,7 @@ export default function Templates() {
                     </Link>
                     <button
                       type="button"
-                      className="liquid-pill flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:text-rose-500"
+                      className="liquid-pill flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:text-rose-500"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -69,7 +69,7 @@ export default function Templates() {
                   </div>
                 </div>
 
-                <p className="mb-3 text-xs leading-relaxed text-slate-500">{t.description}</p>
+                <p className="mb-3 text-xs leading-relaxed text-tertiary">{t.description}</p>
 
                 {/* Exercise preview list */}
                 <div className="mb-4">
@@ -78,12 +78,12 @@ export default function Templates() {
                       key={g.id}
                       className={getTemplateExerciseRowClassName(i)}
                     >
-                      <span className="min-w-[18px] font-mono text-[11px] text-slate-400">{i + 1}</span>
+                      <span className="min-w-[18px] font-mono text-[11px] text-muted">{i + 1}</span>
                       {g.groupType !== "straight" && <GroupTypeBadge type={g.groupType} />}
                       <span className="flex-1 truncate">
                         {g.exercises.map((e) => getExerciseName(e.exerciseId)).join(" + ")}
                       </span>
-                      <span className="font-mono text-xs text-slate-400">
+                      <span className="font-mono text-xs text-muted">
                         {g.exercises[0]?.targetSets}×{g.exercises[0]?.targetReps}
                       </span>
                     </div>
@@ -108,3 +108,4 @@ export default function Templates() {
     </PageShell>
   );
 }
+

@@ -22,16 +22,16 @@ function getStatChangeClassName(changeDir?: "up" | "down"): string {
     return `${baseClassName} text-rose-500`;
   }
 
-  return `${baseClassName} text-slate-400`;
+  return `${baseClassName} text-muted`;
 }
 
 export function StatCard({ label, value, color, change, changeDir }: StatCardProps) {
   return (
     <div className="liquid-surface rounded-2xl px-5 py-4">
-      <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted">
         {label}
       </div>
-      <div className={`font-mono text-2xl font-medium tracking-tight ${color ?? "text-slate-900"}`}>
+      <div className={`font-mono text-2xl font-medium tracking-tight ${color ?? "text-primary"}`}>
         {value}
       </div>
       {change && (
@@ -102,7 +102,7 @@ type SectionHeaderProps = {
 export function SectionHeader({ title, action }: SectionHeaderProps) {
   return (
     <div className="mb-3.5 flex items-center justify-between">
-      <h3 className="text-[15px] font-bold tracking-tight text-slate-900">{title}</h3>
+      <h3 className="text-[15px] font-bold tracking-tight text-primary">{title}</h3>
       {action}
     </div>
   );
@@ -120,10 +120,11 @@ export function PageShell({ title, actions, children }: PageShellProps) {
   return (
     <>
       <header className="liquid-panel liquid-divider flex items-center justify-between border-x-0 border-t-0 border-b px-6 py-4 md:px-10">
-        <h1 className="text-xl font-extrabold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-xl font-extrabold tracking-tight text-primary">{title}</h1>
         {actions && <div className="flex items-center gap-3">{actions}</div>}
       </header>
       <div className="flex-1 overflow-y-auto px-6 py-7 md:px-10">{children}</div>
     </>
   );
 }
+

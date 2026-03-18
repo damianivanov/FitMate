@@ -58,12 +58,12 @@ export default function Register() {
     <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
       <div className="liquid-surface w-full max-w-sm rounded-3xl p-6 md:p-7 space-y-5">
         <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-slate-900">Create Account</h1>
+          <h1 className="text-3xl font-extrabold text-primary">Create Account</h1>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
+            <label className="text-sm font-medium text-secondary" htmlFor="email">
               Email
             </label>
             <input
@@ -83,7 +83,7 @@ export default function Register() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="password">
+            <label className="text-sm font-medium text-secondary" htmlFor="password">
               Password
             </label>
             <input
@@ -99,14 +99,14 @@ export default function Register() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <PrimaryButton type="submit" disabled={isLoading} className="w-full">
             {isLoading ? "Creating account..." : "Create account"}
           </PrimaryButton>
         </form>
 
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-secondary">
           Already tracking with us?{" "}
           <Link to="/login" className="liquid-link font-semibold">
             Sign in
@@ -116,3 +116,4 @@ export default function Register() {
     </div>
   );
 }
+

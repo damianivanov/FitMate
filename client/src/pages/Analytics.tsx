@@ -37,7 +37,7 @@ export default function Analytics() {
       <div className="mb-7">
         <SectionHeader title="Body Weight Trend" />
         {bodyMetrics.length === 0 ? (
-          <div className="liquid-surface rounded-2xl px-6 py-10 text-center text-sm text-slate-400">
+          <div className="liquid-surface rounded-2xl px-6 py-10 text-center text-sm text-muted">
             No body metrics logged yet.
           </div>
         ) : (
@@ -47,14 +47,14 @@ export default function Analytics() {
                 key={m.id}
                 className="liquid-surface min-w-[110px] rounded-2xl px-4 py-3.5 text-center"
               >
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted">
                   {formatDate(m.recordedOn)}
                 </div>
-                <div className="font-mono text-lg font-medium text-slate-900">
+                <div className="font-mono text-lg font-medium text-primary">
                   {m.bodyWeightKg} kg
                 </div>
                 {m.bodyFatPct != null && (
-                  <div className="mt-0.5 text-[11px] text-slate-400">{m.bodyFatPct}% bf</div>
+                  <div className="mt-0.5 text-[11px] text-muted">{m.bodyFatPct}% bf</div>
                 )}
               </div>
             ))}
@@ -68,7 +68,7 @@ export default function Analytics() {
         <div className="liquid-surface rounded-2xl px-5 py-5">
           {muscleVolume.map((m) => (
             <div key={m.name} className="mb-2.5 flex items-center gap-3 last:mb-0">
-              <span className="w-[90px] text-xs font-semibold text-slate-500">{m.name}</span>
+              <span className="w-[90px] text-xs font-semibold text-tertiary">{m.name}</span>
               <div className="liquid-progress-track h-2.5 flex-1 overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -78,7 +78,7 @@ export default function Analytics() {
                   }}
                 />
               </div>
-              <span className="min-w-[45px] text-right font-mono text-[11px] text-slate-400">
+              <span className="min-w-[45px] text-right font-mono text-[11px] text-muted">
                 {(m.volume / 1000).toFixed(1)}k
               </span>
             </div>
@@ -88,3 +88,4 @@ export default function Analytics() {
     </PageShell>
   );
 }
+

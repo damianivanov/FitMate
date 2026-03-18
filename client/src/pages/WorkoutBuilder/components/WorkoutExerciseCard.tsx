@@ -86,7 +86,7 @@ export function WorkoutExerciseCard({
   return (
     <article className="liquid-surface rounded-3xl p-4 md:p-5">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h3 className="text-lg font-bold text-slate-900">Exercise {index + 1}</h3>
+        <h3 className="text-lg font-bold text-primary">Exercise {index + 1}</h3>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -119,7 +119,7 @@ export function WorkoutExerciseCard({
         <div className="space-y-3 md:col-span-2">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="space-y-2">
-              <label htmlFor={`exercise-lookup-${item.id}`} className="text-sm font-medium text-slate-700">
+              <label htmlFor={`exercise-lookup-${item.id}`} className="text-sm font-medium text-secondary">
                 Choose Exercise
               </label>
               <input
@@ -138,17 +138,17 @@ export function WorkoutExerciseCard({
               options={muscleGroupOptions}
               onChange={(value) => onMuscleGroupFilterChange(item.id, value)}
               placeholder="All muscle groups"
-              containerClassName="space-y-2 text-sm font-medium text-slate-700"
+              containerClassName="space-y-2 text-sm font-medium text-secondary"
               labelClassName="block rounded-full"
             />
           </div>
 
           {showLookupSuggestions ? (
             <div className="liquid-surface rounded-2xl p-2">
-              {isLoading ? <p className="px-2 py-1 text-xs text-slate-600">Searching exercises...</p> : null}
-              {error ? <p className="px-2 py-1 text-xs text-red-700">{error}</p> : null}
+              {isLoading ? <p className="px-2 py-1 text-xs text-secondary">Searching exercises...</p> : null}
+              {error ? <p className="px-2 py-1 text-xs text-danger">{error}</p> : null}
               {!isLoading && !error && options.length === 0 ? (
-                <p className="px-2 py-1 text-xs text-slate-600">No exercises found.</p>
+                <p className="px-2 py-1 text-xs text-secondary">No exercises found.</p>
               ) : null}
 
               {!isLoading && !error && options.length > 0 ? (
@@ -161,7 +161,7 @@ export function WorkoutExerciseCard({
                       onClick={() => onSelectExercise(item.id, option)}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white">
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
                           {option.imageUrl ? (
                             <img
                               src={option.imageUrl}
@@ -173,8 +173,8 @@ export function WorkoutExerciseCard({
                           ) : null}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">{option.name}</p>
-                          <p className="truncate text-xs text-slate-600">
+                          <p className="truncate text-sm font-semibold text-primary">{option.name}</p>
+                          <p className="truncate text-xs text-secondary">
                             {option.primaryMuscleGroupName}
                             {option.secondaryMuscleGroupName ? ` | ${option.secondaryMuscleGroupName}` : ""}
                             {option.creatorDisplayName ? ` | by ${option.creatorDisplayName}` : ""}
@@ -191,33 +191,33 @@ export function WorkoutExerciseCard({
           {item.selectedExercise ? (
             <div className="liquid-soft-surface rounded-2xl px-3 py-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-primary">
                   Selected: {item.selectedExercise.name}
                 </p>
                 <button
                   type="button"
-                  className="text-xs font-semibold text-slate-700 underline underline-offset-4"
+                  className="text-xs font-semibold text-secondary underline underline-offset-4"
                   onClick={() => onClearExercise(item.id)}
                 >
                   Clear
                 </button>
               </div>
-              <p className="mt-1 text-xs text-slate-600">
+              <p className="mt-1 text-xs text-secondary">
                 {item.selectedExercise.primaryMuscleGroupName}
                 {item.selectedExercise.secondaryMuscleGroupName
                   ? ` | ${item.selectedExercise.secondaryMuscleGroupName}`
                   : ""}
               </p>
               {item.previousWorkoutLabel ? (
-                <p className="mt-1 text-xs text-slate-600">Last used in: {item.previousWorkoutLabel}</p>
+                <p className="mt-1 text-xs text-secondary">Last used in: {item.previousWorkoutLabel}</p>
               ) : null}
-              {item.previousLoadError ? <p className="mt-1 text-xs text-red-700">{item.previousLoadError}</p> : null}
+              {item.previousLoadError ? <p className="mt-1 text-xs text-danger">{item.previousLoadError}</p> : null}
             </div>
           ) : null}
         </div>
 
         <div className="md:col-span-2">
-          <label htmlFor={`exercise-notes-${item.id}`} className="text-sm font-medium text-slate-700">
+          <label htmlFor={`exercise-notes-${item.id}`} className="text-sm font-medium text-secondary">
             Exercise Notes
           </label>
           <textarea
@@ -233,7 +233,7 @@ export function WorkoutExerciseCard({
       <div className="mt-5 overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="text-left text-slate-700">
+            <tr className="text-left text-secondary">
               <th className="pb-2 pr-3 font-semibold">Set</th>
               <th className="pb-2 pr-3 font-semibold">Type</th>
               <th className="pb-2 pr-3 font-semibold">Weight (kg)</th>
@@ -245,7 +245,7 @@ export function WorkoutExerciseCard({
           <tbody>
             {item.sets.map((setItem, setIndex) => (
               <tr key={setItem.id} className="align-top">
-                <td className="py-1 pr-3 text-slate-700">{setIndex + 1}</td>
+                <td className="py-1 pr-3 text-secondary">{setIndex + 1}</td>
                 <td className="py-1 pr-3">
                   <select
                     value={setItem.setType}
@@ -317,3 +317,4 @@ export function WorkoutExerciseCard({
     </article>
   );
 }
+

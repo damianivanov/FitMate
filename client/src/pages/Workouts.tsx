@@ -72,7 +72,7 @@ export default function Workouts() {
             {WEEKLY_VOLUME.map((d) => (
               <div key={d.day} className="flex flex-1 flex-col items-center justify-end gap-1.5 h-full">
                 {d.vol > 0 && (
-                  <span className="font-mono text-[10px] text-slate-400">
+                  <span className="font-mono text-[10px] text-muted">
                     {(d.vol / 1000).toFixed(1)}k
                   </span>
                 )}
@@ -86,7 +86,7 @@ export default function Workouts() {
                       : "#94a3b833",
                   }}
                 />
-                <span className="text-[10px] font-semibold text-slate-400">{d.day}</span>
+                <span className="text-[10px] font-semibold text-muted">{d.day}</span>
               </div>
             ))}
           </div>
@@ -98,17 +98,17 @@ export default function Workouts() {
         <SectionHeader
           title="Quick Start"
           action={
-            <Link to="/templates" className="text-xs font-semibold text-sky-600 hover:text-sky-700">
+            <Link to="/templates" className="text-xs font-semibold text-sky-500 hover:text-sky-400">
               All Templates
             </Link>
           }
         />
         {templates.length === 0 ? (
           <div className="liquid-surface rounded-2xl px-6 py-12 text-center">
-            <p className="text-sm text-slate-400">No templates yet.</p>
+            <p className="text-sm text-muted">No templates yet.</p>
             <Link
               to="/templates/new"
-              className="mt-2 inline-block text-sm font-semibold text-sky-600 hover:text-sky-700"
+              className="mt-2 inline-block text-sm font-semibold text-sky-500 hover:text-sky-400"
             >
               Create your first template
             </Link>
@@ -134,15 +134,15 @@ export default function Workouts() {
                   className="liquid-surface liquid-hover-lift group cursor-pointer rounded-2xl p-5 text-left transition"
                 >
                   <div className="mb-2 flex items-start justify-between">
-                    <span className="text-base font-extrabold tracking-tight text-slate-900">
+                    <span className="text-base font-extrabold tracking-tight text-primary">
                       {t.name}
                     </span>
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${badgeColor}`}>
                       {t.name.split(" ")[0]}
                     </span>
                   </div>
-                  <p className="mb-3 text-xs leading-relaxed text-slate-500">{t.description}</p>
-                  <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                  <p className="mb-3 text-xs leading-relaxed text-tertiary">{t.description}</p>
+                  <div className="flex flex-wrap gap-3 text-xs text-tertiary">
                     <span className="flex items-center gap-1 font-medium">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                       {exCount} exercises
@@ -175,3 +175,4 @@ export default function Workouts() {
     </PageShell>
   );
 }
+

@@ -4,6 +4,7 @@ import { LuLogOut, LuMenu, LuShield, LuUserRound } from "react-icons/lu";
 import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import type { User } from "@/types";
+import ThemeToggle from "./ThemeToggle";
 
 type UserMenuProps = {
   user: User;
@@ -93,7 +94,7 @@ export default function UserMenu({
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-emerald-500 text-xs font-bold text-white">
           {initials}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">{displayName}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{displayName}</span>
         <LuMenu className={menuIconClassName} />
       </button>
 
@@ -102,9 +103,12 @@ export default function UserMenu({
           role="menu"
           className="liquid-menu liquid-user-menu absolute right-0 bottom-full left-0 z-30 mb-2 rounded-2xl p-1.5"
         >
-          <div className="liquid-divider border-b px-3 py-2">
-            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-            {user.email ? <p className="truncate text-xs text-slate-600">{user.email}</p> : null}
+          <div className="liquid-divider flex items-center justify-between gap-2 border-b px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-primary">{displayName}</p>
+              {user.email ? <p className="truncate text-xs text-tertiary">{user.email}</p> : null}
+            </div>
+            <ThemeToggle />
           </div>
 
           <Link
@@ -143,3 +147,4 @@ export default function UserMenu({
     </div>
   );
 }
+

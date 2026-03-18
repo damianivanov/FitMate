@@ -16,6 +16,9 @@ export default function Layout() {
     <div className="liquid-shell">
       <div className="liquid-shell-orb liquid-shell-orb-a" />
       <div className="liquid-shell-orb liquid-shell-orb-b" />
+      <div className="liquid-shell-orb liquid-shell-orb-c" />
+      <div className="liquid-shell-orb liquid-shell-orb-d" />
+      <div className="liquid-shell-orb liquid-shell-orb-e" />
       <div className="liquid-shell-gloss" />
 
       <div className={shellClassName}>

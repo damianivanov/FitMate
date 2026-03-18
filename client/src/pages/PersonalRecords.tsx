@@ -19,7 +19,7 @@ export default function PersonalRecords() {
     <PageShell title="Personal Records">
       {records.length === 0 ? (
         <div className="liquid-surface rounded-2xl px-6 py-16 text-center">
-          <p className="text-sm text-slate-400">No personal records yet. Start training!</p>
+          <p className="text-sm text-muted">No personal records yet. Start training!</p>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -39,17 +39,17 @@ export default function PersonalRecords() {
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold text-slate-900">
+                  <div className="truncate text-sm font-bold text-primary">
                     {getExerciseName(pr.exerciseId)}
                   </div>
-                  <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                  <div className="text-[11px] uppercase tracking-wide text-muted">
                     {pr.recordType.replace("_", " ")} · {formatDate(pr.achievedOn)}
                   </div>
                 </div>
 
                 {/* Value */}
                 <div className="font-mono text-xl font-medium text-sky-500">
-                  {pr.value} <span className="text-sm text-slate-400">kg</span>
+                  {pr.value} <span className="text-sm text-muted">kg</span>
                 </div>
               </div>
             ))}
@@ -58,3 +58,4 @@ export default function PersonalRecords() {
     </PageShell>
   );
 }
+

@@ -206,8 +206,8 @@ export default function MuscleGroupGrid() {
     <div className="w-full flex-1 px-5 py-8">
       <div className="mx-auto w-full max-w-[79dvw] space-y-6">
         <header className="space-y-2">
-          <h1 className="text-3xl font-extrabold text-slate-900">Muscle Group Grid</h1>
-          <p className="text-sm text-slate-600">Global muscle group management for admin users.</p>
+          <h1 className="text-3xl font-extrabold text-primary">Muscle Group Grid</h1>
+          <p className="text-sm text-secondary">Global muscle group management for admin users.</p>
         </header>
 
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
@@ -228,7 +228,7 @@ export default function MuscleGroupGrid() {
             </button>
           </div>
 
-          {visiblePageError && <p className="mb-4 text-sm text-red-700">{visiblePageError}</p>}
+          {visiblePageError && <p className="mb-4 text-sm text-danger">{visiblePageError}</p>}
 
           <EntityGrid
             rows={rows}
@@ -255,3 +255,4 @@ export default function MuscleGroupGrid() {
     </div>
   );
 }
+

@@ -14,7 +14,7 @@ function getMuscleChipClassName(isSelected: boolean): string {
   const baseClassName = "rounded-full px-3 py-1 text-xs font-semibold transition";
   const stateClassName = isSelected
     ? "liquid-chip liquid-chip-info"
-    : "liquid-pill text-slate-500 hover:text-slate-700";
+    : "liquid-pill text-tertiary hover:text-secondary";
 
   return `${baseClassName} ${stateClassName}`;
 }
@@ -62,7 +62,7 @@ export default function ExercisePickerModal({
       {/* Search */}
       <div className="relative mb-4">
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
           width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
         >
@@ -102,7 +102,7 @@ export default function ExercisePickerModal({
       {/* Exercise list */}
       <div className="max-h-[340px] overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">No exercises found</p>
+          <p className="py-8 text-center text-sm text-muted">No exercises found</p>
         ) : (
           filtered.map((ex) => (
             <button
@@ -119,8 +119,8 @@ export default function ExercisePickerModal({
                   .slice(0, 2)}
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-slate-900">{ex.name}</div>
-                <div className="text-xs text-slate-500">
+                <div className="truncate text-sm font-semibold text-primary">{ex.name}</div>
+                <div className="text-xs text-tertiary">
                   {getMuscle(ex.primaryMuscleGroupId)} · {ex.equipment} · {ex.mechanic}
                 </div>
               </div>
@@ -131,3 +131,4 @@ export default function ExercisePickerModal({
     </Modal>
   );
 }
+

@@ -49,13 +49,13 @@ function getTriggerButtonClassName(disabled: boolean): string {
 
 function getSelectedValueClassName(hasSelection: boolean): string {
   const baseClassName = "flex min-w-0 items-center gap-2";
-  const stateClassName = hasSelection ? "text-slate-900" : "text-slate-500";
+  const stateClassName = hasSelection ? "text-primary" : "text-tertiary";
 
   return `${baseClassName} ${stateClassName}`;
 }
 
 function getChevronIconClassName(isOpen: boolean): string {
-  const baseClassName = "h-4 w-4 text-slate-600 transition-transform";
+  const baseClassName = "h-4 w-4 text-secondary transition-transform";
   const stateClassName = isOpen ? "rotate-180" : "";
 
   return `${baseClassName} ${stateClassName}`.trim();
@@ -89,7 +89,7 @@ export function FloatingDropdown({
   value,
   options,
   containerClassName = "space-y-3",
-  labelClassName = "text-sm font-medium text-slate-700",
+  labelClassName = "text-sm font-medium text-secondary",
   placeholder = "Select",
   required = false,
   disabled = false,
@@ -254,7 +254,7 @@ export function FloatingDropdown({
     <div className={containerClassName} ref={rootRef}>
       <label htmlFor={id} className={labelClassName}>
         {label}
-        {required ? <span className="ml-1 text-red-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </label>
 
       <div className="relative">
@@ -331,7 +331,8 @@ export function FloatingDropdown({
           )
         : null}
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
     </div>
   );
 }
+
