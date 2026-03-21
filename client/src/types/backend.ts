@@ -13,6 +13,17 @@ export namespace Enums {
 		Dropset = 3,
 		Failure = 4
 	}
+	export enum PersonalRecordType {
+		OneRepMax = 1,
+		MaxWeight = 2,
+		MaxReps = 3,
+		MaxVolume = 4
+	}
+	export enum ExerciseGroupType {
+		Straight = 1,
+		Superset = 2,
+		Circuit = 3
+	}
 }
 export namespace JsonModels.Workouts {
 	export interface CreateWorkoutExerciseRequest

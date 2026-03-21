@@ -16,7 +16,7 @@ const content = fs.readFileSync(generatedFile, "utf8");
 
 // Parse namespaces (both export namespace and module syntax)
 const namespaceRegex =
-  /export\s+(?:namespace|module)\s+([\w.]+)\s*\{([\s\S]*?)\n\}/g;
+  /export\s+(?:namespace|module)\s+([\w.]+)\s*\{([\s\S]*?)\r?\n\}/g;
 
 let match;
 const namespaces = new Map();
@@ -31,7 +31,7 @@ while ((match = namespaceRegex.exec(content)) !== null) {
 
   // Match interfaces
   const interfaceRegex =
-    /export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\n\t\}/g;
+    /export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\r?\n[ \t]*\}/g;
   let typeMatch;
 
   while ((typeMatch = interfaceRegex.exec(namespaceContent)) !== null) {
@@ -47,7 +47,8 @@ while ((match = namespaceRegex.exec(content)) !== null) {
   }
 
   //Match classes
-  const classRegex = /export\s+class\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\n\t\}/g;
+  const classRegex =
+    /export\s+class\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\r?\n[ \t]*\}/g;
 
   while ((typeMatch = classRegex.exec(namespaceContent)) !== null) {
     const typeContent = typeMatch[0]
@@ -62,7 +63,7 @@ while ((match = namespaceRegex.exec(content)) !== null) {
   }
 
   //Match enums
-  const enumRegex = /export\s+enum\s+(\w+)\s*\{[\s\S]*?\n\t\}/g;
+  const enumRegex = /export\s+enum\s+(\w+)\s*\{[\s\S]*?\r?\n[ \t]*\}/g;
 
   while ((typeMatch = enumRegex.exec(namespaceContent)) !== null) {
     const typeContent = typeMatch[0]
@@ -84,7 +85,7 @@ const topLevelTypes = [];
 
 // interfaces
 const topLevelInterfaceRegex =
-  /^export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\n\}/gm;
+  /^export\s+interface\s+(\w+)(?:<[^>]+>)?(?:\s+extends\s+[^{]+)?\s*\{[\s\S]*?\r?\n\}/gm;
 let topLevelMatch;
 
 while ((topLevelMatch = topLevelInterfaceRegex.exec(content)) !== null) {
@@ -97,7 +98,7 @@ while ((topLevelMatch = topLevelInterfaceRegex.exec(content)) !== null) {
 
 // classes
 const topLevelClassRegex =
-  /^export\s+class\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\n\}/gm;
+  /^export\s+class\s+(\w+)(?:<[^>]+>)?\s*\{[\s\S]*?\r?\n\}/gm;
 
 while ((topLevelMatch = topLevelClassRegex.exec(content)) !== null) {
   topLevelTypes.push({
@@ -108,7 +109,7 @@ while ((topLevelMatch = topLevelClassRegex.exec(content)) !== null) {
 }
 
 //enums
-const topLevelEnumRegex = /^export\s+enum\s+(\w+)\s*\{[\s\S]*?\n\}/gm;
+const topLevelEnumRegex = /^export\s+enum\s+(\w+)\s*\{[\s\S]*?\r?\n\}/gm;
 
 while ((topLevelMatch = topLevelEnumRegex.exec(content)) !== null) {
   topLevelTypes.push({

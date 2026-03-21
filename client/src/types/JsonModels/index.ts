@@ -1,4 +1,6 @@
+export { ExerciseGroupType } from "./Enums/ExerciseGroupType";
 export { ExerciseSetType } from "./Enums/ExerciseSetType";
+export { PersonalRecordType } from "./Enums/PersonalRecordType";
 export { UserRole } from "./Enums/UserRole";
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { CreateExerciseRequest } from "./Exercises/CreateExerciseRequest";

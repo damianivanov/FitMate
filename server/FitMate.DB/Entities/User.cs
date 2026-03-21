@@ -13,19 +13,19 @@ public class User : IdentityUser<long>, IBaseEntity
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }
 
-    public ICollection<UserBodyMetric> BodyMetrics { get; set; } = new List<UserBodyMetric>();
-    public ICollection<Exercise> Exercises { get; set; } = new List<Exercise>();
-    public ICollection<WorkoutTemplate> WorkoutTemplates { get; set; } = new List<WorkoutTemplate>();
-    public ICollection<Workout> Workouts { get; set; } = new List<Workout>();
-    public ICollection<PersonalRecord> PersonalRecords { get; set; } = new List<PersonalRecord>();
-    public ICollection<Token> Tokens { get; set; } = new List<Token>();
-    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public ICollection<UserBodyMetric> BodyMetrics { get; set; } = [];
+    public ICollection<Exercise> Exercises { get; set; } = [];
+    public ICollection<WorkoutTemplate> WorkoutTemplates { get; set; } = [];
+    public ICollection<Workout> Workouts { get; set; } = [];
+    public ICollection<PersonalRecord> PersonalRecords { get; set; } = [];
+    public ICollection<Token> Tokens { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<UserRole> UserRoles { get; set; } = [];
 }
 
 public class Role : IdentityRole<long>
 {
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public ICollection<UserRole> UserRoles { get; set; } = [];
 }
 
 public class UserRole : IdentityUserRole<long>

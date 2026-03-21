@@ -106,7 +106,7 @@ public class WorkoutService : IWorkoutService
             var workoutExercise = new WorkoutExercise
             {
                 ExerciseId = exerciseRequest.ExerciseId,
-                SortOrderInGroup = exerciseIndex + 1,
+                OrderIndex = exerciseIndex + 1,
                 Notes = NormalizeNullable(exerciseRequest.Notes),
             };
 
@@ -121,7 +121,7 @@ public class WorkoutService : IWorkoutService
 
                 var exerciseSet = new ExerciseSet
                 {
-                    SetNumber = setIndex + 1,
+                    OrderIndex = setIndex + 1,
                     SetType = setRequest.SetType,
                     WeightKg = NormalizeWeight(setRequest.WeightKg),
                     Reps = setRequest.Reps,
@@ -220,11 +220,11 @@ public class WorkoutService : IWorkoutService
         var previousSets = await dbContext.ExerciseSets
             .AsNoTracking()
             .Where(x => workoutExerciseIds.Contains(x.WorkoutExerciseId))
-            .OrderBy(x => x.SetNumber)
+            .OrderBy(x => x.OrderIndex)
             .Select(x => new PreviousSetProjection
             {
                 WorkoutExerciseId = x.WorkoutExerciseId,
-                SetNumber = x.SetNumber,
+                SetNumber = x.OrderIndex,
                 SetType = x.SetType,
                 WeightKg = x.WeightKg,
                 Reps = x.Reps,
