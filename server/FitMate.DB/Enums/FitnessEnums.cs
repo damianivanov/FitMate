@@ -7,14 +7,6 @@ public enum ExerciseGroupType
     Circuit = 3,
 }
 
-public enum ExerciseSetType
-{
-    Warmup = 1,
-    Working = 2,
-    Dropset = 3,
-    Failure = 4,
-}
-
 public enum PersonalRecordType
 {
     OneRepMax = 1,

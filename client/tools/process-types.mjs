@@ -155,9 +155,21 @@ function hasNamespaceRefs(typeContent) {
   );
 }
 
-// Helper: detect if file content references Enums namespace
-function hasEnumsRefs(typeContent) {
-  return /\bEnums\.[A-Za-z_]\w+\b/.test(typeContent);
+function getEnumRefs(typeContent) {
+  return [
+    ...new Set(
+      [...typeContent.matchAll(/\bEnums\.([A-Za-z_]\w+)\b/g)].map(
+        (match) => match[1]
+      )
+    ),
+  ];
+}
+
+function toImportPath(fromDir, toPathWithoutExtension) {
+  const relative = path
+    .relative(fromDir, toPathWithoutExtension)
+    .replace(/\\/g, "/");
+  return relative.startsWith(".") ? relative : `./${relative}`;
 }
 
 // Create files for each type
@@ -187,21 +199,39 @@ namespaces.forEach((types, namespaceName) => {
     const fileName = `${typeName}.ts`;
     const filePath = path.join(targetDir, fileName);
 
+    const enumRefs = getEnumRefs(typeDef.content);
     const needsJsonModelsImport = hasNamespaceRefs(typeDef.content);
-    const needsEnumsImport = hasEnumsRefs(typeDef.content);
-
     let finalContent = typeDef.content.trim();
+    const importStatements = [];
 
-    if (needsJsonModelsImport || needsEnumsImport) {
+    if (enumRefs.length > 0) {
+      finalContent = finalContent.replace(/\bEnums\.([A-Za-z_]\w+)\b/g, "$1");
+    }
+
+    if (needsJsonModelsImport) {
       const relative = path.relative(targetDir, path.dirname(generatedFile));
       const importPath = (relative.replace(/\\/g, "/") || ".") + "/backend";
+      importStatements.push(`import type { JsonModels } from "${importPath}";`);
+    }
 
-      const imports = [];
-      if (needsJsonModelsImport) imports.push("JsonModels");
-      if (needsEnumsImport) imports.push("Enums");
+    if (enumRefs.length > 0) {
+      for (const enumName of enumRefs.sort((a, b) => a.localeCompare(b))) {
+        if (namespaceName === "Enums" && enumName === typeName) {
+          continue;
+        }
 
-      const importStatement = `import type { ${imports.join(", ")} } from "${importPath}";\n\n`;
-      finalContent = importStatement + finalContent;
+        const enumImportPath = toImportPath(
+          targetDir,
+          path.join(outputDir, "Enums", enumName)
+        );
+        importStatements.push(
+          `import type { ${enumName} } from "${enumImportPath}";`
+        );
+      }
+    }
+
+    if (importStatements.length > 0) {
+      finalContent = importStatements.join("\n") + "\n\n" + finalContent;
     }
 
     fs.writeFileSync(filePath, finalContent + "\n", "utf8");

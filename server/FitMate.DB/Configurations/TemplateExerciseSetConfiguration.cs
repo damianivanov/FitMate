@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FitMate.DB.Configurations;
 
-internal class ExerciseSetConfiguration : BaseConfiguration<ExerciseSet>
+internal class TemplateExerciseSetConfiguration : BaseConfiguration<TemplateExerciseSet>
 {
-    public override void Configure(EntityTypeBuilder<ExerciseSet> builder)
+    public override void Configure(EntityTypeBuilder<TemplateExerciseSet> builder)
     {
         base.Configure(builder);
 
@@ -23,11 +23,12 @@ internal class ExerciseSetConfiguration : BaseConfiguration<ExerciseSet>
             .HasPrecision(3, 1)
             .IsRequired(false);
 
-        builder.HasIndex(x => new { x.WorkoutExerciseId, x.OrderIndex }).IsUnique();
+        builder.HasIndex(x => new { x.TemplateExerciseId, x.OrderIndex })
+            .IsUnique();
 
-        builder.HasOne(x => x.WorkoutExercise)
+        builder.HasOne(x => x.TemplateExercise)
             .WithMany(x => x.Sets)
-            .HasForeignKey(x => x.WorkoutExerciseId)
+            .HasForeignKey(x => x.TemplateExerciseId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

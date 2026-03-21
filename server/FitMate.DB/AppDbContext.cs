@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<User, Role, long>
     public DbSet<UserBodyMetric> UserBodyMetrics => Set<UserBodyMetric>();
     public DbSet<MuscleGroup> MuscleGroups => Set<MuscleGroup>();
     public DbSet<TemplateExercise> TemplateExercises => Set<TemplateExercise>();
+    public DbSet<TemplateExerciseSet> TemplateExerciseSets => Set<TemplateExerciseSet>();
     public DbSet<TemplateExerciseGroup> TemplateExerciseGroups => Set<TemplateExerciseGroup>();
     public DbSet<WorkoutExerciseGroup> WorkoutExerciseGroups => Set<WorkoutExerciseGroup>();
     public DbSet<PersonalRecord> PersonalRecords => Set<PersonalRecord>();

@@ -1,8 +1,8 @@
-import type { Enums } from "../../backend";
+import type { ExerciseSetType } from "../Enums/ExerciseSetType";
 
 export interface CreateWorkoutSetRequest
 {
-	setType: Enums.ExerciseSetType;
+	setType: ExerciseSetType;
 	weightKg?: number;
 	reps?: number;
 	durationSeconds?: number;

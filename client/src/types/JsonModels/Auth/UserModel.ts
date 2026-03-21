@@ -1,4 +1,4 @@
-import type { Enums } from "../../backend";
+import type { UserRole } from "../Enums/UserRole";
 
 export interface UserModel
 {
@@ -6,5 +6,5 @@ export interface UserModel
 	email: string;
 	firstName?: string;
 	lastName?: string;
-	roles: Enums.UserRole[];
+	roles: UserRole[];
 }

@@ -15,7 +15,7 @@ internal class TemplateExerciseConfiguration : BaseConfiguration<TemplateExercis
             .HasPrecision(8, 2)
             .IsRequired(false);
 
-        builder.HasIndex(x => new { x.TemplateExerciseGroupId, x.SortOrderInGroup })
+        builder.HasIndex(x => new { x.TemplateExerciseGroupId, x.OrderIndex })
             .IsUnique();
 
         builder.HasOne(x => x.TemplateExerciseGroup)

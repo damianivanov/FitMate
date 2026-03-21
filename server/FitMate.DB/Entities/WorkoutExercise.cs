@@ -6,7 +6,7 @@ public class WorkoutExercise : BaseEntity
 {
     public long WorkoutExerciseGroupId { get; set; }
     public long ExerciseId { get; set; }
-    public int SortOrderInGroup { get; set; }
+    public int OrderIndex { get; set; }
     public string? Notes { get; set; }
 
     public WorkoutExerciseGroup WorkoutExerciseGroup { get; set; } = null!;

@@ -1,11 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════
    FITMATE – Liquid Glass Design System (Light / Dark)
    Toggle: add class="dark" on <html> for dark mode.
    ═══════════════════════════════════════════════════════════════ */
-
 
 /* ─────────────────────────────────────────────────────────────
    LIGHT THEME (default)
@@ -42,7 +46,7 @@
   --ink-tertiary: var(--text-tertiary);
 
   /* ── Accent ── */
-  --accent: #007aff;
+  --accent: oklch(0.97 0 0);
   --accent-strong: #0063da;
   --accent-soft: rgba(0, 122, 255, 0.10);
   --accent-glow: rgba(0, 122, 255, 0.18);
@@ -215,8 +219,38 @@
   --scene-orb-d: radial-gradient(circle, rgba(52, 211, 153, 0.16) 0%, transparent 60%);
   --scene-orb-e: radial-gradient(circle, rgba(251, 191, 36, 0.14) 0%, transparent 55%);
   --scene-wash: linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0) 50%);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
-
 
 /* ─────────────────────────────────────────────────────────────
    DARK THEME  (html.dark)
@@ -236,7 +270,7 @@
   --text-disabled: #343e52;
 
   /* ── Accent – Indigo ── */
-  --accent: #818cf8;
+  --accent: oklch(0.269 0 0);
   --accent-strong: #6366f1;
   --accent-soft: rgba(99, 102, 241, 0.12);
   --accent-glow: rgba(99, 102, 241, 0.22);
@@ -406,8 +440,37 @@
   --scene-orb-d: radial-gradient(circle, rgba(52, 211, 153, 0.12), transparent 48%);
   --scene-orb-e: radial-gradient(circle, rgba(251, 191, 36, 0.08), transparent 45%);
   --scene-wash: radial-gradient(ellipse 85% 65% at 48% 42%, rgba(12, 15, 22, 0.15), rgba(12, 15, 22, 0.78));
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
-
 
 /* ═══════════════════════════════════════════════════════════════
    BASE RESET & GLOBALS
@@ -432,7 +495,6 @@ button { cursor: pointer; }
 input:focus { outline: none; }
 input, textarea { cursor: text; caret-color: var(--text-primary); }
 .mono { font-family: var(--font-mono); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATED BACKDROP SCENE
@@ -499,7 +561,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   pointer-events: none;
   background: var(--scene-wash);
 }
-
 
 /* ═══════════════════════════════════════════════════════════════
    GLASS MATERIALS
@@ -597,7 +658,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   -webkit-backdrop-filter: blur(48px);
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    PILLS / NAV ITEMS
    ═══════════════════════════════════════════════════════════════ */
@@ -652,7 +712,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   box-shadow: var(--nav-item-active-shadow);
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    OPTION / SELECT
    ═══════════════════════════════════════════════════════════════ */
@@ -667,7 +726,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 }
 
 .liquid-option-disabled { color: var(--text-disabled); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    FORM INPUTS
@@ -701,14 +759,12 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   color: var(--text-primary);
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    LINKS
    ═══════════════════════════════════════════════════════════════ */
 
 .liquid-link { color: var(--link-color); transition: color 0.2s; }
 .liquid-link:hover { color: var(--link-hover-color); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    BUTTONS
@@ -769,7 +825,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   color: var(--btn-icon-hover-color);
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    OVERLAYS
    ═══════════════════════════════════════════════════════════════ */
@@ -786,13 +841,11 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
   -webkit-backdrop-filter: blur(14px);
 }
 
-
 /* ═══════════════════════════════════════════════════════════════
    DIVIDERS
    ═══════════════════════════════════════════════════════════════ */
 
 .liquid-divider { border-color: var(--glass-divider); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    CHIPS / BADGES
@@ -811,13 +864,11 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 .liquid-chip-danger  { background: var(--chip-rose-bg); color: var(--chip-rose-fg); }
 .liquid-chip-violet  { background: var(--chip-violet-bg); color: var(--chip-violet-fg); }
 
-
 /* ═══════════════════════════════════════════════════════════════
    PROGRESS
    ═══════════════════════════════════════════════════════════════ */
 
 .liquid-progress-track { background: var(--progress-track); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    HOVER EFFECTS
@@ -828,7 +879,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 
 .liquid-hover-row { transition: background 0.15s; }
 .liquid-hover-row:hover { background: var(--glass-hover-row-bg); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    SCROLLBAR
@@ -848,7 +898,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 .liquid-scrollbar-hidden { -ms-overflow-style: none; scrollbar-width: none; }
 .liquid-scrollbar-hidden::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
-
 /* ═══════════════════════════════════════════════════════════════
    TEXT UTILITIES
    ═══════════════════════════════════════════════════════════════ */
@@ -860,7 +909,6 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 .text-tertiary      { color: var(--text-tertiary); }
 .text-muted         { color: var(--text-muted); }
 .text-danger        { color: var(--color-danger); }
-
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATIONS
@@ -899,3 +947,58 @@ input, textarea { cursor: text; caret-color: var(--text-primary); }
 .animate-fade-up { animation: liquidFadeUp 0.3s ease-out; }
 .animate-pulse   { animation: liquidPulse 2s ease-in-out infinite; }
 .animate-glow    { animation: liquidGlow 3s ease-in-out infinite; }
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

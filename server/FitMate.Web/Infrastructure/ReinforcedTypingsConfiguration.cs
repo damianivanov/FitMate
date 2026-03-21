@@ -35,23 +35,30 @@ public static class ReinforcedTypingsConfiguration
             builder.TryLookupDocumentationForAssembly(webAssembly, "FitMate.Web.xml");
         }
 
-        if (coreAssembly == null)
-        {
-            return;
-        }
-
         const string modelNamespace = "FitMate.Core";
-        var modelsToExport = coreAssembly
-            .GetExportedTypes()
-            .Where(t =>
-                (t.Namespace?.StartsWith($"{modelNamespace}.JsonModels") ?? false)
-                || (t.Namespace?.StartsWith($"{modelNamespace}.Common") ?? false))
-            .ToList();
+        var modelsToExport = coreAssembly == null
+            ? []
+            : coreAssembly
+                .GetExportedTypes()
+                .Where(t =>
+                    (t.Namespace?.StartsWith($"{modelNamespace}.JsonModels") ?? false)
+                    || (t.Namespace?.StartsWith($"{modelNamespace}.Common") ?? false))
+                .ToList();
+
+        const string entityNamespace = "FitMate.DB.Entities";
+        var entitiesToScan = dbAssembly == null
+            ? []
+            : dbAssembly
+                .GetExportedTypes()
+                .Where(t => t.Namespace?.StartsWith(entityNamespace) ?? false)
+                .ToList();
 
         var enums = modelsToExport
             .Where(t => t.IsEnum)
             .Concat(modelsToExport.SelectMany(model =>
                 model.GetProperties().SelectMany(property => GetEnumTypes(property.PropertyType))))
+            .Concat(entitiesToScan.SelectMany(entity =>
+                entity.GetProperties().SelectMany(property => GetEnumTypes(property.PropertyType))))
             .DistinctBy(e => e.FullName)
             .ToList();
 

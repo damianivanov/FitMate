@@ -6,7 +6,7 @@ public class TemplateExercise : BaseEntity
 {
     public long TemplateExerciseGroupId { get; set; }
     public long ExerciseId { get; set; }
-    public int SortOrderInGroup { get; set; }
+    public int OrderIndex { get; set; }
     public int TargetSets { get; set; }
     public string? TargetReps { get; set; }
     public decimal? TargetWeightKg { get; set; }
@@ -16,4 +16,5 @@ public class TemplateExercise : BaseEntity
 
     public TemplateExerciseGroup TemplateExerciseGroup { get; set; } = null!;
     public Exercise Exercise { get; set; } = null!;
+    public ICollection<TemplateExerciseSet> Sets { get; set; } = [];
 }

@@ -11,7 +11,7 @@ internal class WorkoutExerciseConfiguration : BaseConfiguration<WorkoutExercise>
     {
         base.Configure(builder);
         
-        builder.HasIndex(x => new { x.WorkoutExerciseGroupId, x.SortOrderInGroup })
+        builder.HasIndex(x => new { x.WorkoutExerciseGroupId, x.OrderIndex })
             .IsUnique();
 
         builder.HasOne(x => x.WorkoutExerciseGroup)
