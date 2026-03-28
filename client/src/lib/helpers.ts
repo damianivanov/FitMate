@@ -7,6 +7,39 @@ export function slugify(value: string): string {
     .replace(/-+/g, "-");
 }
 
+export function parseOptionalDecimal(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const normalized = trimmed.replace(",", ".");
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export function parseOptionalInt(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export function createLocalId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function buildDisplayName(firstName?: string, lastName?: string): string {
   return [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ").trim();
 }

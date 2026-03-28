@@ -7,6 +7,11 @@ export namespace Enums {
 		User = 1,
 		Admin = 2
 	}
+	export enum ExerciseGroupType {
+		Straight = 1,
+		Superset = 2,
+		Circuit = 3
+	}
 	export enum ExerciseSetType {
 		Warmup = 1,
 		Working = 2,
@@ -19,10 +24,82 @@ export namespace Enums {
 		MaxReps = 3,
 		MaxVolume = 4
 	}
-	export enum ExerciseGroupType {
-		Straight = 1,
-		Superset = 2,
-		Circuit = 3
+}
+export namespace JsonModels.WorkoutTemplates {
+	export interface CreateWorkoutTemplateExerciseRequest
+	{
+		groupType: Enums.ExerciseGroupType;
+		exerciseId?: number;
+		createExercise?: JsonModels.Exercises.CreateExerciseRequest;
+		notes?: string;
+		sets: JsonModels.WorkoutTemplates.CreateWorkoutTemplateExerciseSetRequest[];
+	}
+	export interface CreateWorkoutTemplateExerciseSetRequest
+	{
+		weightKg?: number;
+		reps?: number;
+		durationSeconds?: number;
+		distanceMeters?: number;
+		rpe?: number;
+		restSeconds?: number;
+		notes?: string;
+	}
+	export interface CreateWorkoutTemplateRequest
+	{
+		name: string;
+		description?: string;
+		estimatedDurationMinutes?: number;
+		isPublic: boolean;
+		exercises: JsonModels.WorkoutTemplates.CreateWorkoutTemplateExerciseRequest[];
+	}
+	export interface WorkoutTemplateExerciseGroupModel
+	{
+		id: number;
+		sortOrder: number;
+		groupType: Enums.ExerciseGroupType;
+		restBetweenExercisesSeconds?: number;
+		restAfterGroupSeconds?: number;
+		rounds: number;
+		exercises: JsonModels.WorkoutTemplates.WorkoutTemplateExerciseModel[];
+	}
+	export interface WorkoutTemplateExerciseModel
+	{
+		id: number;
+		exerciseId: number;
+		exerciseName: string;
+		orderIndex: number;
+		targetSets: number;
+		targetReps?: string;
+		targetWeightKg?: number;
+		targetRestSeconds?: number;
+		tempo?: string;
+		notes?: string;
+		sets: JsonModels.WorkoutTemplates.WorkoutTemplateExerciseSetModel[];
+	}
+	export interface WorkoutTemplateExerciseSetModel
+	{
+		id: number;
+		orderIndex: number;
+		weightKg?: number;
+		reps?: number;
+		durationSeconds?: number;
+		distanceMeters?: number;
+		rpe?: number;
+		restSeconds?: number;
+		notes?: string;
+	}
+	export interface WorkoutTemplateModel
+	{
+		id: number;
+		userId?: number;
+		name: string;
+		description?: string;
+		estimatedDurationMinutes?: number;
+		isPublic: boolean;
+		exerciseCount: number;
+		setCount: number;
+		dateCreated: string;
+		groups: JsonModels.WorkoutTemplates.WorkoutTemplateExerciseGroupModel[];
 	}
 }
 export namespace JsonModels.Workouts {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
+import { OutlinedButton, PrimaryButton } from "@/shared/components/Buttons";
 import type { Exercise, Mood, WorkoutTemplate } from "@/types/workout";
 
 type CreateWorkoutForm = {
@@ -89,15 +90,15 @@ export default function CreateWorkoutModal({
       size="md"
       footer={
         <>
-          <button type="button" className="liquid-pill liquid-subtle-text rounded-xl px-4 py-2.5 text-sm font-semibold transition" onClick={onClose}>
+          <OutlinedButton type="button" onClick={onClose}>
             Cancel
-          </button>
-          <button type="button" className="liquid-primary-btn rounded-xl px-5 py-2.5 text-sm font-semibold" onClick={handleStart}>
+          </OutlinedButton>
+          <PrimaryButton type="button" onClick={handleStart}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 3l14 9-14 9V3z" />
             </svg>
             Start Workout
-          </button>
+          </PrimaryButton>
         </>
       }
     >
@@ -112,7 +113,7 @@ export default function CreateWorkoutModal({
           value={form.title}
           onChange={(e) => update("title", e.target.value)}
           autoFocus
-          className="liquid-input w-full rounded-xl px-4 py-2.5 text-sm"
+          className="liquid-input w-full rounded-xl px-5 py-3 text-sm"
         />
       </div>
 
@@ -124,7 +125,7 @@ export default function CreateWorkoutModal({
         <select
           value={form.templateId}
           onChange={(e) => handleTemplateChange(e.target.value)}
-          className="liquid-input w-full appearance-none rounded-xl px-4 py-2.5 text-sm"
+          className="liquid-input w-full appearance-none rounded-xl px-5 py-3 text-sm"
         >
           <option value="">Empty workout — start from scratch</option>
           {templates.map((t) => (
@@ -138,7 +139,7 @@ export default function CreateWorkoutModal({
       {/* Template preview */}
       {selectedTemplate && (
         <div className="liquid-info-surface mb-5 rounded-xl px-4 py-3">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
             Template Preview
           </div>
           {selectedTemplate.groups.map((g, i) => (
@@ -146,9 +147,9 @@ export default function CreateWorkoutModal({
               key={g.id}
               className={getTemplatePreviewRowClassName(i)}
             >
-              <span className="min-w-[18px] font-mono text-xs text-muted">{i + 1}</span>
+              <span className="min-w-4.5 font-mono text-xs text-muted">{i + 1}</span>
               {g.groupType !== "straight" && (
-                <span className="liquid-chip liquid-chip-info rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
+                <span className="liquid-chip liquid-chip-info rounded-full px-2 py-0.5 text-xs font-bold uppercase">
                   {g.groupType}
                 </span>
               )}
@@ -175,7 +176,7 @@ export default function CreateWorkoutModal({
             placeholder="84.2"
             value={form.bodyWeightKg}
             onChange={(e) => update("bodyWeightKg", e.target.value)}
-            className="liquid-input w-full rounded-xl px-4 py-2.5 text-sm"
+            className="liquid-input w-full rounded-xl px-5 py-3 text-sm"
           />
         </div>
         <div>
@@ -185,7 +186,7 @@ export default function CreateWorkoutModal({
           <select
             value={form.mood}
             onChange={(e) => update("mood", e.target.value as Mood)}
-            className="liquid-input w-full appearance-none rounded-xl px-4 py-2.5 text-sm capitalize"
+            className="liquid-input w-full appearance-none rounded-xl px-5 py-3 text-sm capitalize"
           >
             {MOODS.map((m) => (
               <option key={m} value={m}>
@@ -206,10 +207,9 @@ export default function CreateWorkoutModal({
           rows={2}
           value={form.notes}
           onChange={(e) => update("notes", e.target.value)}
-          className="liquid-input w-full resize-y rounded-xl px-4 py-2.5 text-sm"
+          className="liquid-input w-full rounded-xl px-5 py-3 text-sm"
         />
       </div>
     </Modal>
   );
 }
-

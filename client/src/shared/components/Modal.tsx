@@ -55,11 +55,11 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
   }
 
   const overlayBaseClassName =
-    "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200";
+    "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-500";
   const overlayStateClassName = isClosing ? "opacity-0" : "opacity-100";
   const overlayClassName = `${overlayBaseClassName} ${overlayStateClassName}`;
   const contentBaseClassName =
-    `liquid-surface liquid-modal-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl transition-transform duration-200`;
+    `liquid-surface liquid-modal-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl transition-transform duration-500`;
   const contentStateClassName = isClosing ? "scale-95" : "scale-100";
   const contentClassName = `${contentBaseClassName} ${contentStateClassName}`;
 
@@ -84,7 +84,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
       <div className={contentClassName} onClick={handleModalContentClick}>
         {title && (
           <div className="liquid-divider flex items-center justify-between border-b px-5 py-4">
-            <h3 className="text-lg font-semibold text-primary">{title}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
             <button
               type="button"
               onClick={handleClose}
@@ -112,4 +112,5 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
     </div>
   );
 }
+
 

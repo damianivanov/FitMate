@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { exerciseService } from "@/services/exerciseService";
+import { useUserStore } from "@/stores/userStore";
 import type { ExerciseLookupModel, ExerciseLookupRequest } from "@/types";
 
 const DEFAULT_TAKE = 20;
@@ -16,8 +17,8 @@ type LookupCacheEntry = {
 const lookupCache = new Map<string, LookupCacheEntry>();
 const inFlightRequests = new Map<string, Promise<ExerciseLookupModel[]>>();
 
-function buildCacheKey(params: ExerciseLookupRequest): string {
-  return `${params.search ?? ""}|${params.muscleGroupId ?? ""}|${params.take}`;
+function buildCacheKey(params: ExerciseLookupRequest, cacheScope: string): string {
+  return `${cacheScope}|${params.search ?? ""}|${params.muscleGroupId ?? ""}|${params.take}`;
 }
 
 function isCacheFresh(entry: LookupCacheEntry | undefined, staleTimeMs: number): boolean {
@@ -26,10 +27,11 @@ function isCacheFresh(entry: LookupCacheEntry | undefined, staleTimeMs: number):
 
 async function fetchExerciseLookup(
   params: ExerciseLookupRequest,
+  cacheScope: string,
   staleTimeMs: number,
   forceRefresh: boolean,
 ): Promise<ExerciseLookupModel[]> {
-  const cacheKey = buildCacheKey(params);
+  const cacheKey = buildCacheKey(params, cacheScope);
   const cached = lookupCache.get(cacheKey);
   if (!forceRefresh && isCacheFresh(cached, staleTimeMs) && cached) {
     return cached.options;
@@ -88,6 +90,8 @@ export function useExerciseLookup({
   includeWhenSearchEmpty = false,
   staleTimeMs = DEFAULT_STALE_TIME_MS,
 }: UseExerciseLookupOptions = {}) {
+  const cacheScope = useUserStore((state) =>
+    state.user.id > 0 ? `user:${state.user.id}` : "user:anon");
   const normalizedSearch = search.trim();
   const safeDebounceMs = Number.isFinite(debounceMs) && debounceMs >= 0 ? debounceMs : DEFAULT_DEBOUNCE_MS;
   const debouncedSearch = useDebouncedValue(normalizedSearch, safeDebounceMs);
@@ -132,7 +136,7 @@ export function useExerciseLookup({
       setError(null);
 
       try {
-        const data = await fetchExerciseLookup(requestParams, safeStaleTimeMs, forceRefresh);
+        const data = await fetchExerciseLookup(requestParams, cacheScope, safeStaleTimeMs, forceRefresh);
 
         if (currentRequest !== requestRef.current) {
           return;
@@ -153,7 +157,7 @@ export function useExerciseLookup({
         }
       }
     },
-    [enabled, hasQuery, requestParams, safeStaleTimeMs],
+    [cacheScope, enabled, hasQuery, requestParams, safeStaleTimeMs],
   );
 
   useEffect(() => {

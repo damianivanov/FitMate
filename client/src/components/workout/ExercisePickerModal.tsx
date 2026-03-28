@@ -74,7 +74,7 @@ export default function ExercisePickerModal({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
-          className="liquid-input w-full rounded-xl py-2.5 pl-10 pr-4 text-sm"
+          className="liquid-input w-full rounded-xl py-3 pl-11 pr-5 text-sm"
         />
       </div>
 
@@ -109,7 +109,7 @@ export default function ExercisePickerModal({
               key={ex.id}
               type="button"
               onClick={() => handleSelect(ex.id)}
-              className="liquid-option flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition"
+              className="liquid-option flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition"
             >
               <div className="liquid-chip liquid-chip-info flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold">
                 {ex.name
@@ -119,7 +119,7 @@ export default function ExercisePickerModal({
                   .slice(0, 2)}
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-primary">{ex.name}</div>
+                <div className="truncate text-sm font-semibold text-foreground">{ex.name}</div>
                 <div className="text-xs text-tertiary">
                   {getMuscle(ex.primaryMuscleGroupId)} · {ex.equipment} · {ex.mechanic}
                 </div>
@@ -131,4 +131,6 @@ export default function ExercisePickerModal({
     </Modal>
   );
 }
+
+
 

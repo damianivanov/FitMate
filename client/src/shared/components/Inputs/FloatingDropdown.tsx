@@ -41,7 +41,7 @@ type FloatingDropdownPosition = {
 
 function getTriggerButtonClassName(disabled: boolean): string {
   const baseClassName =
-    "liquid-input flex w-full items-center justify-between rounded-full px-3 py-2.5 text-left outline-none transition";
+    "liquid-input flex w-full items-center justify-between rounded-full px-4 py-3 text-left outline-none transition";
   const stateClassName = disabled ? "cursor-not-allowed! opacity-70" : "cursor-pointer!";
 
   return `${baseClassName} ${stateClassName}`;
@@ -49,7 +49,7 @@ function getTriggerButtonClassName(disabled: boolean): string {
 
 function getSelectedValueClassName(hasSelection: boolean): string {
   const baseClassName = "flex min-w-0 items-center gap-2";
-  const stateClassName = hasSelection ? "text-primary" : "text-tertiary";
+  const stateClassName = hasSelection ? "text-foreground" : "text-tertiary";
 
   return `${baseClassName} ${stateClassName}`;
 }
@@ -70,7 +70,7 @@ function getMenuClassName(hideScrollbar: boolean): string {
 }
 
 function getOptionClassName(isOptionDisabled: boolean, isSelected: boolean): string {
-  const baseClassName = "rounded-full px-3 py-2 text-sm transition";
+  const baseClassName = "rounded-full px-4 py-2.5 text-sm transition";
 
   if (isOptionDisabled) {
     return `${baseClassName} liquid-option-disabled cursor-not-allowed`;
@@ -335,4 +335,6 @@ export function FloatingDropdown({
     </div>
   );
 }
+
+
 

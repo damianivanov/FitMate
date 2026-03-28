@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { LuX } from "react-icons/lu";
 
 type ModalProps = {
   open: boolean;
@@ -42,16 +43,14 @@ export default function Modal({ open, onClose, title, size = "md", children, foo
       >
         {/* Header */}
         <div className="liquid-divider flex shrink-0 items-center justify-between border-b px-7 py-5">
-          <h2 className="text-lg font-extrabold tracking-tight text-primary">{title}</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="liquid-pill liquid-subtle-text flex h-8 w-8 items-center justify-center rounded-lg transition hover:text-primary"
+            className="liquid-pill liquid-subtle-text flex h-8 w-8 items-center justify-center rounded-full transition hover:text-primary"
             aria-label="Close"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <LuX className="h-4 w-4" />
           </button>
         </div>
 
@@ -68,4 +67,5 @@ export default function Modal({ open, onClose, title, size = "md", children, foo
     </div>
   );
 }
+
 

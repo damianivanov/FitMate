@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { LuLogOut, LuMenu, LuShield, LuUserRound } from "react-icons/lu";
+import { LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
 import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
+import { useThemeStore } from "@/stores/themeStore";
 import type { User } from "@/types";
-import ThemeToggle from "./ThemeToggle";
 
 type UserMenuProps = {
   user: User;
@@ -22,9 +22,13 @@ export default function UserMenu({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const { theme, toggleTheme } = useThemeStore();
   const isAdminUser = hasAdminRole(user);
+  const isLightMode = theme === "light";
   const displayName = buildDisplayName(user.firstName, user.lastName) || "FitMate User";
   const initials = buildInitials(user.firstName, user.lastName, user.email);
+  const sunToggleIconClassName = isLightMode ? "h-4 w-4 text-orange-600" : "h-4 w-4 text-orange-400/85";
+  const moonToggleIconClassName = isLightMode ? "h-4 w-4 text-sky-400/85" : "h-4 w-4 text-sky-600";
 
   const handleToggleMenu = () => {
     setIsOpen((current) => !current);
@@ -49,7 +53,11 @@ export default function UserMenu({
     handleCloseMenu();
   };
 
-  const menuIconClassName = "h-4 w-4 liquid-subtle-text";
+  const handleThemeToggle = () => {
+    toggleTheme();
+  };
+
+  const menuIconClassName = "h-4 w-4 text-slate-500 dark:text-slate-400";
   const containerBaseClassName = "relative";
   const containerClassName = `${containerBaseClassName} ${className}`.trim();
 
@@ -87,14 +95,16 @@ export default function UserMenu({
       <button
         type="button"
         onClick={handleToggleMenu}
-        className="liquid-pill flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left"
+        className="liquid-pill flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-left"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-sky-500 to-emerald-500 text-xs font-bold text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-700 text-xs font-bold text-white">
           {initials}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{displayName}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+          {displayName}
+        </span>
         <LuMenu className={menuIconClassName} />
       </button>
 
@@ -103,18 +113,17 @@ export default function UserMenu({
           role="menu"
           className="liquid-menu liquid-user-menu absolute right-0 bottom-full left-0 z-30 mb-2 rounded-2xl p-1.5"
         >
-          <div className="liquid-divider flex items-center justify-between gap-2 border-b px-3 py-2">
+          <div className="liquid-divider border-b px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-primary">{displayName}</p>
+              <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
               {user.email ? <p className="truncate text-xs text-tertiary">{user.email}</p> : null}
             </div>
-            <ThemeToggle />
           </div>
 
           <Link
             to="/profile"
             onClick={handleProfileClick}
-            className="liquid-nav-item mt-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
+            className="liquid-nav-item mt-1 flex items-center gap-2 rounded-full px-3 py-2.5 text-sm font-medium"
             role="menuitem"
           >
             <LuUserRound className="h-4 w-4" />
@@ -125,7 +134,7 @@ export default function UserMenu({
             <Link
               to="/management"
               onClick={handleAdminClick}
-              className="liquid-nav-item flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
+              className="liquid-nav-item flex items-center gap-2 rounded-full px-3 py-2.5 text-sm font-medium"
               role="menuitem"
             >
               <LuShield className="h-4 w-4" />
@@ -133,18 +142,41 @@ export default function UserMenu({
             </Link>
           ) : null}
 
-          <button
-            type="button"
-            onClick={handleLogoutClick}
-            className="liquid-nav-item liquid-pill-danger flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium"
-            role="menuitem"
-          >
-            <LuLogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <div className="liquid-divider mt-1 border-t px-1 pt-1">
+            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium">
+              <span className="flex items-center gap-2.5">
+                <span className="text-secondary">Theme</span>
+              </span>
+              <div className="flex items-center gap-2.5">
+                <LuMoon className={moonToggleIconClassName} aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={handleThemeToggle}
+                  className={`liquid-theme-switch ${isLightMode ? "liquid-theme-switch-active" : ""}`}
+                  role="menuitemcheckbox"
+                  aria-checked={isLightMode}
+                  aria-label={isLightMode ? "Switch to dark mode" : "Switch to light mode"}
+                >
+                  <span className="liquid-theme-switch-knob" />
+                </button>
+                <LuSun className={sunToggleIconClassName} aria-hidden="true" />
+              </div>
+            </div>
+          </div>
+
+          <div className="liquid-divider mt-1 border-t px-1 pt-1">
+            <button
+              type="button"
+              onClick={handleLogoutClick}
+              className="liquid-nav-item liquid-pill-danger flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-left text-sm font-medium"
+              role="menuitem"
+            >
+              <LuLogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
-

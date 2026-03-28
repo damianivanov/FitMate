@@ -13,7 +13,7 @@ const gridLinks = [
   },
 ] as const;
 
-export default function AdminDashboard() {
+export default function AdminPanel() {
   return (
     <div className="w-full flex-1 px-5 py-8">
       <div className="mx-auto w-full max-w-[79dvw] space-y-6">

@@ -2,17 +2,15 @@ import { Outlet, createBrowserRouter } from "react-router-dom";
 import Layout from "@/components/Layout";
 import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
+import { Login, Register } from "./pages/Auth";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import ExerciseGrid from "./pages/ExerciseGrid";
-import MuscleGroupGrid from "./pages/MuscleGroupGrid";
+import AdminPanel, { ExerciseGrid, MuscleGroupGrid } from "./pages/AdminPanel";
 import WorkoutBuilder from "./pages/WorkoutBuilder";
 import Workouts from "./pages/Workouts";
 import WorkoutHistory from "./pages/WorkoutHistory";
 import Templates from "./pages/Templates";
+import TemplateBuilder from "./pages/TemplateBuilder";
 import Analytics from "./pages/Analytics";
 import PersonalRecords from "./pages/PersonalRecords";
 
@@ -42,7 +40,6 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ─── Workouts ───
       {
         path: "workouts",
         element: (
@@ -66,7 +63,6 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // ─── Templates ───
       {
         path: "templates",
         element: (
@@ -79,13 +75,13 @@ export const router = createBrowserRouter([
             index: true,
             element: <Templates />,
           },
-          // TODO: Add these when you build the template editor
-          // { path: "new", element: <TemplateBuilder /> },
-          // { path: ":templateId/edit", element: <TemplateBuilder /> },
+          {
+            path: "new",
+            element: <TemplateBuilder />,
+          },
         ],
       },
 
-      // ─── Analytics ───
       {
         path: "analytics",
         element: (
@@ -95,7 +91,6 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ─── Personal Records ───
       {
         path: "records",
         element: (
@@ -105,7 +100,6 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ─── Admin ───
       {
         path: "management",
         element: (
@@ -116,7 +110,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <AdminDashboard />,
+            element: <AdminPanel />,
           },
           {
             path: "exercises",

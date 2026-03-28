@@ -8,6 +8,9 @@ export type { CreateMuscleGroupRequest } from "./MuscleGroups/CreateMuscleGroupR
 export type { CreateWorkoutExerciseRequest } from "./Workouts/CreateWorkoutExerciseRequest";
 export type { CreateWorkoutRequest } from "./Workouts/CreateWorkoutRequest";
 export type { CreateWorkoutSetRequest } from "./Workouts/CreateWorkoutSetRequest";
+export type { CreateWorkoutTemplateExerciseRequest } from "./WorkoutTemplates/CreateWorkoutTemplateExerciseRequest";
+export type { CreateWorkoutTemplateExerciseSetRequest } from "./WorkoutTemplates/CreateWorkoutTemplateExerciseSetRequest";
+export type { CreateWorkoutTemplateRequest } from "./WorkoutTemplates/CreateWorkoutTemplateRequest";
 export type { ExerciseLookupModel } from "./Exercises/ExerciseLookupModel";
 export type { ExerciseLookupRequest } from "./Exercises/ExerciseLookupRequest";
 export type { ExerciseModel } from "./Exercises/ExerciseModel";
@@ -26,3 +29,7 @@ export type { RegisterRequest } from "./Auth/RegisterRequest";
 export type { UpdateProfileRequest } from "./Auth/UpdateProfileRequest";
 export type { UserModel } from "./Auth/UserModel";
 export type { WorkoutCreatedModel } from "./Workouts/WorkoutCreatedModel";
+export type { WorkoutTemplateExerciseGroupModel } from "./WorkoutTemplates/WorkoutTemplateExerciseGroupModel";
+export type { WorkoutTemplateExerciseModel } from "./WorkoutTemplates/WorkoutTemplateExerciseModel";
+export type { WorkoutTemplateExerciseSetModel } from "./WorkoutTemplates/WorkoutTemplateExerciseSetModel";
+export type { WorkoutTemplateModel } from "./WorkoutTemplates/WorkoutTemplateModel";

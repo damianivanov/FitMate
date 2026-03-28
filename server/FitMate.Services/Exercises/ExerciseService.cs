@@ -5,6 +5,7 @@ using FitMate.Core.JsonModels.Common;
 using FitMate.Core.JsonModels.Exercises;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Services.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -17,11 +18,13 @@ public class ExerciseService : IExerciseService
 
     private readonly AppDbContext dbContext;
     private readonly IMemoryCache memoryCache;
+    private readonly IUserService userService;
 
-    public ExerciseService(AppDbContext dbContext, IMemoryCache memoryCache)
+    public ExerciseService(AppDbContext dbContext, IMemoryCache memoryCache, IUserService userService)
     {
         this.dbContext = dbContext;
         this.memoryCache = memoryCache;
+        this.userService = userService;
     }
 
     public async Task<PagedResponse<ExerciseModel>> ListAsync(ExerciseQueryRequest request)
@@ -152,11 +155,13 @@ public class ExerciseService : IExerciseService
 
     public async Task<IReadOnlyList<ExerciseLookupModel>> LookupAsync(ExerciseLookupRequest request)
     {
+        var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+
         var normalizedSearch = request.Search?.Trim();
         var muscleGroupId = request.MuscleGroupId > 0 ? request.MuscleGroupId : null;
         var take = request.Take <= 0 ? 30 : Math.Min(request.Take, 100);
         var cacheVersion = GetLookupCacheVersion();
-        var cacheKey = BuildLookupCacheKey(cacheVersion, normalizedSearch, muscleGroupId, take);
+        var cacheKey = BuildLookupCacheKey(cacheVersion, userId, normalizedSearch, muscleGroupId, take);
 
         if (memoryCache.TryGetValue<IReadOnlyList<ExerciseLookupModel>>(cacheKey, out var cachedItems) && cachedItems != null)
         {
@@ -183,7 +188,8 @@ public class ExerciseService : IExerciseService
         }
 
         var rawItems = await query
-            .OrderBy(x => x.Name)
+            .OrderBy(x => x.UserId == userId ? 0 : 1)
+            .ThenBy(x => x.Name)
             .ThenBy(x => x.Id)
             .Take(take)
             .Select(x => new ExerciseLookupProjection
@@ -269,14 +275,14 @@ public class ExerciseService : IExerciseService
         return MapToModel(exercise);
     }
 
-    private static string BuildLookupCacheKey(long version, string? search, long? muscleGroupId, int take)
+    private static string BuildLookupCacheKey(long version, long userId, string? search, long? muscleGroupId, int take)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(search)
             ? "_"
             : search.Trim().ToLowerInvariant();
 
         var normalizedMuscleGroup = muscleGroupId?.ToString() ?? "all";
-        return $"{LookupCacheKeyPrefix}:v{version}:mg:{normalizedMuscleGroup}:take:{take}:q:{normalizedSearch}";
+        return $"{LookupCacheKeyPrefix}:v{version}:user:{userId}:mg:{normalizedMuscleGroup}:take:{take}:q:{normalizedSearch}";
     }
 
     private static long GetLookupCacheVersion()
