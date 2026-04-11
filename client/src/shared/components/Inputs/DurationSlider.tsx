@@ -1,3 +1,5 @@
+import type { CSSProperties, ChangeEvent } from "react";
+
 type DurationSliderProps = {
   id: string;
   label: string;
@@ -24,10 +26,13 @@ export function DurationSlider({
   helperText,
 }: DurationSliderProps) {
   const boundedValue = Math.max(min, Math.min(max, value));
-  const progressPercentage = ((boundedValue - min) / (max - min)) * 100;
+  const progressPercentage = max > min ? ((boundedValue - min) / (max - min)) * 100 : 0;
+  const sliderStyle = {
+    "--duration-slider-progress": `${progressPercentage}%`,
+  } as CSSProperties;
 
-  const handleChange = (nextValue: string) => {
-    const parsedValue = Number(nextValue);
+  const handleSliderChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const parsedValue = Number(event.target.value);
     if (!Number.isFinite(parsedValue)) {
       return;
     }
@@ -51,11 +56,9 @@ export function DurationSlider({
         max={max}
         step={step}
         value={boundedValue}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={handleSliderChange}
         className="liquid-duration-slider w-full"
-        style={{
-          background: `linear-gradient(90deg, rgba(var(--primary-rgb), 0.94) 0%, rgba(var(--primary-rgb), 0.94) ${progressPercentage}%, rgba(var(--primary-rgb), 0.2) ${progressPercentage}%, rgba(var(--primary-rgb), 0.2) 100%)`,
-        }}
+        style={sliderStyle}
       />
 
       <div className="flex items-center justify-between text-xs text-tertiary">

@@ -39,7 +39,7 @@ export function ExerciseLookupSearchBar({
           className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-tertiary"
         />
         {hasQuery ? (
-          <span className="liquid-primary-chip rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
+          <span className="liquid-primary-chip rounded-full px-2.5 py-0.5 text-xs font-semibold">
             {resultCount} results
           </span>
         ) : null}

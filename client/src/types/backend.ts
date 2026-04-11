@@ -29,8 +29,7 @@ export namespace JsonModels.WorkoutTemplates {
 	export interface CreateWorkoutTemplateExerciseRequest
 	{
 		groupType: Enums.ExerciseGroupType;
-		exerciseId?: number;
-		createExercise?: JsonModels.Exercises.CreateExerciseRequest;
+		exerciseId: number;
 		notes?: string;
 		sets: JsonModels.WorkoutTemplates.CreateWorkoutTemplateExerciseSetRequest[];
 	}
@@ -197,6 +196,8 @@ export namespace JsonModels.Exercises {
 	export interface ExerciseLookupModel
 	{
 		id: number;
+		userId?: number;
+		isGlobal: boolean;
 		name: string;
 		slug: string;
 		description?: string;
@@ -214,6 +215,7 @@ export namespace JsonModels.Exercises {
 	{
 		search?: string;
 		muscleGroupId?: number;
+		skip: number;
 		take: number;
 	}
 	export interface ExerciseModel

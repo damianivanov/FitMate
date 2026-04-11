@@ -1,6 +1,8 @@
 export interface ExerciseLookupModel
 {
 	id: number;
+	userId?: number;
+	isGlobal: boolean;
 	name: string;
 	slug: string;
 	description?: string;

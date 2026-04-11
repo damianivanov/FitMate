@@ -60,7 +60,7 @@ export function MuscleGroupChipSelector({
               className={getChipClassName(isActive)}
               onClick={createSelectHandler(groupId)}
             >
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-[10px] font-bold text-primary">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-xs font-bold text-primary">
                 {group.imageUrl ? (
                   <img
                     src={group.imageUrl}

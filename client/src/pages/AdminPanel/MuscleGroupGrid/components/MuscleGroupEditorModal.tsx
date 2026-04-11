@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { LookupDropdown, Modal } from "@/shared/components";
+import { Dropdown, Modal, TextInputField } from "@/shared/components";
 
 export type MuscleGroupFormValues = {
   name: string;
@@ -65,8 +65,6 @@ export function MuscleGroupEditorModal({
     [resolvedImageLookupOptions],
   );
 
-  const fieldClassName =
-    "liquid-input w-full rounded-full px-3 py-2.5 outline-none focus:outline-none";
   const labelClassName = "block rounded-full pb-2";
 
   return (
@@ -77,23 +75,20 @@ export function MuscleGroupEditorModal({
       maxWidth="xl"
     >
       <form className="grid grid-cols-1 gap-4 p-5 md:p-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="text-sm font-medium text-secondary">
-          <label htmlFor="muscle-group-name" className={labelClassName}>
-            Name
-          </label>
-          <input
-            id="muscle-group-name"
-            className={fieldClassName}
-            {...register("name", { required: "Name is required." })}
-          />
-          {errors.name ? <p className="text-sm text-danger">{errors.name.message}</p> : null}
-        </div>
+        <TextInputField
+          id="muscle-group-name"
+          label="Name"
+          containerClassName="space-y-1.5 text-sm font-medium text-secondary"
+          labelClassName={labelClassName}
+          error={errors.name?.message}
+          {...register("name", { required: "Name is required." })}
+        />
 
         <Controller
           control={control}
           name="imageUrl"
           render={({ field, fieldState }) => (
-            <LookupDropdown
+            <Dropdown
               id="muscle-group-image-url"
               label="Image"
               value={field.value}

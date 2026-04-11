@@ -9,9 +9,6 @@ export default function HeroMain() {
 
   return (
     <div className="liquid-surface relative overflow-hidden rounded-3xl p-8 md:p-10">
-      <div className="liquid-shell-orb liquid-card-orb-c pointer-events-none absolute -right-16 -top-16 h-52 w-52" />
-      <div className="liquid-shell-orb liquid-card-orb-b pointer-events-none absolute -bottom-20 -left-10 h-56 w-56" />
-
       <p className="mb-4 text-center text-xs font-bold tracking-[0.24em] text-tertiary uppercase">
         Fitness Tracking
       </p>

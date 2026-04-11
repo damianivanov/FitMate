@@ -23,7 +23,7 @@ async function fetchMuscleGroups(staleTimeMs: number, forceRefresh: boolean): Pr
 
   inFlightRequest = (async () => {
     try {
-      const response = await muscleGroupService.getLookup();
+      const response = await muscleGroupService.getAllLookup();
       const result = response.data;
       if (!result.success || !result.data) {
         throw new Error(result.error ?? "Unable to load muscle groups.");

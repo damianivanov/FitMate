@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import Modal from "@/components/ui/Modal";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Modal } from "@/shared/components";
 import type { Exercise, MuscleGroup } from "@/types/workout";
 
 type ExercisePickerModalProps = {
@@ -9,6 +9,8 @@ type ExercisePickerModalProps = {
   exercises: Exercise[];
   muscleGroups: MuscleGroup[];
 };
+
+const MODAL_EXIT_DURATION_MS = 220;
 
 function getMuscleChipClassName(isSelected: boolean): string {
   const baseClassName = "rounded-full px-3 py-1 text-xs font-semibold transition";
@@ -28,6 +30,41 @@ export default function ExercisePickerModal({
 }: ExercisePickerModalProps) {
   const [query, setQuery] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<number | null>(null);
+  const closeResetTimeoutRef = useRef<number | null>(null);
+
+  const resetFilters = useCallback(() => {
+    setQuery("");
+    setMuscleFilter(null);
+  }, []);
+
+  const clearCloseResetTimeout = useCallback(() => {
+    if (closeResetTimeoutRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(closeResetTimeoutRef.current);
+    closeResetTimeoutRef.current = null;
+  }, []);
+
+  const scheduleFilterReset = useCallback(() => {
+    clearCloseResetTimeout();
+    closeResetTimeoutRef.current = window.setTimeout(() => {
+      resetFilters();
+      closeResetTimeoutRef.current = null;
+    }, MODAL_EXIT_DURATION_MS);
+  }, [clearCloseResetTimeout, resetFilters]);
+
+  useEffect(() => {
+    if (open) {
+      clearCloseResetTimeout();
+    }
+  }, [clearCloseResetTimeout, open]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseResetTimeout();
+    };
+  }, [clearCloseResetTimeout]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -47,18 +84,16 @@ export default function ExercisePickerModal({
   const handleSelect = (exerciseId: number) => {
     onSelect(exerciseId);
     onClose();
-    setQuery("");
-    setMuscleFilter(null);
+    scheduleFilterReset();
   };
 
   const handleClose = () => {
     onClose();
-    setQuery("");
-    setMuscleFilter(null);
+    scheduleFilterReset();
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add Exercise" size="md">
+    <Modal isOpen={open} onClose={handleClose} title="Add Exercise" maxWidth="md">
       {/* Search */}
       <div className="relative mb-4">
         <svg
@@ -100,7 +135,7 @@ export default function ExercisePickerModal({
       </div>
 
       {/* Exercise list */}
-      <div className="max-h-[340px] overflow-y-auto">
+      <div className="max-h-85 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No exercises found</p>
         ) : (
@@ -131,6 +166,3 @@ export default function ExercisePickerModal({
     </Modal>
   );
 }
-
-
-

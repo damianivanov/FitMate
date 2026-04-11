@@ -7,12 +7,11 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["src/shared/*"],
-      "@stores/*": ["src/stores/*"],
-      "@types/*": ["src/types/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@stores/*": ["./src/stores/*"],
+      "@types/*": ["./src/types/*"]
     },
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

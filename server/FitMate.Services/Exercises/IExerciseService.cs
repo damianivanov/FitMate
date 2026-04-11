@@ -5,11 +5,11 @@ namespace FitMate.Services.Exercises;
 
 public interface IExerciseService
 {
+    Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request);
+    Task<IReadOnlyList<ExerciseLookupModel>> GetByIdsAsync(IReadOnlyList<long> exerciseIds);
     Task<PagedResponse<ExerciseModel>> ListAsync(ExerciseQueryRequest request);
     Task<ExerciseModel?> GetByIdAsync(long id);
-    Task<ExerciseModel> CreateManagedGlobalAsync(CreateExerciseRequest request, long? actorUserId);
-    Task<ExerciseModel> CreateCommunityGlobalAsync(CreateExerciseRequest request, long creatorUserId);
-    Task<ExerciseModel> UpdateAsync(long id, CreateExerciseRequest request, long? actorUserId);
-    Task<bool> DeleteAsync(long id, long? actorUserId);
-    Task<IReadOnlyList<ExerciseLookupModel>> LookupAsync(ExerciseLookupRequest request);
+    Task<ExerciseModel> CreateAsync(CreateExerciseRequest request);
+    Task<ExerciseModel> UpdateAsync(long id, CreateExerciseRequest request);
+    Task<bool> DeleteAsync(long id);
 }

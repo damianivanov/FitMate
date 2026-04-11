@@ -41,7 +41,7 @@ export function ExerciseLookupResults({
   };
 
   return (
-    <div className="liquid-surface rounded-[24px] p-2.5">
+    <div className="liquid-surface rounded-3xl p-2.5">
       {isLoading ? <p className="px-2 py-1 text-xs text-secondary">Searching exercises...</p> : null}
       {error ? <p className="px-2 py-1 text-xs text-danger">{error}</p> : null}
 
@@ -74,7 +74,7 @@ export function ExerciseLookupResults({
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">{option.name}</p>
                   {isOwnedByCurrentUser ? (
-                    <span className="liquid-chip liquid-chip-info rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
+                    <span className="liquid-chip liquid-chip-info rounded-full px-2 py-0.5 text-xs font-bold uppercase">
                       Yours
                     </span>
                   ) : null}

@@ -45,13 +45,9 @@ public class AdminMuscleGroupController : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] CreateMuscleGroupRequest request)
+    public ActionResult Create([FromBody] CreateMuscleGroupRequest request)
     {
-        var created = await muscleGroupService.CreateAsync(
-            request,
-            UserService.LoggedInUserId);
-
-        return this.ReturnJson(created);
+        return this.ReturnJsonError("Creating new muscle groups is disabled.");
     }
 
     [HttpPut("{id}")]
@@ -59,8 +55,7 @@ public class AdminMuscleGroupController : BaseApiController
     {
         var updated = await muscleGroupService.UpdateAsync(
             id,
-            request,
-            UserService.LoggedInUserId);
+            request);
 
         return this.ReturnJson(updated);
     }
@@ -68,9 +63,7 @@ public class AdminMuscleGroupController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(long id)
     {
-        var isDeleted = await muscleGroupService.DeleteAsync(
-            id,
-            UserService.LoggedInUserId);
+        var isDeleted = await muscleGroupService.DeleteAsync(id);
 
         return this.ReturnJson(isDeleted);
     }

@@ -7,8 +7,8 @@ public interface IMuscleGroupService
 {
     Task<PagedResponse<MuscleGroupModel>> ListAsync(MuscleGroupQueryRequest request);
     Task<MuscleGroupModel?> GetByIdAsync(long id);
-    Task<MuscleGroupModel> CreateAsync(CreateMuscleGroupRequest request, long? actorUserId);
-    Task<MuscleGroupModel> UpdateAsync(long id, CreateMuscleGroupRequest request, long? actorUserId);
-    Task<bool> DeleteAsync(long id, long? actorUserId);
-    Task<IReadOnlyList<MuscleGroupModel>> LookupAsync();
+    Task<MuscleGroupModel> CreateAsync(CreateMuscleGroupRequest request);
+    Task<MuscleGroupModel> UpdateAsync(long id, CreateMuscleGroupRequest request);
+    Task<bool> DeleteAsync(long id);
+    Task<IReadOnlyList<MuscleGroupModel>> GetAllForLookupAsync();
 }

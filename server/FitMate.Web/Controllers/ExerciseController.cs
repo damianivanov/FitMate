@@ -25,26 +25,17 @@ public class ExerciseController : BaseApiController
         this.exerciseService = exerciseService;
     }
 
-    [HttpGet("lookup")]
-    public async Task<ActionResult> Lookup([FromQuery] ExerciseLookupRequest request)
+    [HttpGet("get-all")]
+    public async Task<ActionResult> GetAll([FromQuery] ExerciseLookupRequest request)
     {
-        var items = await exerciseService.LookupAsync(request);
+        var items = await exerciseService.GetAllAsync(request);
         return this.ReturnJson(items);
     }
 
-    [HttpPost("global")]
-    public async Task<ActionResult> CreateGlobal([FromBody] CreateExerciseRequest request)
+    [HttpPost("get-by-ids")]
+    public async Task<ActionResult> GetByIds([FromBody] long[]? exerciseIds)
     {
-        var userId = UserService.LoggedInUserId;
-        if (!userId.HasValue)
-        {
-            return this.ReturnJsonError("Unauthorized.");
-        }
-
-        var result = await exerciseService.CreateCommunityGlobalAsync(
-            request,
-            userId.Value);
-
-        return this.ReturnJson(result);
+        var items = await exerciseService.GetByIdsAsync(exerciseIds ?? Array.Empty<long>());
+        return this.ReturnJson(items);
     }
 }

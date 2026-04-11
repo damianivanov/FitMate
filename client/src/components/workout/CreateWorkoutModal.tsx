@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import Modal from "@/components/ui/Modal";
+import { Modal } from "@/shared/components";
 import { OutlinedButton, PrimaryButton } from "@/shared/components/Buttons";
 import type { Exercise, Mood, WorkoutTemplate } from "@/types/workout";
 
@@ -84,23 +84,10 @@ export default function CreateWorkoutModal({
 
   return (
     <Modal
-      open={open}
+      isOpen={open}
       onClose={onClose}
       title="Start New Workout"
-      size="md"
-      footer={
-        <>
-          <OutlinedButton type="button" onClick={onClose}>
-            Cancel
-          </OutlinedButton>
-          <PrimaryButton type="button" onClick={handleStart}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 3l14 9-14 9V3z" />
-            </svg>
-            Start Workout
-          </PrimaryButton>
-        </>
-      }
+      maxWidth="md"
     >
       {/* Title */}
       <div className="mb-5">
@@ -209,6 +196,27 @@ export default function CreateWorkoutModal({
           onChange={(e) => update("notes", e.target.value)}
           className="liquid-input w-full rounded-xl px-5 py-3 text-sm"
         />
+      </div>
+
+      <div className="mt-6 flex items-center justify-end gap-3">
+        <OutlinedButton type="button" onClick={onClose}>
+          Cancel
+        </OutlinedButton>
+        <PrimaryButton type="button" onClick={handleStart}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 3l14 9-14 9V3z" />
+          </svg>
+          Start Workout
+        </PrimaryButton>
       </div>
     </Modal>
   );

@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { LookupDropdown, Modal } from "@/shared/components";
+import { Modal, TextInputField, TextareaField } from "@/shared/components";
 import { slugify } from "@/lib/helpers";
+import { MuscleGroupDropdown } from "@/pages/AdminPanel/components/MuscleGroupDropdown";
 import type { MuscleGroup } from "@/types";
 
 export type ExerciseFormValues = {
@@ -64,23 +65,9 @@ export function ExerciseEditorModal({
     setValue("slug", slugify(watchedName), { shouldDirty: false });
   }, [dirtyFields.slug, isEditing, setValue, watchedName]);
 
-  const primaryOptions = useMemo(
-    () =>
-      muscleGroups.map((group) => ({
-        value: String(group.id),
-        label: group.name,
-        imageUrl: group.imageUrl ?? undefined,
-      })),
-    [muscleGroups],
-  );
-  const secondaryOptions = useMemo(
-    () => [{ value: "", label: "None" }, ...primaryOptions],
-    [primaryOptions],
-  );
-
-  const fieldClassName =
-    "liquid-input w-full rounded-full px-3 py-2.5 outline-none focus:outline-none";
-  const labelClassName = "block rounded-full pb-2";
+  const fieldContainerClassName = "space-y-1.5 text-sm font-medium text-foreground";
+  const dropdownContainerClassName = "space-y-1.5 text-sm font-medium";
+  const labelClassName = "block pb-1.5 text-xs font-semibold uppercase tracking-widest text-primary";
 
   return (
     <Modal
@@ -90,48 +77,45 @@ export function ExerciseEditorModal({
       maxWidth="2xl"
     >
       <form className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 md:p-6" onSubmit={handleSubmit(onSubmit)}>
-        <div className="text-sm font-medium text-secondary">
-          <label htmlFor="exercise-name" className={labelClassName}>Name</label>
-          <input
-            id="exercise-name"
-            className={fieldClassName}
-            {...register("name", { required: "Name is required." })}
-          />
-          {errors.name ? <p className="text-sm text-danger">{errors.name.message}</p> : null}
-        </div>
+        <TextInputField
+          id="exercise-name"
+          label="Name"
+          containerClassName={fieldContainerClassName}
+          labelClassName={labelClassName}
+          error={errors.name?.message}
+          {...register("name", { required: "Name is required." })}
+        />
 
-        <div className="text-sm font-medium text-secondary">
-          <label htmlFor="exercise-slug" className={labelClassName}>Slug</label>
-          <input
-            id="exercise-slug"
-            className={fieldClassName}
-            {...register("slug", { required: "Slug is required." })}
-          />
-          {errors.slug ? <p className="text-sm text-danger">{errors.slug.message}</p> : null}
-        </div>
+        <TextInputField
+          id="exercise-slug"
+          label="Slug"
+          containerClassName={fieldContainerClassName}
+          labelClassName={labelClassName}
+          error={errors.slug?.message}
+          {...register("slug", { required: "Slug is required." })}
+        />
 
-        <div className="text-sm font-medium text-secondary md:col-span-2">
-          <label htmlFor="exercise-description" className={labelClassName}>Description</label>
-          <textarea
-            id="exercise-description"
-            className={`${fieldClassName} min-h-24`}
-            {...register("description")}
-          />
-        </div>
+        <TextareaField
+          id="exercise-description"
+          label="Description"
+          containerClassName={`${fieldContainerClassName} md:col-span-2`}
+          labelClassName={labelClassName}
+          {...register("description")}
+        />
 
         <Controller
           control={control}
           name="primaryMuscleGroupId"
           rules={{ required: "Primary muscle group is required." }}
           render={({ field, fieldState }) => (
-            <LookupDropdown
+            <MuscleGroupDropdown
               id="exercise-primary-muscle-group"
               label="Primary Muscle Group"
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}
-              options={primaryOptions}
-              containerClassName="text-sm font-medium text-secondary"
+              muscleGroups={muscleGroups}
+              containerClassName={dropdownContainerClassName}
               labelClassName={labelClassName}
               placeholder="Select muscle group"
               required
@@ -144,14 +128,15 @@ export function ExerciseEditorModal({
           control={control}
           name="secondaryMuscleGroupId"
           render={({ field, fieldState }) => (
-            <LookupDropdown
+            <MuscleGroupDropdown
               id="exercise-secondary-muscle-group"
               label="Secondary Muscle Group"
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}
-              options={secondaryOptions}
-              containerClassName="text-sm font-medium text-secondary"
+              muscleGroups={muscleGroups}
+              leadingOptions={[{ value: "", label: "None" }]}
+              containerClassName={dropdownContainerClassName}
               labelClassName={labelClassName}
               placeholder="None"
               error={fieldState.error?.message}

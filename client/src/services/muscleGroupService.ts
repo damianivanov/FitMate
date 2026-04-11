@@ -8,7 +8,7 @@ import type {
 } from "@/types";
 
 export const muscleGroupService = {
-  async getLookup() {
+  async getAllLookup() {
     return api.get<JsonData<MuscleGroup[]>>("musclegroups/lookup");
   },
 

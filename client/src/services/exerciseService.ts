@@ -10,8 +10,12 @@ import type {
 } from "@/types";
 
 export const exerciseService = {
-  async lookup(params: ExerciseLookupRequest) {
-    return api.get<JsonData<ExerciseLookupModel[]>>("exercises/lookup", { params });
+  async getAll(params: ExerciseLookupRequest) {
+    return api.get<JsonData<ExerciseLookupModel[]>>("exercises/get-all", { params });
+  },
+
+  async getByIds(exerciseIds: number[]) {
+    return api.post<JsonData<ExerciseLookupModel[]>>("exercises/get-by-ids", exerciseIds);
   },
 
   async list(params: ExerciseQueryRequest) {
@@ -24,10 +28,6 @@ export const exerciseService = {
 
   async create(payload: CreateExerciseRequest) {
     return api.post<JsonData<Exercise>>("admin/exercises", payload);
-  },
-
-  async createGlobal(payload: CreateExerciseRequest) {
-    return api.post<JsonData<Exercise>>("exercises/global", payload);
   },
 
   async update(id: number, payload: CreateExerciseRequest) {

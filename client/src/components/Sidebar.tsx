@@ -64,7 +64,7 @@ function getPrimaryItemClassName(isActive: boolean): string {
 }
 
 const iconButtonClassName =
-  "liquid-pill inline-flex h-10 w-10 items-center justify-center rounded-2xl transition";
+  "liquid-pill inline-flex h-10 w-10 items-center justify-center rounded-full transition";
 
 type PrimaryNavItemsProps = {
   isAdminUser: boolean;

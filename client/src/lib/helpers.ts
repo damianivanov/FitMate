@@ -36,6 +36,20 @@ export function parseOptionalInt(value: string): number | undefined {
   return parsed;
 }
 
+export function formatNumber(value: number, precision: number): string {
+  const roundedValue = Number(value.toFixed(precision));
+  return roundedValue.toString();
+}
+
+export function roundToPrecision(value: number, precision: number): number {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+}
+
+export function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 export function createLocalId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

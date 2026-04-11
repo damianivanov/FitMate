@@ -5,13 +5,12 @@
     { "path": "./tsconfig.node.json" }
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@stores/*": ["src/stores/*"],
-      "@types/*": ["src/types/*"],
-      "@shared/*": ["src/shared/*"],
-      "@pages/*": ["src/pages/*"],
+      "@/*": ["./src/*"],
+      "@stores/*": ["./src/stores/*"],
+      "@types/*": ["./src/types/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@pages/*": ["./src/pages/*"],
     }
   }
 }

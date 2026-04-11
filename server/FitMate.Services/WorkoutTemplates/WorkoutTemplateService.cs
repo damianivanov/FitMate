@@ -1,10 +1,8 @@
 using FitMate.Core.Exceptions;
-using FitMate.Core.JsonModels.Exercises;
 using FitMate.Core.JsonModels.WorkoutTemplates;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
-using FitMate.Services.Exercises;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.WorkoutTemplates;
@@ -12,14 +10,11 @@ namespace FitMate.Services.WorkoutTemplates;
 public class WorkoutTemplateService : IWorkoutTemplateService
 {
     private readonly AppDbContext dbContext;
-    private readonly IExerciseService exerciseService;
 
     public WorkoutTemplateService(
-        AppDbContext dbContext,
-        IExerciseService exerciseService)
+        AppDbContext dbContext)
     {
         this.dbContext = dbContext;
-        this.exerciseService = exerciseService;
     }
 
     public async Task<IReadOnlyList<WorkoutTemplateModel>> ListAsync(long userId)
@@ -40,6 +35,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                     .ThenInclude(x => x.Sets)
             .OrderByDescending(x => x.DateCreated)
             .ThenByDescending(x => x.Id)
+            .AsSplitQuery()
             .ToListAsync();
 
         return templates.Select(template => MapTemplate(template)).ToList();
@@ -79,23 +75,15 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         for (var exerciseIndex = 0; exerciseIndex < exercises.Count; exerciseIndex++)
         {
             var exerciseRequest = exercises[exerciseIndex];
-            var hasExistingExercise = exerciseRequest.ExerciseId.HasValue;
-            var hasNewExercise = exerciseRequest.CreateExercise != null;
 
             if (!Enum.IsDefined(exerciseRequest.GroupType))
             {
                 throw new FitMateException($"Exercise #{exerciseIndex + 1} has an invalid group type.");
             }
 
-            if (hasExistingExercise && exerciseRequest.ExerciseId <= 0)
+            if (exerciseRequest.ExerciseId <= 0)
             {
                 throw new FitMateException($"Exercise #{exerciseIndex + 1} has an invalid exercise id.");
-            }
-
-            if (hasExistingExercise == hasNewExercise)
-            {
-                throw new FitMateException(
-                    $"Exercise #{exerciseIndex + 1} must provide either exerciseId or createExercise.");
             }
 
             var sets = exerciseRequest.Sets ?? [];
@@ -115,8 +103,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         }
 
         var existingExerciseIds = exercises
-            .Where(x => x.ExerciseId.HasValue)
-            .Select(x => x.ExerciseId!.Value)
+            .Select(x => x.ExerciseId)
             .ToList();
 
         if (existingExerciseIds.Distinct().Count() != existingExerciseIds.Count)
@@ -197,28 +184,6 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             for (var exerciseIndex = 0; exerciseIndex < exercises.Count; exerciseIndex++)
             {
                 var exerciseRequest = exercises[exerciseIndex];
-                var resolvedExerciseId = exerciseRequest.ExerciseId;
-
-                if (!resolvedExerciseId.HasValue)
-                {
-                    var createExerciseRequest = exerciseRequest.CreateExercise!;
-                    ExerciseModel createdExercise;
-
-                    try
-                    {
-                        createdExercise = await exerciseService.CreateCommunityGlobalAsync(
-                            createExerciseRequest,
-                            userId);
-                    }
-                    catch (FitMateException exception)
-                    {
-                        throw new FitMateException($"Exercise #{exerciseIndex + 1}: {exception.Message}");
-                    }
-
-                    resolvedExerciseId = createdExercise.Id;
-                    exerciseNamesById[createdExercise.Id] = createdExercise.Name;
-                }
-
                 var sets = exerciseRequest.Sets ?? [];
                 var firstSet = sets[0];
                 var group = EnsureGroup(exerciseRequest.GroupType);
@@ -226,7 +191,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 
                 var templateExercise = new TemplateExercise
                 {
-                    ExerciseId = resolvedExerciseId.Value,
+                    ExerciseId = exerciseRequest.ExerciseId,
                     OrderIndex = exerciseOrderInActiveGroup,
                     TargetSets = sets.Count,
                     TargetReps = firstSet.Reps?.ToString(),

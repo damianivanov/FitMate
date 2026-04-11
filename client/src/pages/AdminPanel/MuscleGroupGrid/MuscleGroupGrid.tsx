@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridPaginationModel } from "@mui/x-data-grid";
-import { useSearchParams } from "react-router-dom";
 import { invalidateMuscleGroupsCache, useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { muscleGroupService } from "@/services/muscleGroupService";
@@ -30,7 +29,6 @@ function toRequest(values: MuscleGroupFormValues): CreateMuscleGroupRequest {
 }
 
 export default function MuscleGroupGrid() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState<MuscleGroup[]>([]);
   const { muscleGroups, error: muscleGroupsError } = useMuscleGroups();
   const [rowCount, setRowCount] = useState(0);
@@ -85,25 +83,6 @@ export default function MuscleGroupGrid() {
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
   }, [debouncedSearch]);
-
-  const openCreateEditor = useCallback(() => {
-    setEditingId(null);
-    setFormValues(emptyFormValues);
-    setEditorError(null);
-    setIsEditorOpen(true);
-  }, []);
-
-  useEffect(() => {
-    if (searchParams.get("mode") !== "create") {
-      return;
-    }
-
-    openCreateEditor();
-
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.delete("mode");
-    setSearchParams(nextSearchParams, { replace: true });
-  }, [openCreateEditor, searchParams, setSearchParams]);
 
   const openEditEditor = useCallback((muscleGroup: MuscleGroup) => {
     setEditingId(muscleGroup.id);
@@ -171,6 +150,11 @@ export default function MuscleGroupGrid() {
   };
 
   const onSave = async (values: MuscleGroupFormValues) => {
+    if (editingId === null) {
+      setEditorError("Creating new muscle groups is disabled.");
+      return;
+    }
+
     const payload = toRequest(values);
     if (!payload.name) {
       setEditorError("Name is required.");
@@ -181,9 +165,7 @@ export default function MuscleGroupGrid() {
     setEditorError(null);
 
     try {
-      const response = editingId
-        ? await muscleGroupService.update(editingId, payload)
-        : await muscleGroupService.create(payload);
+      const response = await muscleGroupService.update(editingId, payload);
 
       if (!response.data.success) {
         setEditorError(response.data.error ?? "Save failed.");
@@ -211,21 +193,13 @@ export default function MuscleGroupGrid() {
         </header>
 
         <section className="liquid-surface rounded-3xl p-5 md:p-6">
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="mb-4">
             <input
               value={searchInput}
               onChange={onSearchInputChange}
               placeholder="Search by name"
               className="liquid-input w-full max-w-md rounded-full px-3 py-2.5"
             />
-
-            <button
-              type="button"
-              className="liquid-pill rounded-full px-4 py-2.5 text-sm font-semibold"
-              onClick={openCreateEditor}
-            >
-              New Muscle Group
-            </button>
           </div>
 
           {visiblePageError && <p className="mb-4 text-sm text-danger">{visiblePageError}</p>}

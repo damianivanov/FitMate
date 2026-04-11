@@ -47,9 +47,7 @@ public class AdminExerciseController : BaseApiController
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateExerciseRequest request)
     {
-        var created = await exerciseService.CreateManagedGlobalAsync(
-            request,
-            UserService.LoggedInUserId);
+        var created = await exerciseService.CreateAsync(request);
 
         return this.ReturnJson(created);
     }
@@ -59,8 +57,7 @@ public class AdminExerciseController : BaseApiController
     {
         var updated = await exerciseService.UpdateAsync(
             id,
-            request,
-            UserService.LoggedInUserId);
+            request);
 
         return this.ReturnJson(updated);
     }
@@ -68,9 +65,7 @@ public class AdminExerciseController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(long id)
     {
-        var isDeleted = await exerciseService.DeleteAsync(
-            id,
-            UserService.LoggedInUserId);
+        var isDeleted = await exerciseService.DeleteAsync(id);
 
         return this.ReturnJson(isDeleted);
     }

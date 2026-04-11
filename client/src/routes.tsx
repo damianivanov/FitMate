@@ -13,6 +13,7 @@ import Templates from "./pages/Templates";
 import TemplateBuilder from "./pages/TemplateBuilder";
 import Analytics from "./pages/Analytics";
 import PersonalRecords from "./pages/PersonalRecords";
+import ComponentTest from "./pages/ComponentTest";
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: "register",
         element: <Register />,
+      },
+      {
+        path: "component-test",
+        element: <ComponentTest />,
       },
       {
         path: "profile",

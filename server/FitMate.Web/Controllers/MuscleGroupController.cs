@@ -25,9 +25,9 @@ public class MuscleGroupController : BaseApiController
 
     [AllowAnonymous]
     [HttpGet("lookup")]
-    public async Task<ActionResult> Lookup()
+    public async Task<ActionResult> GetLookup()
     {
-        var items = await muscleGroupService.LookupAsync();
+        var items = await muscleGroupService.GetAllForLookupAsync();
         return this.ReturnJson(items);
     }
 

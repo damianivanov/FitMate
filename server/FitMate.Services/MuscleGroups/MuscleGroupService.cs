@@ -58,8 +58,7 @@ public class MuscleGroupService : IMuscleGroupService
     }
 
     public async Task<MuscleGroupModel> CreateAsync(
-        CreateMuscleGroupRequest request,
-        long? actorUserId)
+        CreateMuscleGroupRequest request)
     {
         var normalized = NormalizeRequest(request);
         var validationError = await ValidateRequestAsync(normalized, null);
@@ -75,15 +74,14 @@ public class MuscleGroupService : IMuscleGroupService
         };
 
         dbContext.MuscleGroups.Add(muscleGroup);
-        await dbContext.SaveChangesAsync(actorUserId);
+        await dbContext.SaveChangesAsync();
 
         return MapToModel(muscleGroup);
     }
 
     public async Task<MuscleGroupModel> UpdateAsync(
         long id,
-        CreateMuscleGroupRequest request,
-        long? actorUserId)
+        CreateMuscleGroupRequest request)
     {
         var muscleGroup = await dbContext.MuscleGroups.FirstOrDefaultAsync(x => x.Id == id);
         if (muscleGroup == null)
@@ -101,11 +99,11 @@ public class MuscleGroupService : IMuscleGroupService
         muscleGroup.Name = normalized.Name;
         muscleGroup.ImageUrl = normalized.ImageUrl;
 
-        await dbContext.SaveChangesAsync(actorUserId);
+        await dbContext.SaveChangesAsync();
         return MapToModel(muscleGroup);
     }
 
-    public async Task<bool> DeleteAsync(long id, long? actorUserId)
+    public async Task<bool> DeleteAsync(long id)
     {
         var muscleGroup = await dbContext.MuscleGroups.FirstOrDefaultAsync(x => x.Id == id);
         if (muscleGroup == null)
@@ -117,7 +115,7 @@ public class MuscleGroupService : IMuscleGroupService
 
         try
         {
-            await dbContext.SaveChangesAsync(actorUserId);
+            await dbContext.SaveChangesAsync();
         }
         catch (DbUpdateException)
         {
@@ -127,7 +125,7 @@ public class MuscleGroupService : IMuscleGroupService
         return true;
     }
 
-    public async Task<IReadOnlyList<MuscleGroupModel>> LookupAsync()
+    public async Task<IReadOnlyList<MuscleGroupModel>> GetAllForLookupAsync()
     {
         return await dbContext.MuscleGroups
             .AsNoTracking()
