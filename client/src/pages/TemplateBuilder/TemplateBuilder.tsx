@@ -1,29 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { exerciseService } from "@/services/exerciseService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
-import {
-  clearTemplateBuilderDraft,
-  loadTemplateBuilderDraft,
-  saveTemplateBuilderDraft,
-} from "@/services/templateBuilderDraftStorage";
 import { SegmentControl, type SegmentControlOption } from "@/shared/components";
 import {
   ExerciseGroupType,
-  type CreateWorkoutTemplateExerciseRequest,
-  type CreateWorkoutTemplateExerciseSetRequest,
-  type CreateWorkoutTemplateRequest,
   type ExerciseLookupModel,
   type WorkoutTemplateModel,
 } from "@/types";
 import {
   LuArrowLeft,
   LuChevronDown,
+  LuLayers,
   LuPlus,
+  LuRepeat,
 } from "react-icons/lu";
 import {
-  type TemplateBuilderDraftModel,
   type TemplateBuilderExerciseDraftModel as TemplateExerciseDraft,
   type TemplateBuilderExerciseIndexItem,
   type TemplateBuilderSetDraftModel as TemplateSetDraft,
@@ -31,17 +24,21 @@ import {
   type TemplateSetNumericValue,
   cloneTemplateBuilderExercises,
   createTemplateBuilderExerciseIndexItem,
-  upsertTemplateBuilderExerciseIndex,
   filterTemplateBuilderExerciseIndex,
-  hasTemplateBuilderDraftContent,
+  upsertTemplateBuilderExerciseIndex,
 } from "./models/templateBuilderDraft";
 import { AddExerciseModal, type AddExerciseModalFeedback } from "./components/AddExerciseModal";
+import { DurationSetPickerPopover } from "./components/DurationSetPickerPopover";
+import { RepsSetPickerPopover } from "./components/RepsSetPickerPopover";
 import {
   TemplateExerciseCard,
   type QuickSetField,
   type TemplateExerciseCardAction,
 } from "./components/TemplateExerciseCard";
 import { TemplateBuilderSidebar } from "./components/TemplateBuilderSidebar";
+import { WeightSetPickerPopover } from "./components/WeightSetPickerPopover";
+import { useTemplateDraft, type HandleRestoreTemplateDraft } from "./hooks/useTemplateDraft";
+import { validateTemplatePayload } from "./utils/validateTemplatePayload";
 
 type DurationSliderStyle = CSSProperties & {
   "--duration-slider-progress": string;
@@ -106,10 +103,6 @@ function createLocalId(prefix: string): string {
   }
 
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function toOptionalNumber(value: TemplateSetNumericValue): number | undefined {
-  return value;
 }
 
 function createDefaultSet(): TemplateSetDraft {
@@ -201,11 +194,6 @@ export default function TemplateBuilder() {
   const [groupAddContext, setGroupAddContext] = useState<GroupAddContext | null>(null);
   const [durationEnabledExerciseIds, setDurationEnabledExerciseIds] = useState<Set<string>>(() => new Set());
   const [isBuilderCollapsed, setIsBuilderCollapsed] = useState(false);
-  const [draftVersion, setDraftVersion] = useState(0);
-  const [isDraftHydrated, setIsDraftHydrated] = useState(false);
-  const currentDraftRef = useRef<TemplateBuilderDraftModel | null>(null);
-  const lastSavedDraftVersionRef = useRef(0);
-  const lastTrackedDraftFingerprintRef = useRef<string | null>(null);
 
   const selectedExerciseIds = useMemo(
     () => exercises.map((exercise) => exercise.exerciseId),
@@ -231,9 +219,8 @@ export default function TemplateBuilder() {
       }),
     [durationMinutes, exerciseIndex, exercises, isPublic, templateDescription, templateName],
   );
-  const currentDraft = useMemo<TemplateBuilderDraftModel>(
+  const draftContent = useMemo(
     () => ({
-      draftVersion,
       name: templateName,
       description: templateDescription,
       estimatedDurationMinutes: durationMinutes,
@@ -241,8 +228,98 @@ export default function TemplateBuilder() {
       exercises: cloneExerciseList(exercises),
       exerciseIndex: [...exerciseIndex],
     }),
-    [draftVersion, durationMinutes, exerciseIndex, exercises, isPublic, templateDescription, templateName],
+    [durationMinutes, exerciseIndex, exercises, isPublic, templateDescription, templateName],
   );
+  const handleRestoreDraft = useCallback<HandleRestoreTemplateDraft>(
+    async (restoredDraft, isCancelled) => {
+      const restoredExercises = cloneExerciseList(restoredDraft.exercises);
+      if (isCancelled()) {
+        return;
+      }
+
+      setTemplateName(restoredDraft.name);
+      setTemplateDescription(restoredDraft.description);
+      setDurationMinutes(restoredDraft.estimatedDurationMinutes);
+      setIsPublic(restoredDraft.isPublic);
+      setExercises(restoredExercises);
+      setDurationEnabledExerciseIds(
+        new Set(
+          restoredExercises
+            .filter((exercise) =>
+              exercise.sets.some((setItem) => setItem.durationSeconds !== undefined),
+            )
+            .map((exercise) => exercise.id),
+        ),
+      );
+      setExerciseIndex(restoredDraft.exerciseIndex);
+      toast.success("Restored unsaved template draft.", { id: DRAFT_RESTORED_TOAST_ID });
+
+      const restoredExerciseIds = Array.from(
+        new Set(
+          restoredExercises
+            .map((exercise) => exercise.exerciseId)
+            .filter((exerciseId) => exerciseId > 0),
+        ),
+      );
+
+      if (!restoredExerciseIds.length) {
+        return;
+      }
+
+      try {
+        const response = await exerciseService.getByIds(restoredExerciseIds);
+        if (isCancelled()) {
+          return;
+        }
+
+        const result = response.data;
+        if (!result.success || !result.data || !result.data.length) {
+          return;
+        }
+
+        const refreshedIndexItems = result.data.map((exerciseLookup) =>
+          createTemplateBuilderExerciseIndexItem(exerciseLookup),
+        );
+        setExerciseIndex((previous) =>
+          upsertTemplateBuilderExerciseIndex(previous, refreshedIndexItems),
+        );
+      } catch {
+        // Keep local draft index data if lookup hydration fails.
+      }
+    },
+    [],
+  );
+  const {
+    markCurrentDraftAsSaved,
+    resetDraft,
+  } = useTemplateDraft({
+    draftContent,
+    draftContentFingerprint,
+    onRestoreDraft: handleRestoreDraft,
+    autosaveIntervalMs: DRAFT_AUTOSAVE_INTERVAL_MS,
+  });
+  const activeQuickSetPopoverContext = useMemo(() => {
+    if (!quickSetPopover) {
+      return null;
+    }
+
+    const activeExercise = exercises.find((exercise) => exercise.id === quickSetPopover.exerciseId);
+    if (!activeExercise) {
+      return null;
+    }
+
+    const activeSet = activeExercise.sets.find((setItem) => setItem.id === quickSetPopover.setId);
+    if (!activeSet) {
+      return null;
+    }
+
+    return {
+      field: quickSetPopover.field,
+      exerciseId: activeExercise.id,
+      setId: activeSet.id,
+      set: activeSet,
+    };
+  }, [exercises, quickSetPopover]);
   const durationProgressPercent = useMemo(() => {
     const durationRange = DURATION_MAX_MINUTES - DURATION_MIN_MINUTES;
     if (durationRange <= 0) {
@@ -268,153 +345,7 @@ export default function TemplateBuilder() {
 
   const getExerciseDisplayName = (exerciseId: number): string =>
     exerciseIndexById.get(exerciseId)?.name ?? `Exercise #${exerciseId}`;
-
-  const getCompactSetValueText = (value: TemplateSetNumericValue): string => {
-    if (value === undefined) {
-      return "-";
-    }
-
-    return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
-  };
-
-  const isQuickSetPopoverOpen = (
-    exerciseId: string,
-    setId: string,
-    field: QuickSetField,
-  ): boolean =>
-    quickSetPopover?.exerciseId === exerciseId
-    && quickSetPopover.setId === setId
-    && quickSetPopover.field === field;
   const isAnyBlockingOverlayOpen = isAddExerciseModalOpen || quickSetPopover !== null;
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const restoreDraftAsync = async () => {
-      const restoredDraft = loadTemplateBuilderDraft();
-      if (!restoredDraft) {
-        lastSavedDraftVersionRef.current = 0;
-        setIsDraftHydrated(true);
-        return;
-      }
-
-      const restoredExercises = cloneExerciseList(restoredDraft.exercises);
-
-      setTemplateName(restoredDraft.name);
-      setTemplateDescription(restoredDraft.description);
-      setDurationMinutes(restoredDraft.estimatedDurationMinutes);
-      setIsPublic(restoredDraft.isPublic);
-      setExercises(restoredExercises);
-      setDurationEnabledExerciseIds(
-        new Set(
-          restoredExercises
-            .filter((exercise) =>
-              exercise.sets.some((setItem) => setItem.durationSeconds !== undefined),
-            )
-            .map((exercise) => exercise.id),
-        ),
-      );
-      setExerciseIndex(restoredDraft.exerciseIndex);
-      setDraftVersion(restoredDraft.draftVersion);
-      lastSavedDraftVersionRef.current = restoredDraft.draftVersion;
-      toast.success("Restored unsaved template draft.", { id: DRAFT_RESTORED_TOAST_ID });
-      setIsDraftHydrated(true);
-
-      const restoredExerciseIds = Array.from(
-        new Set(
-          restoredExercises
-            .map((exercise) => exercise.exerciseId)
-            .filter((exerciseId) => exerciseId > 0),
-        ),
-      );
-
-      if (!restoredExerciseIds.length) {
-        return;
-      }
-
-      try {
-        const response = await exerciseService.getByIds(restoredExerciseIds);
-
-        if (isCancelled) {
-          return;
-        }
-
-        const result = response.data;
-        if (!result.success || !result.data || !result.data.length) {
-          return;
-        }
-
-        const refreshedIndexItems = result.data.map((exerciseLookup) =>
-          createTemplateBuilderExerciseIndexItem(exerciseLookup),
-        );
-        setExerciseIndex((previous) =>
-          upsertTemplateBuilderExerciseIndex(previous, refreshedIndexItems),
-        );
-      } catch {
-        // Keep local draft index data if lookup hydration fails.
-      }
-    };
-
-    void restoreDraftAsync();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isDraftHydrated) {
-      return;
-    }
-
-    if (lastTrackedDraftFingerprintRef.current === null) {
-      lastTrackedDraftFingerprintRef.current = draftContentFingerprint;
-      return;
-    }
-
-    if (lastTrackedDraftFingerprintRef.current === draftContentFingerprint) {
-      return;
-    }
-
-    lastTrackedDraftFingerprintRef.current = draftContentFingerprint;
-    setDraftVersion((previous) => previous + 1);
-  }, [draftContentFingerprint, isDraftHydrated]);
-
-  useEffect(() => {
-    currentDraftRef.current = currentDraft;
-  }, [currentDraft]);
-
-  useEffect(() => {
-    if (!isDraftHydrated) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      const draft = currentDraftRef.current;
-      if (!draft) {
-        return;
-      }
-
-      if (draft.draftVersion === lastSavedDraftVersionRef.current) {
-        return;
-      }
-
-      if (!hasTemplateBuilderDraftContent(draft)) {
-        clearTemplateBuilderDraft();
-        lastSavedDraftVersionRef.current = draft.draftVersion;
-        return;
-      }
-
-      const wasSaved = saveTemplateBuilderDraft(draft);
-      if (wasSaved) {
-        lastSavedDraftVersionRef.current = draft.draftVersion;
-      }
-    }, DRAFT_AUTOSAVE_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [isDraftHydrated]);
 
   useEffect(() => {
     setExerciseIndex((previous) => {
@@ -474,7 +405,6 @@ export default function TemplateBuilder() {
     setExercises(cloneExerciseList(INITIAL_EXERCISES));
     setDurationEnabledExerciseIds(new Set());
     setExerciseIndex([]);
-    setDraftVersion(0);
     setIsAddExerciseModalOpen(false);
     setGroupAddContext(null);
     setQuickSetPopover(null);
@@ -482,124 +412,28 @@ export default function TemplateBuilder() {
     setLastSavedTemplate(null);
     setAddExerciseFeedback(null);
     toast.success("Template reset to initial draft.");
-    lastSavedDraftVersionRef.current = 0;
-    lastTrackedDraftFingerprintRef.current = null;
-    clearTemplateBuilderDraft();
+    resetDraft();
   };
 
   const handleSaveTemplateClick = async () => {
-    const normalizedName = templateName.trim();
-    if (!normalizedName) {
-      toast.error("Template name is required.");
-      return;
-    }
-
-    if (!exercises.length) {
-      toast.error("Add at least one exercise.");
-      return;
-    }
-
-    const mappedExercises: CreateWorkoutTemplateExerciseRequest[] = [];
-    const seenExerciseIds = new Set<number>();
-
-    for (const exercise of exercises) {
-      const exerciseDisplayName = getExerciseDisplayName(exercise.exerciseId);
-      const isDurationEnabled = durationEnabledExerciseIds.has(exercise.id);
-
-      if (exercise.exerciseId <= 0) {
-        toast.error("Each exercise must be selected from your library.");
-        return;
-      }
-
-      if (seenExerciseIds.has(exercise.exerciseId)) {
-        toast.error("Duplicate exercises are not supported in one template.");
-        return;
-      }
-
-      seenExerciseIds.add(exercise.exerciseId);
-
-      if (exercise.sets.length === 0) {
-        toast.error(`Exercise "${exerciseDisplayName}" must include at least one set.`);
-        return;
-      }
-
-      const mappedSets: CreateWorkoutTemplateExerciseSetRequest[] = [];
-
-      for (const set of exercise.sets) {
-        const parsedWeightKg = toOptionalNumber(set.weightKg);
-        const parsedReps = isDurationEnabled ? undefined : toOptionalNumber(set.reps);
-        const parsedDuration = isDurationEnabled ? toOptionalNumber(set.durationSeconds) : undefined;
-        const parsedDistance = toOptionalNumber(set.distanceMeters);
-        const parsedRest = toOptionalNumber(set.restSeconds);
-
-        if (parsedWeightKg !== undefined && (!Number.isFinite(parsedWeightKg) || parsedWeightKg < 0)) {
-          toast.error(`Set weight cannot be negative in "${exerciseDisplayName}".`);
-          return;
-        }
-
-        if (parsedReps !== undefined && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-          toast.error(`Set reps must be greater than zero in "${exerciseDisplayName}".`);
-          return;
-        }
-
-        if (parsedDuration !== undefined && (!Number.isFinite(parsedDuration) || parsedDuration <= 0)) {
-          toast.error(`Set duration must be greater than zero in "${exerciseDisplayName}".`);
-          return;
-        }
-
-        if (parsedDistance !== undefined && (!Number.isFinite(parsedDistance) || parsedDistance <= 0)) {
-          toast.error(`Set distance must be greater than zero in "${exerciseDisplayName}".`);
-          return;
-        }
-
-        if (parsedRest !== undefined && (!Number.isFinite(parsedRest) || parsedRest < 0)) {
-          toast.error(`Set rest cannot be negative in "${exerciseDisplayName}".`);
-          return;
-        }
-
-        const hasMetric =
-          parsedWeightKg !== undefined
-          || parsedReps !== undefined
-          || parsedDuration !== undefined
-          || parsedDistance !== undefined;
-
-        if (!hasMetric) {
-          toast.error(
-            `Each set in "${exerciseDisplayName}" must include at least weight, reps, duration, or distance.`,
-          );
-          return;
-        }
-
-        mappedSets.push({
-          weightKg: parsedWeightKg,
-          reps: parsedReps,
-          durationSeconds: parsedDuration,
-          distanceMeters: parsedDistance,
-          restSeconds: parsedRest,
-          notes: set.notes.trim().length > 0 ? set.notes.trim() : undefined,
-        });
-      }
-
-      mappedExercises.push({
-        groupType: exercise.groupType,
-        exerciseId: exercise.exerciseId,
-        notes: exercise.notes.trim().length > 0 ? exercise.notes.trim() : undefined,
-        sets: mappedSets,
-      });
-    }
-
-    const payload: CreateWorkoutTemplateRequest = {
-      name: normalizedName,
-      description: templateDescription.trim().length > 0 ? templateDescription.trim() : undefined,
-      estimatedDurationMinutes: durationMinutes,
+    const validationResult = validateTemplatePayload({
+      templateName,
+      templateDescription,
+      durationMinutes,
       isPublic,
-      exercises: mappedExercises,
-    };
+      exercises,
+      durationEnabledExerciseIds,
+      getExerciseDisplayName,
+    });
+    if (validationResult.error !== null) {
+      toast.error(validationResult.error);
+      return;
+    }
 
     setIsSavingTemplate(true);
 
     try {
-      const response = await workoutTemplateService.create(payload);
+      const response = await workoutTemplateService.create(validationResult.payload);
       if (!response.data.success || !response.data.data) {
         toast.error(response.data.error ?? "Could not save template.");
         return;
@@ -609,8 +443,7 @@ export default function TemplateBuilder() {
       toast.success(
         `Template saved: ${response.data.data.name} (${response.data.data.exerciseCount} exercises, ${response.data.data.setCount} sets).`,
       );
-      lastSavedDraftVersionRef.current = currentDraftRef.current?.draftVersion ?? draftVersion;
-      clearTemplateBuilderDraft();
+      markCurrentDraftAsSaved({ clearPersistedDraft: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not save template.";
       toast.error(message);
@@ -662,6 +495,48 @@ export default function TemplateBuilder() {
   const closeQuickSetPopover = () => {
     setQuickSetPopover(null);
     setQuickSetPopoverAnchorElement(null);
+  };
+  useEffect(() => {
+    if (!quickSetPopover || activeQuickSetPopoverContext) {
+      return;
+    }
+
+    setQuickSetPopover(null);
+    setQuickSetPopoverAnchorElement(null);
+  }, [activeQuickSetPopoverContext, quickSetPopover]);
+  const handleQuickSetPopoverClose = () => {
+    closeQuickSetPopover();
+  };
+  const handleQuickSetValueChange = (value: number) => {
+    if (!activeQuickSetPopoverContext) {
+      return;
+    }
+
+    handleSetFieldChange(
+      activeQuickSetPopoverContext.exerciseId,
+      activeQuickSetPopoverContext.setId,
+      activeQuickSetPopoverContext.field,
+      value,
+    );
+  };
+  const handleQuickSetApplyToAll = (value: number) => {
+    if (!activeQuickSetPopoverContext) {
+      return;
+    }
+
+    setExercises((previous) =>
+      previous.map((exercise) =>
+        exercise.id === activeQuickSetPopoverContext.exerciseId
+          ? {
+              ...exercise,
+              sets: exercise.sets.map((setItem) => ({
+                ...setItem,
+                [activeQuickSetPopoverContext.field]: value,
+              })),
+            }
+          : exercise,
+      ),
+    );
   };
 
   const handleExerciseCardAction = (action: TemplateExerciseCardAction) => {
@@ -760,30 +635,6 @@ export default function TemplateBuilder() {
           field: action.field,
         });
         setQuickSetPopoverAnchorElement(action.anchorElement);
-        return;
-      }
-      case "closeQuickSetPopover": {
-        closeQuickSetPopover();
-        return;
-      }
-      case "changeQuickSetValue": {
-        handleSetFieldChange(action.exerciseId, action.setId, action.field, action.value);
-        return;
-      }
-      case "applyQuickSetValueToAll": {
-        setExercises((previous) =>
-          previous.map((exercise) =>
-            exercise.id === action.exerciseId
-              ? {
-                  ...exercise,
-                  sets: exercise.sets.map((setItem) => ({
-                    ...setItem,
-                    [action.field]: action.value,
-                  })),
-                }
-              : exercise,
-          ),
-        );
         return;
       }
       case "removeSet": {
@@ -1093,17 +944,17 @@ export default function TemplateBuilder() {
                         exerciseNumber={exerciseIndex + 1}
                         exerciseDisplayName={getExerciseDisplayName(exercise.exerciseId)}
                         isDurationEnabled={durationEnabledExerciseIds.has(exercise.id)}
-                        quickSetPopoverAnchorElement={quickSetPopoverAnchorElement}
-                        getCompactSetValueText={getCompactSetValueText}
-                        isQuickSetPopoverOpen={isQuickSetPopoverOpen}
                         onAction={handleExerciseCardAction}
                       />
                     );
                   }
 
                   const groupTypeLabel = block.groupType === ExerciseGroupType.Circuit ? "Circuit" : "Superset";
+                  const GroupTypeIcon = block.groupType === ExerciseGroupType.Circuit ? LuRepeat : LuLayers;
                   const firstGroupExerciseId = block.items[0]?.exercise.id ?? `group-${blockIndex}`;
                   const addAnchorExercise = block.items[block.items.length - 1]?.exercise;
+                  const groupExerciseIds = block.items.map(({ exercise }) => exercise.id);
+                  const isGroupCollapsed = block.items.every(({ exercise }) => exercise.collapsed);
                   const isCompactGroupAddColumn = block.items.length > 1;
                   const handleAddGroupedExerciseClick = () => {
                     if (!addAnchorExercise) {
@@ -1112,14 +963,47 @@ export default function TemplateBuilder() {
 
                     handleAddExerciseToArrangement(addAnchorExercise.id, block.groupType);
                   };
+                  const handleGroupCollapseToggleClick = () => {
+                    const nextCollapsedValue = !isGroupCollapsed;
+                    const groupExerciseIdSet = new Set(groupExerciseIds);
+
+                    setExercises((previous) =>
+                      previous.map((exercise) =>
+                        groupExerciseIdSet.has(exercise.id)
+                          ? {
+                              ...exercise,
+                              collapsed: nextCollapsedValue,
+                            }
+                          : exercise,
+                      ),
+                    );
+                  };
 
                   return (
                     <article
                       key={`group-${firstGroupExerciseId}`}
-                      className="liquid-panel w-full rounded-3xl p-3 md:w-auto md:max-w-full"
+                      className="liquid-panel w-full rounded-3xl p-4 md:w-auto md:max-w-full"
                     >
                       <div className="mb-2 px-1">
-                        <p className="text-xs font-semibold text-primary">{groupTypeLabel} Group</p>
+                        <button
+                          type="button"
+                          onClick={handleGroupCollapseToggleClick}
+                          className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary transition hover:text-primary-400 md:hidden"
+                          aria-label={isGroupCollapsed ? `Expand ${groupTypeLabel} set` : `Collapse ${groupTypeLabel} set`}
+                        >
+                          <GroupTypeIcon className="h-3.5 w-3.5" />
+                          <span>{groupTypeLabel} Set</span>
+                          <LuChevronDown
+                            className={[
+                              "h-3.5 w-3.5 transition-transform",
+                              isGroupCollapsed ? "rotate-0" : "rotate-180",
+                            ].join(" ")}
+                          />
+                        </button>
+                        <p className="hidden items-center gap-1 text-xs font-semibold text-primary md:flex">
+                          <GroupTypeIcon className="h-3.5 w-3.5" />
+                          <span>{groupTypeLabel} Set</span>
+                        </p>
                       </div>
                       <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
                         <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:flex-row md:flex-wrap md:items-start">
@@ -1131,22 +1015,17 @@ export default function TemplateBuilder() {
                               exerciseDisplayName={getExerciseDisplayName(exercise.exerciseId)}
                               isGroupColumn
                               isDurationEnabled={durationEnabledExerciseIds.has(exercise.id)}
-                              quickSetPopoverAnchorElement={quickSetPopoverAnchorElement}
-                              getCompactSetValueText={getCompactSetValueText}
-                              isQuickSetPopoverOpen={isQuickSetPopoverOpen}
                               onAction={handleExerciseCardAction}
                             />
                           ))}
                         </div>
-                        <div className="flex justify-end md:w-20 md:shrink-0">
+                        <div className="flex w-full justify-end md:w-20 md:shrink-0">
                           <button
                             type="button"
                             onClick={handleAddGroupedExerciseClick}
                             className={
                               [
-                                isCompactGroupAddColumn
-                                  ? "liquid-template-dashed flex w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-3 text-xs font-semibold text-primary-700 transition hover:text-primary min-h-24 md:h-full md:min-h-0"
-                                  : "liquid-template-dashed flex w-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-3 text-xs font-semibold text-primary-700 transition hover:text-primary min-h-28 md:h-full md:min-h-0",
+                                "liquid-template-dashed flex h-12 w-full cursor-pointer md:flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-3 text-xs font-semibold text-primary-700 transition hover:text-primary md:h-full md:min-h-0 md:w-20",
                               ].join(" ")
                             }
                           >
@@ -1203,6 +1082,53 @@ export default function TemplateBuilder() {
         >
           <LuPlus className="h-5 w-5" />
         </button>
+      ) : null}
+
+      {activeQuickSetPopoverContext && quickSetPopoverAnchorElement ? (
+        <>
+          {activeQuickSetPopoverContext.field === "weightKg" ? (
+            <WeightSetPickerPopover
+              isOpen
+              value={activeQuickSetPopoverContext.set.weightKg}
+              onChange={handleQuickSetValueChange}
+              onApplyToAll={handleQuickSetApplyToAll}
+              onClose={handleQuickSetPopoverClose}
+              quickIncrements={[1.25, 5, 10, 15, 20] as const}
+              anchorElement={quickSetPopoverAnchorElement}
+            />
+          ) : null}
+          {activeQuickSetPopoverContext.field === "durationSeconds" ? (
+            <DurationSetPickerPopover
+              isOpen
+              value={activeQuickSetPopoverContext.set.durationSeconds}
+              onChange={handleQuickSetValueChange}
+              onApplyToAll={handleQuickSetApplyToAll}
+              onClose={handleQuickSetPopoverClose}
+              anchorElement={quickSetPopoverAnchorElement}
+            />
+          ) : null}
+          {activeQuickSetPopoverContext.field === "reps" ? (
+            <RepsSetPickerPopover
+              isOpen
+              value={activeQuickSetPopoverContext.set.reps}
+              onChange={handleQuickSetValueChange}
+              onApplyToAll={handleQuickSetApplyToAll}
+              onClose={handleQuickSetPopoverClose}
+              anchorElement={quickSetPopoverAnchorElement}
+            />
+          ) : null}
+          {activeQuickSetPopoverContext.field === "restSeconds" ? (
+            <DurationSetPickerPopover
+              isOpen
+              title="Rest"
+              value={activeQuickSetPopoverContext.set.restSeconds}
+              onChange={handleQuickSetValueChange}
+              onApplyToAll={handleQuickSetApplyToAll}
+              onClose={handleQuickSetPopoverClose}
+              anchorElement={quickSetPopoverAnchorElement}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {/* -- Add Exercise Modal -- */}

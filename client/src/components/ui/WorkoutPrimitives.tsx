@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import type { GroupType, Mood, Difficulty } from "@/types/workout";
+import { ExerciseGroupType } from "@/types";
+
+type WorkoutMood = "energized" | "neutral" | "tired" | "stressed";
+type WorkoutDifficulty = "beginner" | "intermediate" | "advanced";
 
 // --- Stat Card ---
 
@@ -45,30 +48,42 @@ export function StatCard({ label, value, color, change, changeDir }: StatCardPro
 
 // --- Group Type Badge ---
 
-const groupBadgeStyles: Record<GroupType, string> = {
-  straight: "liquid-chip",
-  superset: "liquid-chip liquid-chip-info",
-  circuit: "liquid-chip liquid-chip-warn",
+const groupBadgeStyles: Record<ExerciseGroupType, string> = {
+  [ExerciseGroupType.Straight]: "liquid-chip",
+  [ExerciseGroupType.Superset]: "liquid-chip liquid-chip-info",
+  [ExerciseGroupType.Circuit]: "liquid-chip liquid-chip-warn",
 };
 
-export function GroupTypeBadge({ type }: { type: GroupType }) {
+function getExerciseGroupTypeLabel(groupType: ExerciseGroupType): string {
+  if (groupType === ExerciseGroupType.Superset) {
+    return "Superset";
+  }
+
+  if (groupType === ExerciseGroupType.Circuit) {
+    return "Circuit";
+  }
+
+  return "Single";
+}
+
+export function GroupTypeBadge({ type }: { type: ExerciseGroupType }) {
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${groupBadgeStyles[type]}`}>
-      {type}
+      {getExerciseGroupTypeLabel(type)}
     </span>
   );
 }
 
 // --- Mood Badge ---
 
-const moodStyles: Record<Mood, string> = {
+const moodStyles: Record<WorkoutMood, string> = {
   energized: "liquid-chip liquid-chip-success",
   neutral: "liquid-chip liquid-chip-info",
   tired: "liquid-chip liquid-chip-warn",
   stressed: "liquid-chip liquid-chip-danger",
 };
 
-export function MoodBadge({ mood }: { mood: Mood }) {
+export function MoodBadge({ mood }: { mood: WorkoutMood }) {
   return (
     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${moodStyles[mood]}`}>
       {mood}
@@ -78,13 +93,13 @@ export function MoodBadge({ mood }: { mood: Mood }) {
 
 // --- Difficulty Badge ---
 
-const difficultyStyles: Record<Difficulty, string> = {
+const difficultyStyles: Record<WorkoutDifficulty, string> = {
   beginner: "liquid-chip",
   intermediate: "liquid-chip liquid-chip-info",
   advanced: "liquid-chip liquid-chip-warn",
 };
 
-export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+export function DifficultyBadge({ difficulty }: { difficulty: WorkoutDifficulty }) {
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${difficultyStyles[difficulty]}`}>
       {difficulty}

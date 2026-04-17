@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "@/shared/components";
-import type { Exercise, MuscleGroup } from "@/types/workout";
+import type { Exercise, MuscleGroup } from "@/types";
 
 type ExercisePickerModalProps = {
   open: boolean;
@@ -67,18 +67,32 @@ export default function ExercisePickerModal({
   }, [clearCloseResetTimeout]);
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return exercises.filter((e) => {
-      const matchesQuery =
-        e.name.toLowerCase().includes(q) ||
-        e.equipment.toLowerCase().includes(q) ||
-        muscleGroups.find((m) => m.id === e.primaryMuscleGroupId)?.name.toLowerCase().includes(q);
-      const matchesMuscle = !muscleFilter || e.primaryMuscleGroupId === muscleFilter;
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return exercises.filter((exercise) => {
+      if (!normalizedQuery) {
+        return !muscleFilter || exercise.primaryMuscleGroupId === muscleFilter;
+      }
+
+      const primaryMuscleName = muscleGroups.find((m) => m.id === exercise.primaryMuscleGroupId)?.name;
+      const secondaryMuscleName = muscleGroups.find((m) => m.id === exercise.secondaryMuscleGroupId)?.name;
+      const searchableValues = [
+        exercise.name,
+        exercise.slug,
+        exercise.description,
+        primaryMuscleName,
+        secondaryMuscleName,
+      ];
+      const matchesQuery = searchableValues
+        .filter((value): value is string => Boolean(value))
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+      const matchesMuscle = !muscleFilter || exercise.primaryMuscleGroupId === muscleFilter;
+
       return matchesQuery && matchesMuscle;
     });
-  }, [exercises, muscleGroups, query, muscleFilter]);
+  }, [exercises, muscleFilter, muscleGroups, query]);
 
-  const getMuscle = (id: number | null) =>
+  const getMuscle = (id: number | null | undefined) =>
     muscleGroups.find((m) => m.id === id)?.name ?? "";
 
   const handleSelect = (exerciseId: number) => {
@@ -94,7 +108,6 @@ export default function ExercisePickerModal({
 
   return (
     <Modal isOpen={open} onClose={handleClose} title="Add Exercise" maxWidth="md">
-      {/* Search */}
       <div className="relative mb-4">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
@@ -105,7 +118,7 @@ export default function ExercisePickerModal({
         </svg>
         <input
           type="text"
-          placeholder="Search by name, muscle, equipment..."
+          placeholder="Search by name, slug, or muscle..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -113,7 +126,6 @@ export default function ExercisePickerModal({
         />
       </div>
 
-      {/* Muscle group chips */}
       <div className="mb-4 flex flex-wrap gap-1.5">
         <button
           type="button"
@@ -122,41 +134,43 @@ export default function ExercisePickerModal({
         >
           All
         </button>
-        {muscleGroups.slice(0, 8).map((m) => (
+        {muscleGroups.slice(0, 8).map((muscleGroup) => (
           <button
-            key={m.id}
+            key={muscleGroup.id}
             type="button"
-            onClick={() => setMuscleFilter(muscleFilter === m.id ? null : m.id)}
-            className={getMuscleChipClassName(muscleFilter === m.id)}
+            onClick={() => setMuscleFilter(muscleFilter === muscleGroup.id ? null : muscleGroup.id)}
+            className={getMuscleChipClassName(muscleFilter === muscleGroup.id)}
           >
-            {m.name}
+            {muscleGroup.name}
           </button>
         ))}
       </div>
 
-      {/* Exercise list */}
       <div className="max-h-85 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No exercises found</p>
         ) : (
-          filtered.map((ex) => (
+          filtered.map((exercise) => (
             <button
-              key={ex.id}
+              key={exercise.id}
               type="button"
-              onClick={() => handleSelect(ex.id)}
+              onClick={() => handleSelect(exercise.id)}
               className="liquid-option flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition"
             >
               <div className="liquid-chip liquid-chip-info flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold">
-                {ex.name
+                {exercise.name
                   .split(" ")
-                  .map((w) => w[0])
+                  .map((word) => word[0])
                   .join("")
                   .slice(0, 2)}
               </div>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-foreground">{ex.name}</div>
+                <div className="truncate text-sm font-semibold text-foreground">{exercise.name}</div>
                 <div className="text-xs text-tertiary">
-                  {getMuscle(ex.primaryMuscleGroupId)} · {ex.equipment} · {ex.mechanic}
+                  {getMuscle(exercise.primaryMuscleGroupId)}
+                  {exercise.secondaryMuscleGroupId
+                    ? ` � ${getMuscle(exercise.secondaryMuscleGroupId)}`
+                    : ""}
                 </div>
               </div>
             </button>

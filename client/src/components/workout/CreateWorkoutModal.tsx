@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { Modal } from "@/shared/components";
 import { OutlinedButton, PrimaryButton } from "@/shared/components/Buttons";
-import type { Exercise, Mood, WorkoutTemplate } from "@/types/workout";
+import { ExerciseGroupType, type Exercise, type WorkoutTemplate } from "@/types";
+
+type WorkoutMood = "energized" | "neutral" | "tired" | "stressed";
 
 type CreateWorkoutForm = {
   title: string;
   templateId: string;
   bodyWeightKg: string;
-  mood: Mood;
+  mood: WorkoutMood;
   notes: string;
 };
 
@@ -15,7 +17,7 @@ type CreateWorkoutPayload = {
   title: string;
   templateId: number | null;
   bodyWeightKg: number | null;
-  mood: Mood;
+  mood: WorkoutMood;
   notes: string;
 };
 
@@ -28,7 +30,19 @@ type CreateWorkoutModalProps = {
   lastBodyWeight?: number;
 };
 
-const MOODS: Mood[] = ["energized", "neutral", "tired", "stressed"];
+const MOODS: WorkoutMood[] = ["energized", "neutral", "tired", "stressed"];
+
+function getExerciseGroupTypeLabel(groupType: ExerciseGroupType): string {
+  if (groupType === ExerciseGroupType.Superset) {
+    return "Superset";
+  }
+
+  if (groupType === ExerciseGroupType.Circuit) {
+    return "Circuit";
+  }
+
+  return "Single";
+}
 
 function getTemplatePreviewRowClassName(index: number): string {
   const baseClassName = "flex items-center gap-2 py-1.5 text-sm text-secondary";
@@ -135,9 +149,9 @@ export default function CreateWorkoutModal({
               className={getTemplatePreviewRowClassName(i)}
             >
               <span className="min-w-4.5 font-mono text-xs text-muted">{i + 1}</span>
-              {g.groupType !== "straight" && (
+              {g.groupType !== ExerciseGroupType.Straight && (
                 <span className="liquid-chip liquid-chip-info rounded-full px-2 py-0.5 text-xs font-bold uppercase">
-                  {g.groupType}
+                  {getExerciseGroupTypeLabel(g.groupType)}
                 </span>
               )}
               <span className="flex-1 truncate">
@@ -172,7 +186,7 @@ export default function CreateWorkoutModal({
           </label>
           <select
             value={form.mood}
-            onChange={(e) => update("mood", e.target.value as Mood)}
+            onChange={(e) => update("mood", e.target.value as WorkoutMood)}
             className="liquid-input w-full appearance-none rounded-xl px-5 py-3 text-sm capitalize"
           >
             {MOODS.map((m) => (

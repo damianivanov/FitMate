@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { RepsStepper, SegmentControl, WeightStepper } from "@/shared/components";
+import { FloatingGlassBottomNavCard, RepsStepper, SegmentControl, WeightStepper } from "@/shared/components";
 
 type WeightUnit = "kg" | "lbs";
 type TimeRange = "week" | "month" | "year";
@@ -149,6 +149,13 @@ export default function ComponentTest() {
           />
         </div>
       </div>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-secondary">
+          Floating Glass Navigation Card
+        </h2>
+        <FloatingGlassBottomNavCard />
+      </section>
     </div>
   );
 }

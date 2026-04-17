@@ -140,7 +140,6 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         TemplateExerciseGroup? activeGroup = null;
         ExerciseGroupType? activeGroupedType = null;
         var nextGroupSortOrder = 0;
-        var exerciseOrderInActiveGroup = 0;
 
         TemplateExerciseGroup EnsureGroup(ExerciseGroupType groupType)
         {
@@ -156,7 +155,6 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                 workoutTemplate.ExerciseGroups.Add(straightGroup);
                 activeGroup = straightGroup;
                 activeGroupedType = null;
-                exerciseOrderInActiveGroup = 0;
                 return straightGroup;
             }
 
@@ -171,7 +169,6 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 
                 workoutTemplate.ExerciseGroups.Add(activeGroup);
                 activeGroupedType = groupType;
-                exerciseOrderInActiveGroup = 0;
             }
 
             return activeGroup;
@@ -187,12 +184,12 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                 var sets = exerciseRequest.Sets ?? [];
                 var firstSet = sets[0];
                 var group = EnsureGroup(exerciseRequest.GroupType);
-                exerciseOrderInActiveGroup += 1;
+                var exerciseOrderIndex = exerciseIndex + 1;
 
                 var templateExercise = new TemplateExercise
                 {
                     ExerciseId = exerciseRequest.ExerciseId,
-                    OrderIndex = exerciseOrderInActiveGroup,
+                    OrderIndex = exerciseOrderIndex,
                     TargetSets = sets.Count,
                     TargetReps = firstSet.Reps?.ToString(),
                     TargetWeightKg = NormalizeWeight(firstSet.WeightKg),
