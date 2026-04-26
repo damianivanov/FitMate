@@ -2,6 +2,7 @@ export { FormField } from "./FormField";
 export type {
   DropdownOption,
   DropdownProps,
+  DropdownSingleControlProps,
 } from "./Dropdown";
 export { Dropdown } from "./Dropdown";
 export type { TextInputFieldProps } from "./TextInputField";

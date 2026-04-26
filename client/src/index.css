@@ -515,6 +515,25 @@ textarea { resize: none; }
   z-index: 1;
 }
 
+.liquid-panel.liquid-drag-overlay {
+  background: linear-gradient(145deg, rgba(246, 249, 254, 0.98), rgba(226, 234, 246, 0.98));
+  border-color: var(--glass-border-hover);
+  box-shadow:
+    0 18px 48px rgba(31, 41, 55, 0.22),
+    0 8px 18px rgba(31, 41, 55, 0.14),
+    var(--glass-specular-card);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.dark .liquid-panel.liquid-drag-overlay {
+  background: linear-gradient(145deg, rgba(38, 39, 58, 0.98), rgba(18, 20, 34, 0.98));
+  box-shadow:
+    0 22px 56px rgba(0, 0, 0, 0.48),
+    0 10px 22px rgba(0, 0, 0, 0.32),
+    var(--glass-specular-card);
+}
+
 .liquid-picker-panel {
   box-shadow: 0 14px 32px rgba(2, 6, 18, 0.45), inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
 }
@@ -853,6 +872,12 @@ textarea { resize: none; }
 
 .liquid-input::placeholder { color: var(--input-placeholder); }
 .liquid-input:hover, .liquid-input:focus, .liquid-input:active { cursor: text !important; }
+button.liquid-input,
+button.liquid-input:hover,
+button.liquid-input:focus,
+button.liquid-input:active {
+  cursor: pointer !important;
+}
 
 .liquid-input:focus {
   border-color: var(--input-focus-border);

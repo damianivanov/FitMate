@@ -15,7 +15,7 @@ export type DropdownOption<TValue extends string | number = string> = {
   imageUrl?: string;
 };
 
-type DropdownBaseProps<TValue extends string | number> = {
+type DropdownControlProps<TValue extends string | number> = {
   id?: string;
   label?: string;
   required?: boolean;
@@ -23,7 +23,6 @@ type DropdownBaseProps<TValue extends string | number> = {
   helperText?: string;
   containerClassName?: string;
   labelClassName?: string;
-  options: readonly DropdownOption<TValue>[];
   placeholder?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
@@ -46,17 +45,27 @@ type DropdownBaseProps<TValue extends string | number> = {
   onBlur?: () => void;
 };
 
-type DropdownSingleProps<TValue extends string | number> = DropdownBaseProps<TValue> & {
+type DropdownOptionsProps<TValue extends string | number> = {
+  options: readonly DropdownOption<TValue>[];
+};
+
+export type DropdownSingleControlProps<TValue extends string | number = string> = DropdownControlProps<TValue> & {
   multiple?: false;
   value: TValue | null;
   onChange: (value: TValue | null, option: DropdownOption<TValue> | null) => void;
 };
 
-type DropdownMultiProps<TValue extends string | number> = DropdownBaseProps<TValue> & {
+type DropdownMultiControlProps<TValue extends string | number> = DropdownControlProps<TValue> & {
   multiple: true;
   value: TValue[];
   onChange: (value: TValue[], options: DropdownOption<TValue>[]) => void;
 };
+
+type DropdownSingleProps<TValue extends string | number> =
+  DropdownSingleControlProps<TValue> & DropdownOptionsProps<TValue>;
+
+type DropdownMultiProps<TValue extends string | number> =
+  DropdownMultiControlProps<TValue> & DropdownOptionsProps<TValue>;
 
 export type DropdownProps<TValue extends string | number = string> =
   | DropdownSingleProps<TValue>

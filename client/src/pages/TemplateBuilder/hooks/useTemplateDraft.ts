@@ -6,6 +6,7 @@ import {
 } from "@/services/templateBuilderDraftStorage";
 import {
   hasTemplateBuilderDraftContent,
+  type TemplateBuilderDraftContent,
   type TemplateBuilderDraftModel,
 } from "../models/templateBuilderDraft";
 
@@ -15,7 +16,7 @@ export type HandleRestoreTemplateDraft = (
 ) => Promise<void> | void;
 
 type UseTemplateDraftArgs = {
-  draftContent: Omit<TemplateBuilderDraftModel, "draftVersion">;
+  draftContent: TemplateBuilderDraftContent;
   draftContentFingerprint: string;
   onRestoreDraft: HandleRestoreTemplateDraft;
   autosaveIntervalMs: number;

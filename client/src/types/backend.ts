@@ -29,6 +29,7 @@ export namespace JsonModels.WorkoutTemplates {
 	export interface CreateWorkoutTemplateExerciseRequest
 	{
 		groupType: Enums.ExerciseGroupType;
+		clientGroupId?: number;
 		exerciseId: number;
 		notes?: string;
 		sets: JsonModels.WorkoutTemplates.CreateWorkoutTemplateExerciseSetRequest[];

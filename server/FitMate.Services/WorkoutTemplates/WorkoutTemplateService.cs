@@ -72,34 +72,82 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw new FitMateException("At least one template exercise is required.");
         }
 
-        for (var exerciseIndex = 0; exerciseIndex < exercises.Count; exerciseIndex++)
+        var groupTypeByClientGroupId = new Dictionary<int, ExerciseGroupType>();
+        var closedClientGroupIds = new HashSet<int>();
+        int? activeClientGroupId = null;
+        var validationExerciseIndex = 0;
+        foreach (var exerciseRequest in exercises)
         {
-            var exerciseRequest = exercises[exerciseIndex];
-
             if (!Enum.IsDefined(exerciseRequest.GroupType))
             {
-                throw new FitMateException($"Exercise #{exerciseIndex + 1} has an invalid group type.");
+                throw new FitMateException($"Exercise #{validationExerciseIndex + 1} has an invalid group type.");
             }
 
             if (exerciseRequest.ExerciseId <= 0)
             {
-                throw new FitMateException($"Exercise #{exerciseIndex + 1} has an invalid exercise id.");
+                throw new FitMateException($"Exercise #{validationExerciseIndex + 1} has an invalid exercise id.");
+            }
+
+            if (exerciseRequest.GroupType == ExerciseGroupType.Straight)
+            {
+                if (activeClientGroupId.HasValue)
+                {
+                    closedClientGroupIds.Add(activeClientGroupId.Value);
+                    activeClientGroupId = null;
+                }
+            }
+            else
+            {
+                if (!exerciseRequest.ClientGroupId.HasValue || exerciseRequest.ClientGroupId.Value == 0)
+                {
+                    throw new FitMateException($"Exercise #{validationExerciseIndex + 1} must include a client group id.");
+                }
+
+                var clientGroupId = exerciseRequest.ClientGroupId.Value;
+                if (
+                    groupTypeByClientGroupId.TryGetValue(clientGroupId, out var existingGroupType)
+                    && existingGroupType != exerciseRequest.GroupType)
+                {
+                    throw new FitMateException($"Client group id {clientGroupId} cannot mix group types.");
+                }
+
+                groupTypeByClientGroupId.TryAdd(clientGroupId, exerciseRequest.GroupType);
+
+                if (activeClientGroupId != clientGroupId)
+                {
+                    if (activeClientGroupId.HasValue)
+                    {
+                        closedClientGroupIds.Add(activeClientGroupId.Value);
+                    }
+
+                    if (closedClientGroupIds.Contains(clientGroupId))
+                    {
+                        throw new FitMateException($"Client group id {clientGroupId} must be contiguous.");
+                    }
+
+                    activeClientGroupId = clientGroupId;
+                }
             }
 
             var sets = exerciseRequest.Sets ?? [];
             if (sets.Count == 0)
             {
-                throw new FitMateException($"Exercise #{exerciseIndex + 1} must include at least one set.");
+                throw new FitMateException($"Exercise #{validationExerciseIndex + 1} must include at least one set.");
             }
 
-            for (var setIndex = 0; setIndex < sets.Count; setIndex++)
+            var setIndex = 0;
+            foreach (var setRequest in sets)
             {
-                var validationError = ValidateSet(sets[setIndex]);
+                var validationError = ValidateSet(setRequest);
                 if (validationError != null)
                 {
-                    throw new FitMateException($"Exercise #{exerciseIndex + 1}, set #{setIndex + 1}: {validationError}");
+                    throw new FitMateException($"Exercise #{validationExerciseIndex + 1}, set #{setIndex + 1}: {validationError}");
                 }
+
+                setIndex++;
             }
+
+            validationExerciseIndex++;
         }
 
         var existingExerciseIds = exercises
@@ -133,45 +181,43 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         {
             UserId = userId,
             Name = name,
-            Description = NormalizeNullable(request.Description),
+            Description = string.IsNullOrWhiteSpace(request.Description)
+                ? null
+                : request.Description.Trim(),
             EstimatedDurationMinutes = request.EstimatedDurationMinutes,
             IsPublic = request.IsPublic,
         };
-        TemplateExerciseGroup? activeGroup = null;
-        ExerciseGroupType? activeGroupedType = null;
+        var groupsByClientGroupId = new Dictionary<int, TemplateExerciseGroup>();
         var nextGroupSortOrder = 0;
 
-        TemplateExerciseGroup EnsureGroup(ExerciseGroupType groupType)
+        TemplateExerciseGroup CreateGroup(ExerciseGroupType groupType)
         {
-            if (groupType == ExerciseGroupType.Straight)
+            var group = new TemplateExerciseGroup
             {
-                var straightGroup = new TemplateExerciseGroup
-                {
-                    SortOrder = ++nextGroupSortOrder,
-                    GroupType = ExerciseGroupType.Straight,
-                    Rounds = 1,
-                };
+                SortOrder = ++nextGroupSortOrder,
+                GroupType = groupType,
+                Rounds = 1,
+            };
 
-                workoutTemplate.ExerciseGroups.Add(straightGroup);
-                activeGroup = straightGroup;
-                activeGroupedType = null;
-                return straightGroup;
+            workoutTemplate.ExerciseGroups.Add(group);
+            return group;
+        }
+
+        TemplateExerciseGroup ResolveGroup(CreateWorkoutTemplateExerciseRequest exerciseRequest)
+        {
+            if (exerciseRequest.GroupType == ExerciseGroupType.Straight)
+            {
+                return CreateGroup(ExerciseGroupType.Straight);
             }
 
-            if (activeGroup == null || activeGroupedType != groupType)
+            var clientGroupId = exerciseRequest.ClientGroupId!.Value;
+            if (!groupsByClientGroupId.TryGetValue(clientGroupId, out var group))
             {
-                activeGroup = new TemplateExerciseGroup
-                {
-                    SortOrder = ++nextGroupSortOrder,
-                    GroupType = groupType,
-                    Rounds = 1,
-                };
-
-                workoutTemplate.ExerciseGroups.Add(activeGroup);
-                activeGroupedType = groupType;
+                group = CreateGroup(exerciseRequest.GroupType);
+                groupsByClientGroupId.Add(clientGroupId, group);
             }
 
-            return activeGroup;
+            return group;
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
@@ -183,7 +229,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                 var exerciseRequest = exercises[exerciseIndex];
                 var sets = exerciseRequest.Sets ?? [];
                 var firstSet = sets[0];
-                var group = EnsureGroup(exerciseRequest.GroupType);
+                var group = ResolveGroup(exerciseRequest);
                 var exerciseOrderIndex = exerciseIndex + 1;
 
                 var templateExercise = new TemplateExercise
@@ -194,7 +240,9 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                     TargetReps = firstSet.Reps?.ToString(),
                     TargetWeightKg = NormalizeWeight(firstSet.WeightKg),
                     TargetRestSeconds = firstSet.RestSeconds,
-                    Notes = NormalizeNullable(exerciseRequest.Notes),
+                    Notes = string.IsNullOrWhiteSpace(exerciseRequest.Notes)
+                        ? null
+                        : exerciseRequest.Notes.Trim(),
                 };
 
                 for (var setIndex = 0; setIndex < sets.Count; setIndex++)
@@ -209,17 +257,13 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                         DistanceMeters = NormalizeDistance(setRequest.DistanceMeters),
                         Rpe = NormalizeRpe(setRequest.Rpe),
                         RestSeconds = setRequest.RestSeconds,
-                        Notes = NormalizeNullable(setRequest.Notes),
+                        Notes = string.IsNullOrWhiteSpace(setRequest.Notes)
+                            ? null
+                            : setRequest.Notes.Trim(),
                     });
                 }
 
                 group.Exercises.Add(templateExercise);
-
-                if (exerciseRequest.GroupType == ExerciseGroupType.Straight)
-                {
-                    activeGroup = null;
-                    activeGroupedType = null;
-                }
             }
 
             dbContext.WorkoutTemplates.Add(workoutTemplate);
@@ -376,8 +420,4 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             : null;
     }
 
-    private static string? NormalizeNullable(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
 }

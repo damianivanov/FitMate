@@ -10,38 +10,25 @@ import { useExerciseLookup } from "@/hooks/useExerciseLookup";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { Dropdown, Modal } from "@/shared/components";
 import type { ExerciseLookupModel } from "@/types";
-
-export type AddExerciseModalFeedback = {
-  text: string;
-  tone: "success" | "error";
-};
-
-type AddExerciseModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (exercise: ExerciseLookupModel) => boolean;
-  onRemove: (exercise: ExerciseLookupModel) => boolean;
-  selectedExerciseIds: readonly number[];
-  feedback?: AddExerciseModalFeedback | null;
-};
+import { useTemplateBuilderStore } from "../store/templateBuilderStore";
 
 const MODAL_EXIT_DURATION_MS = 220;
 const LIBRARY_LOOKUP_DEBOUNCE_MS = 140;
 const ADD_HIGHLIGHT_DURATION_MS = 420;
+const DEFAULT_LIBRARY_LOOKUP_TAKE = 48;
 
 function getSingleSelectedMuscleGroupId(ids: number[]): number | undefined {
   return ids.length === 1 ? ids[0] : undefined;
 }
 
-export function AddExerciseModal({
-  isOpen,
-  onClose,
-  onAdd,
-  onRemove,
-  selectedExerciseIds,
-  feedback = null,
-}: AddExerciseModalProps) {
-  const DEFAULT_LIBRARY_LOOKUP_TAKE = 48;
+export function AddExerciseModal() {
+  const isOpen = useTemplateBuilderStore((state) => state.isAddExerciseModalOpen);
+  const exercises = useTemplateBuilderStore((state) => state.exercises);
+  const feedback = useTemplateBuilderStore((state) => state.addExerciseFeedback);
+  const closeAddExerciseModal = useTemplateBuilderStore((state) => state.closeAddExerciseModal);
+  const addLibraryExercise = useTemplateBuilderStore((state) => state.addLibraryExercise);
+  const removeLibraryExercise = useTemplateBuilderStore((state) => state.removeLibraryExercise);
+
   const [librarySearchTerm, setLibrarySearchTerm] = useState("");
   const [selectedMuscleGroupIds, setSelectedMuscleGroupIds] = useState<number[]>([]);
   const [libraryLookupSkip, setLibraryLookupSkip] = useState(0);
@@ -53,13 +40,17 @@ export function AddExerciseModal({
 
   const { muscleGroups, error: muscleGroupsError } = useMuscleGroups({ enabled: isOpen });
 
+  const selectedExerciseIds = useMemo(
+    () => exercises.map((exercise) => exercise.exerciseId),
+    [exercises],
+  );
+
   const muscleGroupOptions = useMemo(
-    () =>
-      muscleGroups.map((group) => ({
-        value: group.id,
-        label: group.name,
-        imageUrl: group.imageUrl ?? undefined,
-      })),
+    () => muscleGroups.map((group) => ({
+      value: group.id,
+      label: group.name,
+      imageUrl: group.imageUrl ?? undefined,
+    })),
     [muscleGroups],
   );
 
@@ -69,39 +60,36 @@ export function AddExerciseModal({
   );
 
   const singleMuscleGroupId = selectedMuscleGroupIds.length === 1 ? selectedMuscleGroupIds[0] : undefined;
-  const handleLibraryLookupSuccess = useCallback(
-    (page: ExerciseLookupModel[]) => {
-      if (libraryLookupSkip === 0) {
-        setLibraryExercises(page);
-        return;
+  const handleLibraryLookupSuccess = useCallback((page: ExerciseLookupModel[]) => {
+    if (libraryLookupSkip === 0) {
+      setLibraryExercises(page);
+      return;
+    }
+
+    if (!page.length) {
+      return;
+    }
+
+    setLibraryExercises((previous) => {
+      if (!previous.length) {
+        return page;
       }
 
-      if (!page.length) {
-        return;
+      const existingIds = new Set(previous.map((exercise) => exercise.id));
+      const nextExercises = [...previous];
+
+      for (const exercise of page) {
+        if (existingIds.has(exercise.id)) {
+          continue;
+        }
+
+        existingIds.add(exercise.id);
+        nextExercises.push(exercise);
       }
 
-      setLibraryExercises((previous) => {
-        if (!previous.length) {
-          return page;
-        }
-
-        const existingIds = new Set(previous.map((exercise) => exercise.id));
-        const nextExercises = [...previous];
-
-        for (const exercise of page) {
-          if (existingIds.has(exercise.id)) {
-            continue;
-          }
-
-          existingIds.add(exercise.id);
-          nextExercises.push(exercise);
-        }
-
-        return nextExercises;
-      });
-    },
-    [libraryLookupSkip],
-  );
+      return nextExercises;
+    });
+  }, [libraryLookupSkip]);
 
   const {
     options: libraryExercisePage,
@@ -249,7 +237,7 @@ export function AddExerciseModal({
       return;
     }
 
-    const wasAdded = onAdd(exercise);
+    const wasAdded = addLibraryExercise(exercise);
     if (wasAdded) {
       startAddHighlight(exercise.id);
     }
@@ -265,7 +253,7 @@ export function AddExerciseModal({
         return;
       }
 
-      const wasAdded = onAdd(exercise);
+      const wasAdded = addLibraryExercise(exercise);
       if (wasAdded) {
         startAddHighlight(exercise.id);
       }
@@ -277,9 +265,9 @@ export function AddExerciseModal({
       event.preventDefault();
       event.stopPropagation();
       clearAddHighlight(exercise.id);
-      onRemove(exercise);
+      removeLibraryExercise(exercise);
     },
-    [clearAddHighlight, onRemove],
+    [clearAddHighlight, removeLibraryExercise],
   );
 
   const handleExerciseListScroll = (event: ReactUIEvent<HTMLDivElement>) => {
@@ -290,8 +278,7 @@ export function AddExerciseModal({
     const containerElement = event.currentTarget;
     const loadMoreThresholdPx = 120;
     const isNearBottom =
-      containerElement.scrollTop + containerElement.clientHeight >=
-      containerElement.scrollHeight - loadMoreThresholdPx;
+      containerElement.scrollTop + containerElement.clientHeight >= containerElement.scrollHeight - loadMoreThresholdPx;
 
     if (!isNearBottom) {
       return;
@@ -306,7 +293,7 @@ export function AddExerciseModal({
   };
 
   const handleModalClose = () => {
-    onClose();
+    closeAddExerciseModal();
     clearCloseResetTimeout();
     closeResetTimeoutRef.current = window.setTimeout(() => {
       resetModalState();
@@ -317,7 +304,7 @@ export function AddExerciseModal({
   return (
     <Modal isOpen={isOpen} onClose={handleModalClose} title="Add Exercise" maxWidth="2xl">
       <div className="flex max-h-[80vh] min-h-104 cursor-default flex-col md:min-h-120">
-        <div className="relative z-50 px-5 pt-4 pb-3">
+        <div className="relative z-50 px-5 pb-3 pt-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="liquid-input flex w-full flex-1 items-center gap-2 rounded-full px-4 py-3">
               <LuSearch className="h-4 w-4 shrink-0 text-primary" />
@@ -330,7 +317,7 @@ export function AddExerciseModal({
             </div>
 
             <div className="w-full sm:w-64 sm:shrink-0">
-              <Dropdown
+              <Dropdown<number>
                 id="add-exercise-muscle-filter"
                 multiple
                 value={selectedMuscleGroupIds}
@@ -395,56 +382,66 @@ export function AddExerciseModal({
                   : "",
               ].join(" ");
 
+              const handleExerciseClick = () => {
+                handleExerciseItemClick(exercise);
+              };
+
+              const handleExerciseKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+                handleExerciseItemKeyDown(event, exercise);
+              };
+
+              const handleRemoveClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+                handleRemoveButtonClick(event, exercise);
+              };
+
               return (
                 <div
                   key={exercise.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleExerciseItemClick(exercise)}
-                  onKeyDown={(event) => handleExerciseItemKeyDown(event, exercise)}
+                  onClick={handleExerciseClick}
+                  onKeyDown={handleExerciseKeyDown}
                   className={exerciseItemClassName}
                 >
-                {exercise.imageUrl ? (
-                  <img
-                    src={exercise.imageUrl}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-xl object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold bg-primary-200 text-primary"
-                  >
-                    {exercise.name.charAt(0).toUpperCase()}
+                  {exercise.imageUrl ? (
+                    <img
+                      src={exercise.imageUrl}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-200 text-sm font-bold text-primary">
+                      {exercise.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
-                </div>
-                <span
-                  className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
-                >
-                  {exercise.primaryMuscleGroupName}
-                </span>
-                {isAlreadyAdded ? (
-                  <button
-                    type="button"
-                    onClick={(event) => handleRemoveButtonClick(event, exercise)}
-                    aria-label={`Remove ${exercise.name} from template`}
-                    className="group relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-300 transition-colors hover:bg-(--color-danger-soft)"
+                  <span
+                    className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                    style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
                   >
-                    <LuCheck className="h-5 w-5 transition-all duration-200 group-hover:scale-75 group-hover:opacity-0" />
-                    <LuX className="absolute h-5 w-5 text-danger opacity-0 transition-all duration-200 group-hover:opacity-100" />
-                  </button>
-                ) : (
-                  <LuPlus
-                    className={[
-                      "h-4 w-4 shrink-0 text-emerald-300 transition-transform duration-200",
-                      isAddAnimating ? "scale-110" : "",
-                    ].join(" ")}
-                  />
-                )}
+                    {exercise.primaryMuscleGroupName}
+                  </span>
+                  {isAlreadyAdded ? (
+                    <button
+                      type="button"
+                      onClick={handleRemoveClick}
+                      aria-label={`Remove ${exercise.name} from template`}
+                      className="group relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-300 transition-colors hover:bg-(--color-danger-soft)"
+                    >
+                      <LuCheck className="h-5 w-5 transition-all duration-200 group-hover:scale-75 group-hover:opacity-0" />
+                      <LuX className="absolute h-5 w-5 text-danger opacity-0 transition-all duration-200 group-hover:opacity-100" />
+                    </button>
+                  ) : (
+                    <LuPlus
+                      className={[
+                        "h-4 w-4 shrink-0 text-emerald-300 transition-transform duration-200",
+                        isAddAnimating ? "scale-110" : "",
+                      ].join(" ")}
+                    />
+                  )}
                 </div>
               );
             })}

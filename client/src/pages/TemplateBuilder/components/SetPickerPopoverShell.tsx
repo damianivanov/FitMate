@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { LuX } from "react-icons/lu";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 
 type SetPickerPopoverShellProps = {
   isOpen: boolean;
@@ -30,33 +31,8 @@ export function SetPickerPopoverShell({
   anchorElement = null,
 }: SetPickerPopoverShellProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const isMobileViewport = useIsMobileViewport();
   const [desktopPosition, setDesktopPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return;
-    }
-
-    const mobileMediaQuery = window.matchMedia("(max-width: 767px)");
-    const updateViewportMode = () => {
-      setIsMobileViewport(mobileMediaQuery.matches);
-    };
-
-    updateViewportMode();
-
-    if (typeof mobileMediaQuery.addEventListener === "function") {
-      mobileMediaQuery.addEventListener("change", updateViewportMode);
-      return () => {
-        mobileMediaQuery.removeEventListener("change", updateViewportMode);
-      };
-    }
-
-    mobileMediaQuery.addListener(updateViewportMode);
-    return () => {
-      mobileMediaQuery.removeListener(updateViewportMode);
-    };
-  }, []);
 
   useEffect(() => {
     if (!isOpen) {

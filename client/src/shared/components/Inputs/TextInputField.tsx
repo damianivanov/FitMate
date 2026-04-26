@@ -5,7 +5,8 @@ import { FormField } from "./FormField";
 const defaultInputClassName =
   "liquid-input w-full rounded-full px-3 py-2.5 outline-none focus:outline-none";
 
-export type TextInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "children"> & {
+export interface TextInputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  children?: never;
   label: string;
   error?: string;
   helperText?: string;
@@ -13,7 +14,7 @@ export type TextInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "c
   labelClassName?: string;
   helperTextClassName?: string;
   errorClassName?: string;
-};
+}
 
 export const TextInputField = forwardRef<HTMLInputElement, TextInputFieldProps>(
   function TextInputField(

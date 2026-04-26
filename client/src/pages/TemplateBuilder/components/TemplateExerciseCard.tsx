@@ -4,19 +4,22 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type HTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { LuChevronDown, LuEllipsis, LuGripVertical, LuPlus, LuTrash2 } from "react-icons/lu";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { SegmentControl, type SegmentControlOption } from "@/shared/components";
 import { ExerciseGroupType } from "@/types";
 import type {
   TemplateBuilderExerciseDraftModel as TemplateExerciseDraft,
-  TemplateSetNumericField,
-  TemplateSetNumericValue,
 } from "../models/templateBuilderDraft";
+import { QuickSetField, useTemplateBuilderStore } from "../store/templateBuilderStore";
 
-const ARRANGEMENT_SEGMENT_OPTIONS: ReadonlyArray<SegmentControlOption<ExerciseGroupType>> = [
+const GROUPING_SEGMENT_OPTIONS: ReadonlyArray<SegmentControlOption<ExerciseGroupType>> = [
   { value: ExerciseGroupType.Straight, label: "Single" },
   { value: ExerciseGroupType.Superset, label: "Superset" },
   { value: ExerciseGroupType.Circuit, label: "Circuit" },
@@ -27,27 +30,23 @@ const EXERCISE_MENU_ESTIMATED_HEIGHT_PX = 260;
 const EXERCISE_MENU_OFFSET_PX = 8;
 const VIEWPORT_PADDING_PX = 8;
 
-export type QuickSetField = Extract<TemplateSetNumericField, "weightKg" | "reps" | "durationSeconds" | "restSeconds">;
-
-export type TemplateExerciseCardAction =
-  | { type: "toggleCollapse"; exerciseId: string }
-  | { type: "setMetricMode"; exerciseId: string; isWeightedExercise: boolean }
-  | { type: "changeArrangement"; exerciseId: string; value: ExerciseGroupType }
-  | { type: "removeExercise"; exerciseId: string }
-  | { type: "changeNotes"; exerciseId: string; value: string }
-  | { type: "openQuickSetPopover"; exerciseId: string; setId: string; field: QuickSetField; anchorElement: HTMLElement }
-  | { type: "removeSet"; exerciseId: string; setId: string }
-  | { type: "addSet"; exerciseId: string };
-
 type ExerciseMenuPosition = { top: number; left: number };
 
 type TemplateExerciseCardProps = {
   exercise: TemplateExerciseDraft;
   exerciseNumber: number;
   exerciseDisplayName: string;
-  isGroupColumn?: boolean;
   isDurationEnabled: boolean;
-  onAction: (action: TemplateExerciseCardAction) => void;
+  onOpenQuickSetPopover: (
+    exerciseId: string,
+    setId: string,
+    field: QuickSetField,
+    anchorElement: HTMLElement,
+  ) => void;
+  dragHandleProps?: HTMLAttributes<HTMLElement>;
+  setDragHandleRef?: (element: HTMLElement | null) => void;
+  isDragging?: boolean;
+  isDragOverlay?: boolean;
 };
 
 function getMetricButtonClass(isActive: boolean): string {
@@ -57,13 +56,22 @@ function getMetricButtonClass(isActive: boolean): string {
 }
 
 function getSetIndexScaleClassName(setNumber: number): string {
-  if (setNumber >= 100) return "scale-75";
-  if (setNumber >= 10) return "scale-90";
+  if (setNumber >= 100) {
+    return "scale-75";
+  }
+
+  if (setNumber >= 10) {
+    return "scale-90";
+  }
+
   return "scale-100";
 }
 
-function getCompactSetValueText(value: TemplateSetNumericValue): string {
-  if (value === undefined) return "-";
+function getCompactSetValueText(value: number | undefined): string {
+  if (value === undefined) {
+    return "-";
+  }
+
   return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
@@ -71,19 +79,28 @@ export function TemplateExerciseCard({
   exercise,
   exerciseNumber,
   exerciseDisplayName,
-  isGroupColumn = false,
   isDurationEnabled,
-  onAction,
+  onOpenQuickSetPopover,
+  dragHandleProps,
+  setDragHandleRef,
+  isDragging = false,
+  isDragOverlay = false,
 }: TemplateExerciseCardProps) {
+  const setExerciseMetricMode = useTemplateBuilderStore((state) => state.setExerciseMetricMode);
+  const toggleExerciseCollapse = useTemplateBuilderStore((state) => state.toggleExerciseCollapse);
+  const setExerciseGrouping = useTemplateBuilderStore((state) => state.setExerciseGrouping);
+  const removeExercise = useTemplateBuilderStore((state) => state.removeExercise);
+  const setExerciseNotes = useTemplateBuilderStore((state) => state.setExerciseNotes);
+  const addExerciseSet = useTemplateBuilderStore((state) => state.addExerciseSet);
+  const removeExerciseSet = useTemplateBuilderStore((state) => state.removeExerciseSet);
+
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const menuPanelRef = useRef<HTMLDivElement | null>(null);
   const [menuPosition, setMenuPosition] = useState<ExerciseMenuPosition | null>(null);
   const [isExerciseMenuOpen, setIsExerciseMenuOpen] = useState(false);
-  const [isDesktopViewport, setIsDesktopViewport] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : false
-  );
+  const isMobileViewport = useIsMobileViewport({ defaultValue: true });
   const [isNotesVisible, setIsNotesVisible] = useState(() => exercise.notes.trim().length > 0);
-  const [isArrangementSelectorVisible, setIsArrangementSelectorVisible] = useState(false);
+  const [isGroupingSelectorVisible, setIsGroupingSelectorVisible] = useState(false);
 
   const noteButtonText = isNotesVisible
     ? "Hide Note"
@@ -91,67 +108,124 @@ export function TemplateExerciseCard({
       ? "Edit Note"
       : "Add Note";
 
-  const isCollapseEnabled = !isDesktopViewport;
+  const isCollapseEnabled = isMobileViewport;
   const isCollapsed = isCollapseEnabled && exercise.collapsed;
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(min-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+  const handleRepsMetricClick = () => {
+    setExerciseMetricMode(exercise.id, true);
+  };
 
-  const handleRepsMetricClick = () => onAction({ type: "setMetricMode", exerciseId: exercise.id, isWeightedExercise: true });
-  const handleDurationMetricClick = () => onAction({ type: "setMetricMode", exerciseId: exercise.id, isWeightedExercise: false });
-  const handleExerciseMenuToggleClick = () => setIsExerciseMenuOpen((prev) => !prev);
-  const handleExerciseMenuClose = () => setIsExerciseMenuOpen(false);
+  const handleDurationMetricClick = () => {
+    setExerciseMetricMode(exercise.id, false);
+  };
+
+  const handleExerciseMenuToggleClick = () => {
+    if (isDragOverlay) {
+      return;
+    }
+
+    setIsExerciseMenuOpen((previous) => !previous);
+  };
+
+  const handleExerciseMenuClose = () => {
+    setIsExerciseMenuOpen(false);
+  };
 
   const handleExerciseNotesMenuClick = () => {
-    setIsNotesVisible((prev) => !prev);
+    setIsNotesVisible((previous) => !previous);
     handleExerciseMenuClose();
   };
 
   const handleExerciseCollapseClick = () => {
-    if (!isCollapseEnabled) return;
+    if (!isCollapseEnabled) {
+      return;
+    }
+
     handleExerciseMenuClose();
-    onAction({ type: "toggleCollapse", exerciseId: exercise.id });
+    toggleExerciseCollapse(exercise.id);
   };
 
-  const handleArrangementSegmentChange = (value: ExerciseGroupType) => {
-    onAction({ type: "changeArrangement", exerciseId: exercise.id, value });
+  const handleGroupingSegmentChange = (value: ExerciseGroupType) => {
+    setExerciseGrouping(exercise.id, value);
   };
 
-  const handleExerciseArrangementMenuClick = () => {
-    setIsArrangementSelectorVisible((prev) => {
-      if (!prev && isCollapsed) onAction({ type: "toggleCollapse", exerciseId: exercise.id });
-      return !prev;
+  const handleExerciseGroupingMenuClick = () => {
+    if (exercise.groupType === ExerciseGroupType.Straight || exercise.groupId == null) {
+      if (isCollapsed) {
+        toggleExerciseCollapse(exercise.id);
+      }
+
+      setExerciseGrouping(exercise.id, ExerciseGroupType.Superset);
+      setIsGroupingSelectorVisible(true);
+      handleExerciseMenuClose();
+      return;
+    }
+
+    setIsGroupingSelectorVisible((previous) => {
+      if (!previous && isCollapsed) {
+        toggleExerciseCollapse(exercise.id);
+      }
+
+      return !previous;
     });
     handleExerciseMenuClose();
   };
 
   const handleExerciseDeleteClick = () => {
     handleExerciseMenuClose();
-    onAction({ type: "removeExercise", exerciseId: exercise.id });
+    removeExercise(exercise.id);
   };
 
   const handleExerciseNotesInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onAction({ type: "changeNotes", exerciseId: exercise.id, value: event.target.value });
+    setExerciseNotes(exercise.id, event.target.value);
   };
 
-  const handleAddSetClick = () => onAction({ type: "addSet", exerciseId: exercise.id });
+  const handleAddSetClick = () => {
+    addExerciseSet(exercise.id);
+  };
+
+  const handleDragHandleMouseDown = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    handleExerciseMenuClose();
+    dragHandleProps?.onMouseDown?.(event);
+  };
+
+  const handleDragHandleTouchStart = (event: ReactTouchEvent<HTMLButtonElement>) => {
+    handleExerciseMenuClose();
+    dragHandleProps?.onTouchStart?.(event);
+  };
+
+  const handleDragHandleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    handleExerciseMenuClose();
+    dragHandleProps?.onKeyDown?.(event);
+  };
 
   const menuActionClassName =
     "flex w-full cursor-pointer items-center justify-start gap-2 rounded-full bg-transparent px-3 py-2 text-left text-sm font-semibold transition-colors";
+  const groupingMenuText =
+    exercise.groupType === ExerciseGroupType.Straight || exercise.groupId == null
+      ? "Create Superset"
+      : "Change Grouping";
 
   const updateMenuPosition = useCallback(() => {
-    if (!menuTriggerRef.current) return;
+    if (!menuTriggerRef.current) {
+      return;
+    }
+
     const triggerRect = menuTriggerRef.current.getBoundingClientRect();
-    const maxLeft = Math.max(VIEWPORT_PADDING_PX, window.innerWidth - EXERCISE_MENU_WIDTH_PX - VIEWPORT_PADDING_PX);
-    const resolvedLeft = Math.min(maxLeft, Math.max(VIEWPORT_PADDING_PX, triggerRect.right - EXERCISE_MENU_WIDTH_PX));
+    const maxLeft = Math.max(
+      VIEWPORT_PADDING_PX,
+      window.innerWidth - EXERCISE_MENU_WIDTH_PX - VIEWPORT_PADDING_PX,
+    );
+    const resolvedLeft = Math.min(
+      maxLeft,
+      Math.max(VIEWPORT_PADDING_PX, triggerRect.right - EXERCISE_MENU_WIDTH_PX),
+    );
     const shouldOpenUp =
-      triggerRect.bottom + EXERCISE_MENU_OFFSET_PX + EXERCISE_MENU_ESTIMATED_HEIGHT_PX > window.innerHeight - VIEWPORT_PADDING_PX
-      && triggerRect.top - EXERCISE_MENU_OFFSET_PX - EXERCISE_MENU_ESTIMATED_HEIGHT_PX >= VIEWPORT_PADDING_PX;
+      triggerRect.bottom + EXERCISE_MENU_OFFSET_PX + EXERCISE_MENU_ESTIMATED_HEIGHT_PX
+        > window.innerHeight - VIEWPORT_PADDING_PX
+      && triggerRect.top - EXERCISE_MENU_OFFSET_PX - EXERCISE_MENU_ESTIMATED_HEIGHT_PX
+        >= VIEWPORT_PADDING_PX;
+
     setMenuPosition({
       top: shouldOpenUp
         ? triggerRect.top - EXERCISE_MENU_OFFSET_PX - EXERCISE_MENU_ESTIMATED_HEIGHT_PX
@@ -161,10 +235,14 @@ export function TemplateExerciseCard({
   }, []);
 
   useEffect(() => {
-    if (!isExerciseMenuOpen) return;
+    if (!isExerciseMenuOpen) {
+      return;
+    }
+
     updateMenuPosition();
     window.addEventListener("resize", updateMenuPosition);
     window.addEventListener("scroll", updateMenuPosition, true);
+
     return () => {
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
@@ -172,13 +250,17 @@ export function TemplateExerciseCard({
   }, [isExerciseMenuOpen, updateMenuPosition]);
 
   useEffect(() => {
-    if (!isExerciseMenuOpen) return;
+    if (!isExerciseMenuOpen) {
+      return;
+    }
+
     const handleDocumentMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (!menuTriggerRef.current?.contains(target) && !menuPanelRef.current?.contains(target)) {
         setIsExerciseMenuOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleDocumentMouseDown);
     return () => document.removeEventListener("mousedown", handleDocumentMouseDown);
   }, [isExerciseMenuOpen]);
@@ -194,16 +276,27 @@ export function TemplateExerciseCard({
             <button
               type="button"
               onClick={handleExerciseNotesMenuClick}
-              className={[menuActionClassName, isNotesVisible ? "bg-primary-100 text-primary-900 hover:bg-primary-100" : "text-secondary hover:bg-white/8"].join(" ")}
+              className={[
+                menuActionClassName,
+                isNotesVisible
+                  ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
+                  : "text-secondary hover:bg-white/8",
+              ].join(" ")}
             >
               <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
             </button>
             <button
               type="button"
-              onClick={handleExerciseArrangementMenuClick}
-              className={["mt-1", menuActionClassName, isArrangementSelectorVisible ? "bg-primary-100 text-primary-900 hover:bg-primary-100" : "text-secondary hover:bg-white/8"].join(" ")}
+              onClick={handleExerciseGroupingMenuClick}
+              className={[
+                "mt-1",
+                menuActionClassName,
+                isGroupingSelectorVisible
+                  ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
+                  : "text-secondary hover:bg-white/8",
+              ].join(" ")}
             >
-              <span style={{ wordSpacing: "0.25rem" }}>Change arrangement</span>
+              <span>{groupingMenuText}</span>
             </button>
             <button
               type="button"
@@ -220,12 +313,29 @@ export function TemplateExerciseCard({
 
   return (
     <>
-      <article className={`liquid-panel w-full rounded-3xl ${isGroupColumn ? "md:w-86 md:shrink-0" : "sm:w-86 sm:shrink-0"}`}>
+      <article
+        aria-hidden={isDragOverlay ? true : undefined}
+        className={[
+          "liquid-panel w-full rounded-3xl transition-[border-color,box-shadow,opacity,transform] duration-200 ease-out",
+          "md:w-86 md:shrink-0",
+          isDragOverlay ? "liquid-drag-overlay opacity-100" : "",
+          isDragging && !isDragOverlay ? "opacity-25" : "opacity-100",
+        ].join(" ")}
+      >
         <div className={`px-3 py-2.5 md:px-4 md:py-3 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
           <div className="flex items-center">
-            <span className="mr-2 text-muted">
+            <button
+              type="button"
+              ref={(element) => setDragHandleRef?.(element)}
+              {...dragHandleProps}
+              onMouseDown={handleDragHandleMouseDown}
+              onTouchStart={handleDragHandleTouchStart}
+              onKeyDown={handleDragHandleKeyDown}
+              className="mr-2 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:cursor-grabbing"
+              aria-label={`Drag to reorder ${exerciseDisplayName}`}
+            >
               <LuGripVertical className="h-5 w-5" />
-            </span>
+            </button>
             <div className="min-w-0 flex flex-1 items-center gap-1.5 text-sm">
               <span className="mono shrink-0 font-bold text-primary">{exerciseNumber}</span>
               <span className="truncate font-semibold text-foreground">{exerciseDisplayName}</span>
@@ -252,36 +362,47 @@ export function TemplateExerciseCard({
           </div>
         </div>
 
-        {!isCollapsed && (
+        {!isCollapsed ? (
           <div className="space-y-2 px-3 pb-3 pt-2.5 md:px-4 md:pb-4 md:pt-3">
-            {isNotesVisible && (
+            {isNotesVisible ? (
               <input
                 value={exercise.notes}
                 onChange={handleExerciseNotesInputChange}
                 placeholder="Notes..."
                 className="liquid-input mb-4 w-full rounded-xl px-3 py-2 text-xs md:text-sm"
               />
-            )}
-            {isArrangementSelectorVisible && (
+            ) : null}
+
+            {isGroupingSelectorVisible ? (
               <SegmentControl
                 className="mb-3 w-full"
                 value={exercise.groupType}
-                options={ARRANGEMENT_SEGMENT_OPTIONS}
-                onChange={handleArrangementSegmentChange}
+                options={GROUPING_SEGMENT_OPTIONS}
+                onChange={handleGroupingSegmentChange}
               />
-            )}
+            ) : null}
 
             <div className="flex items-center justify-between gap-2 px-1 pt-1 text-2xs font-semibold uppercase tracking-widest text-muted sm:px-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="mono w-6 shrink-0 text-center text-2xs font-semibold whitespace-nowrap" />
+                <span className="mono w-6 shrink-0 whitespace-nowrap text-center text-2xs font-semibold" />
                 <div className="grid min-w-0 flex-1 grid-cols-3 gap-1 sm:gap-2">
                   <span className="block w-full text-center text-secondary">Weight</span>
                   <div className="flex w-full items-center justify-center gap-1 text-center">
-                    <button type="button" onClick={handleRepsMetricClick} className={getMetricButtonClass(!isDurationEnabled)} aria-label="Use reps metric">
+                    <button
+                      type="button"
+                      onClick={handleRepsMetricClick}
+                      className={getMetricButtonClass(!isDurationEnabled)}
+                      aria-label="Use reps metric"
+                    >
                       Reps
                     </button>
                     <span className="text-muted">/</span>
-                    <button type="button" onClick={handleDurationMetricClick} className={getMetricButtonClass(isDurationEnabled)} aria-label="Use duration metric">
+                    <button
+                      type="button"
+                      onClick={handleDurationMetricClick}
+                      className={getMetricButtonClass(isDurationEnabled)}
+                      aria-label="Use duration metric"
+                    >
                       Duration
                     </button>
                   </div>
@@ -295,21 +416,30 @@ export function TemplateExerciseCard({
               {exercise.sets.map((setItem, setIndex) => {
                 const setNumber = setIndex + 1;
 
-                const handleWeightClick = (e: ReactMouseEvent<HTMLButtonElement>) =>
-                  onAction({ type: "openQuickSetPopover", exerciseId: exercise.id, setId: setItem.id, field: "weightKg", anchorElement: e.currentTarget });
-                const handleDurationClick = (e: ReactMouseEvent<HTMLButtonElement>) =>
-                  onAction({ type: "openQuickSetPopover", exerciseId: exercise.id, setId: setItem.id, field: "durationSeconds", anchorElement: e.currentTarget });
-                const handleRepsClick = (e: ReactMouseEvent<HTMLButtonElement>) =>
-                  onAction({ type: "openQuickSetPopover", exerciseId: exercise.id, setId: setItem.id, field: "reps", anchorElement: e.currentTarget });
-                const handleRestClick = (e: ReactMouseEvent<HTMLButtonElement>) =>
-                  onAction({ type: "openQuickSetPopover", exerciseId: exercise.id, setId: setItem.id, field: "restSeconds", anchorElement: e.currentTarget });
-                const handleRemoveClick = () =>
-                  onAction({ type: "removeSet", exerciseId: exercise.id, setId: setItem.id });
+                const handleWeightClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+                  onOpenQuickSetPopover(exercise.id, setItem.id, QuickSetField.WeightKg, event.currentTarget);
+                };
+
+                const handleDurationClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+                  onOpenQuickSetPopover(exercise.id, setItem.id, QuickSetField.DurationSeconds, event.currentTarget);
+                };
+
+                const handleRepsClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+                  onOpenQuickSetPopover(exercise.id, setItem.id, QuickSetField.Reps, event.currentTarget);
+                };
+
+                const handleRestClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+                  onOpenQuickSetPopover(exercise.id, setItem.id, QuickSetField.RestSeconds, event.currentTarget);
+                };
+
+                const handleRemoveClick = () => {
+                  removeExerciseSet(exercise.id, setItem.id);
+                };
 
                 return (
-                  <div key={setItem.id} className="flex gap-2 items-center justify-between py-1 sm:py-1.5">
+                  <div key={setItem.id} className="flex items-center justify-between gap-2 py-1 sm:py-1.5">
                     <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <span className={`mono w-6 shrink-0 text-center text-2xs font-semibold whitespace-nowrap inline-block origin-center text-primary ${getSetIndexScaleClassName(setNumber)}`}>
+                      <span className={`mono inline-block w-6 shrink-0 origin-center whitespace-nowrap text-center text-2xs font-semibold text-primary ${getSetIndexScaleClassName(setNumber)}`}>
                         #{setNumber}
                       </span>
                       <div className="grid min-w-0 flex-1 grid-cols-3 gap-1 sm:gap-2">
@@ -363,7 +493,7 @@ export function TemplateExerciseCard({
               <LuPlus className="h-5 w-5" />
             </button>
           </div>
-        )}
+        ) : null}
       </article>
       {exerciseMenu}
     </>

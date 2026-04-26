@@ -5,7 +5,8 @@ import { FormField } from "./FormField";
 const defaultTextareaClassName =
   "liquid-input min-h-24 w-full rounded-2xl px-4 py-3 leading-snug outline-none focus:outline-none";
 
-export type TextareaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "children"> & {
+export interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  children?: never;
   label: string;
   error?: string;
   helperText?: string;
@@ -13,7 +14,7 @@ export type TextareaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement
   labelClassName?: string;
   helperTextClassName?: string;
   errorClassName?: string;
-};
+}
 
 export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>(
   function TextareaField(

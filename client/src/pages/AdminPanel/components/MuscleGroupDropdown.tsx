@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 import { Dropdown } from "@/shared/components";
-import type { DropdownOption, DropdownProps } from "@/shared/components";
+import type { DropdownOption, DropdownSingleControlProps } from "@/shared/components";
 import type { MuscleGroup } from "@/types";
 
-type SingleDropdownProps = Extract<DropdownProps<string>, { multiple?: false }>;
-
-type MuscleGroupDropdownProps = Omit<SingleDropdownProps, "options"> & {
+type MuscleGroupDropdownProps = DropdownSingleControlProps<string> & {
   muscleGroups: MuscleGroup[];
   leadingOptions?: readonly DropdownOption<string>[];
 };
