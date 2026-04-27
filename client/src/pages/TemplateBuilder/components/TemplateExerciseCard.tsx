@@ -12,18 +12,11 @@ import {
 import { createPortal } from "react-dom";
 import { LuChevronDown, LuEllipsis, LuGripVertical, LuPlus, LuTrash2 } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
-import { SegmentControl, type SegmentControlOption } from "@/shared/components";
 import { ExerciseGroupType } from "@/types";
 import type {
   TemplateBuilderExerciseDraftModel as TemplateExerciseDraft,
 } from "../models/templateBuilderDraft";
 import { QuickSetField, useTemplateBuilderStore } from "../store/templateBuilderStore";
-
-const GROUPING_SEGMENT_OPTIONS: ReadonlyArray<SegmentControlOption<ExerciseGroupType>> = [
-  { value: ExerciseGroupType.Straight, label: "Single" },
-  { value: ExerciseGroupType.Superset, label: "Superset" },
-  { value: ExerciseGroupType.Circuit, label: "Circuit" },
-];
 
 const EXERCISE_MENU_WIDTH_PX = 208;
 const EXERCISE_MENU_ESTIMATED_HEIGHT_PX = 260;
@@ -100,7 +93,6 @@ export function TemplateExerciseCard({
   const [isExerciseMenuOpen, setIsExerciseMenuOpen] = useState(false);
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
   const [isNotesVisible, setIsNotesVisible] = useState(() => exercise.notes.trim().length > 0);
-  const [isGroupingSelectorVisible, setIsGroupingSelectorVisible] = useState(false);
 
   const noteButtonText = isNotesVisible
     ? "Hide Note"
@@ -110,6 +102,7 @@ export function TemplateExerciseCard({
 
   const isCollapseEnabled = isMobileViewport;
   const isCollapsed = isCollapseEnabled && exercise.collapsed;
+  const canCreateExerciseGroup = exercise.groupId == null || exercise.groupType === ExerciseGroupType.Straight;
 
   const handleRepsMetricClick = () => {
     setExerciseMetricMode(exercise.id, true);
@@ -145,29 +138,16 @@ export function TemplateExerciseCard({
     toggleExerciseCollapse(exercise.id);
   };
 
-  const handleGroupingSegmentChange = (value: ExerciseGroupType) => {
-    setExerciseGrouping(exercise.id, value);
-  };
-
   const handleExerciseGroupingMenuClick = () => {
-    if (exercise.groupType === ExerciseGroupType.Straight || exercise.groupId == null) {
-      if (isCollapsed) {
-        toggleExerciseCollapse(exercise.id);
-      }
-
-      setExerciseGrouping(exercise.id, ExerciseGroupType.Superset);
-      setIsGroupingSelectorVisible(true);
-      handleExerciseMenuClose();
+    if (!canCreateExerciseGroup) {
       return;
     }
 
-    setIsGroupingSelectorVisible((previous) => {
-      if (!previous && isCollapsed) {
-        toggleExerciseCollapse(exercise.id);
-      }
+    if (isCollapsed) {
+      toggleExerciseCollapse(exercise.id);
+    }
 
-      return !previous;
-    });
+    setExerciseGrouping(exercise.id, ExerciseGroupType.Superset);
     handleExerciseMenuClose();
   };
 
@@ -201,10 +181,6 @@ export function TemplateExerciseCard({
 
   const menuActionClassName =
     "flex w-full cursor-pointer items-center justify-start gap-2 rounded-full bg-transparent px-3 py-2 text-left text-sm font-semibold transition-colors";
-  const groupingMenuText =
-    exercise.groupType === ExerciseGroupType.Straight || exercise.groupId == null
-      ? "Create Superset"
-      : "Change Grouping";
 
   const updateMenuPosition = useCallback(() => {
     if (!menuTriggerRef.current) {
@@ -285,19 +261,15 @@ export function TemplateExerciseCard({
             >
               <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
             </button>
-            <button
-              type="button"
-              onClick={handleExerciseGroupingMenuClick}
-              className={[
-                "mt-1",
-                menuActionClassName,
-                isGroupingSelectorVisible
-                  ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
-                  : "text-secondary hover:bg-white/8",
-              ].join(" ")}
-            >
-              <span>{groupingMenuText}</span>
-            </button>
+            {canCreateExerciseGroup ? (
+              <button
+                type="button"
+                onClick={handleExerciseGroupingMenuClick}
+                className={["mt-1", menuActionClassName, "text-secondary hover:bg-white/8"].join(" ")}
+              >
+                <span>Create Superset</span>
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={handleExerciseDeleteClick}
@@ -370,15 +342,6 @@ export function TemplateExerciseCard({
                 onChange={handleExerciseNotesInputChange}
                 placeholder="Notes..."
                 className="liquid-input mb-4 w-full rounded-xl px-3 py-2 text-xs md:text-sm"
-              />
-            ) : null}
-
-            {isGroupingSelectorVisible ? (
-              <SegmentControl
-                className="mb-3 w-full"
-                value={exercise.groupType}
-                options={GROUPING_SEGMENT_OPTIONS}
-                onChange={handleGroupingSegmentChange}
               />
             ) : null}
 

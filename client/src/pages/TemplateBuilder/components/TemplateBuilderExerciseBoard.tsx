@@ -12,9 +12,14 @@ import {
   SortableContext,
   type SortingStrategy,
 } from "@dnd-kit/sortable";
-import { LuChevronDown, LuLayers, LuPlus, LuRepeat } from "react-icons/lu";
+import { LuChevronDown, LuLayers, LuPlus, LuRepeat, LuSlidersHorizontal } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
-import { SortableHandleItem, useDndSensors } from "@/shared/components";
+import {
+  SegmentControl,
+  SortableHandleItem,
+  useDndSensors,
+  type SegmentControlOption,
+} from "@/shared/components";
 import { ExerciseGroupType } from "@/types";
 import {
   getTemplateBuilderExerciseDragOrderIndexes,
@@ -22,6 +27,12 @@ import {
 } from "../models/templateBuilderDraft";
 import { useTemplateBuilderStore, type QuickSetField } from "../store/templateBuilderStore";
 import { TemplateExerciseCard } from "./TemplateExerciseCard";
+
+const GROUP_TYPE_SEGMENT_OPTIONS: ReadonlyArray<SegmentControlOption<ExerciseGroupType>> = [
+  { value: ExerciseGroupType.Superset, label: "Superset" },
+  { value: ExerciseGroupType.Circuit, label: "Circuit" },
+  { value: ExerciseGroupType.Straight, label: "Make singles" },
+];
 
 type ExerciseRenderItem = {
   exercise: TemplateExerciseDraft;
@@ -125,6 +136,7 @@ export function TemplateBuilderExerciseBoard({
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
 
   const [activeDragExerciseId, setActiveDragExerciseId] = useState<string | null>(null);
+  const [visibleGroupSettingsIds, setVisibleGroupSettingsIds] = useState<ReadonlySet<number>>(() => new Set());
   const lastOverExerciseIdRef = useRef<string | null>(null);
 
   const exercises = useTemplateBuilderStore((state) => state.exercises);
@@ -138,6 +150,7 @@ export function TemplateBuilderExerciseBoard({
     (state) => state.openAddExerciseModalForGroup,
   );
   const setGroupCollapse = useTemplateBuilderStore((state) => state.setGroupCollapse);
+  const setExerciseGrouping = useTemplateBuilderStore((state) => state.setExerciseGrouping);
   const endExerciseDrag = useTemplateBuilderStore((state) => state.endExerciseDrag);
 
   const exerciseIndexById = useMemo(
@@ -233,6 +246,19 @@ export function TemplateBuilderExerciseBoard({
     openAddExerciseModal();
   };
 
+  const toggleGroupSettingsVisibility = (groupId: number) => {
+    setVisibleGroupSettingsIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+
+      return next;
+    });
+  };
+
   return (
     <>
       <div className="mt-5 py-5 md:px-2 md:py-5">
@@ -294,6 +320,8 @@ export function TemplateBuilderExerciseBoard({
               const groupExerciseIds = block.items.map(({ exercise }) => exercise.id);
               const isGroupCollapsed = block.items.every(({ exercise }) => exercise.collapsed);
               const isCompactGroupAddColumn = block.items.length > 1;
+              const areGroupSettingsVisible = visibleGroupSettingsIds.has(block.groupId);
+              const groupSettingsId = `template-builder-group-${block.groupId}-settings`;
 
               const handleAddGroupedExerciseClick = () => {
                 if (!addAnchorExercise) {
@@ -307,31 +335,70 @@ export function TemplateBuilderExerciseBoard({
                 setGroupCollapse(groupExerciseIds, !isGroupCollapsed);
               };
 
+              const handleGroupSettingsToggleClick = () => {
+                toggleGroupSettingsVisibility(block.groupId);
+              };
+
+              const handleGroupTypeChange = (nextGroupType: ExerciseGroupType) => {
+                const groupAnchorExercise = block.items[0]?.exercise;
+                if (!groupAnchorExercise) {
+                  return;
+                }
+
+                setExerciseGrouping(groupAnchorExercise.id, nextGroupType);
+              };
+
               return (
                 <article
                   key={`group-${block.groupId}`}
-                  className="liquid-panel w-full rounded-3xl p-4 md:w-auto md:max-w-full"
+                  className="liquid-panel w-full rounded-3xl p-4 md:w-auto md:max-w-full md:p-5"
                 >
-                  <div className="mb-2 px-1">
-                    <button
-                      type="button"
-                      onClick={handleGroupCollapseToggleClick}
-                      className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary transition hover:text-primary-400 md:hidden"
-                      aria-label={isGroupCollapsed ? `Expand ${groupTypeLabel} set` : `Collapse ${groupTypeLabel} set`}
-                    >
-                      <GroupTypeIcon className="h-3.5 w-3.5" />
-                      <span>{groupTypeLabel} Set</span>
-                      <LuChevronDown
+                  <div className="mb-3 space-y-2 px-1 md:px-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGroupCollapseToggleClick}
+                        className="flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary transition hover:text-primary-400 md:hidden"
+                        aria-label={isGroupCollapsed ? `Expand ${groupTypeLabel} set` : `Collapse ${groupTypeLabel} set`}
+                      >
+                        <GroupTypeIcon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{groupTypeLabel} Set</span>
+                        <LuChevronDown
+                          className={[
+                            "h-3.5 w-3.5 transition-transform",
+                            isGroupCollapsed ? "rotate-0" : "rotate-180",
+                          ].join(" ")}
+                        />
+                      </button>
+                      <p className="hidden min-w-0 items-center gap-1 text-2xs font-semibold text-primary md:flex">
+                        <GroupTypeIcon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{groupTypeLabel} Set</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleGroupSettingsToggleClick}
                         className={[
-                          "h-3.5 w-3.5 transition-transform",
-                          isGroupCollapsed ? "rotate-0" : "rotate-180",
+                          "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition md:h-7 md:px-2 md:text-2xs",
+                          areGroupSettingsVisible
+                            ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
+                            : "text-secondary hover:bg-white/8 hover:text-primary",
                         ].join(" ")}
+                        aria-expanded={areGroupSettingsVisible}
+                        aria-controls={groupSettingsId}
+                        aria-label={areGroupSettingsVisible ? "Hide group settings" : "Show group settings"}
+                      >
+                        <LuSlidersHorizontal className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {areGroupSettingsVisible ? (
+                      <SegmentControl
+                        id={groupSettingsId}
+                        value={block.groupType}
+                        onChange={handleGroupTypeChange}
+                        options={GROUP_TYPE_SEGMENT_OPTIONS}
+                        className="w-full py-2 md:py-1"
                       />
-                    </button>
-                    <p className="hidden items-center gap-1 text-xs font-semibold text-primary md:flex">
-                      <GroupTypeIcon className="h-3.5 w-3.5" />
-                      <span>{groupTypeLabel} Set</span>
-                    </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
                     <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:flex-row md:flex-wrap md:items-start">

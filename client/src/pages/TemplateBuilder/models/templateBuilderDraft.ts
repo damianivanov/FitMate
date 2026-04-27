@@ -75,30 +75,6 @@ function areTemplateBuilderExerciseGroupsEqual(
   return left.groupId === right.groupId && left.groupType === right.groupType;
 }
 
-function applyTemplateBuilderExerciseGroup(
-  exercise: TemplateBuilderExerciseDraftModel,
-  group: { groupId: number; groupType: ExerciseGroupType } | null,
-): TemplateBuilderExerciseDraftModel {
-  const currentGroup = getTemplateBuilderExerciseGroup(exercise);
-  if (areTemplateBuilderExerciseGroupsEqual(currentGroup, group)) {
-    return exercise;
-  }
-
-  if (group === null) {
-    return {
-      ...exercise,
-      groupId: undefined,
-      groupType: ExerciseGroupType.Straight,
-    };
-  }
-
-  return {
-    ...exercise,
-    groupId: group.groupId,
-    groupType: group.groupType,
-  };
-}
-
 function moveArrayItem<T>(items: readonly T[], fromIndex: number, toIndex: number): T[] {
   const next = items.slice();
   const [item] = next.splice(fromIndex, 1);
@@ -126,6 +102,14 @@ export function getTemplateBuilderExerciseDragOrderIndexes(
     return currentIndexes;
   }
 
+  const activeGroup = getTemplateBuilderExerciseGroup(exercises[activeIndex]);
+  const overGroup = getTemplateBuilderExerciseGroup(exercises[overIndex]);
+  if (activeGroup || overGroup) {
+    if (!areTemplateBuilderExerciseGroupsEqual(activeGroup, overGroup)) {
+      return currentIndexes;
+    }
+  }
+
   return moveArrayItem(currentIndexes, activeIndex, overIndex);
 }
 
@@ -142,19 +126,8 @@ export function reorderTemplateBuilderExercisesForDrag(
     return exercises.slice();
   }
 
-  const targetGroup = getTemplateBuilderExerciseGroup(overExercise);
-  const nextActiveExercise = applyTemplateBuilderExerciseGroup(activeExercise, targetGroup);
   const nextIndexes = getTemplateBuilderExerciseDragOrderIndexes(exercises, activeIndex, overIndex);
-
-  const nextExercises = nextIndexes.map((index) => {
-    if (index === activeIndex) {
-      return nextActiveExercise;
-    }
-
-    return exercises[index];
-  });
-
-  return normalizeTemplateBuilderExerciseGroups(nextExercises, true);
+  return nextIndexes.map((index) => exercises[index]);
 }
 
 export function getNextTemplateBuilderExerciseGroupId(
