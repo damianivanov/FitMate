@@ -67,6 +67,7 @@ export namespace JsonModels.WorkoutTemplates {
 		id: number;
 		exerciseId: number;
 		exerciseName: string;
+		exerciseImageUrl?: string;
 		orderIndex: number;
 		targetSets: number;
 		targetReps?: string;

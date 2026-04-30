@@ -32,7 +32,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "Dashboard", to: "/workouts", icon: LuLayoutDashboard, end: true },
       { label: "Add Workout", to: "/workouts/new", icon: LuDumbbell, end: false },
-      { label: "Templates", to: "/templates/new", icon: LuBookCopy, end: false },
+      { label: "Templates", to: "/templates", icon: LuBookCopy, end: false },
       { label: "History", to: "/workouts/history", icon: LuClock3, end: false },
     ],
   },

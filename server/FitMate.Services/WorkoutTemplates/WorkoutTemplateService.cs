@@ -24,21 +24,26 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw new FitMateException("Unauthorized.");
         }
 
-        var templates = await dbContext.WorkoutTemplates
-            .AsNoTracking()
+        var templates = await BuildTemplateDetailsQuery(asNoTracking: true)
             .Where(x => x.UserId == userId || x.IsPublic)
-            .Include(x => x.ExerciseGroups)
-                .ThenInclude(x => x.Exercises)
-                    .ThenInclude(x => x.Exercise)
-            .Include(x => x.ExerciseGroups)
-                .ThenInclude(x => x.Exercises)
-                    .ThenInclude(x => x.Sets)
             .OrderByDescending(x => x.DateCreated)
             .ThenByDescending(x => x.Id)
-            .AsSplitQuery()
             .ToListAsync();
 
         return templates.Select(template => MapTemplate(template)).ToList();
+    }
+
+    public async Task<WorkoutTemplateModel?> GetByIdAsync(long templateId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        var template = await BuildTemplateDetailsQuery(asNoTracking: true)
+            .FirstOrDefaultAsync(x => x.Id == templateId && (x.UserId == userId || x.IsPublic));
+
+        return template == null ? null : MapTemplate(template);
     }
 
     public async Task<WorkoutTemplateModel> CreateAsync(
@@ -50,6 +55,98 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw new FitMateException("Unauthorized.");
         }
 
+        var preparedTemplate = await PrepareTemplateAsync(request);
+        var workoutTemplate = new WorkoutTemplate
+        {
+            UserId = userId,
+        };
+        ApplyTemplateDetails(workoutTemplate, preparedTemplate);
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        try
+        {
+            dbContext.WorkoutTemplates.Add(workoutTemplate);
+            await dbContext.SaveChangesAsync(userId);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        return MapTemplate(
+            workoutTemplate,
+            preparedTemplate.ExerciseNamesById,
+            preparedTemplate.ExerciseImageUrlsById);
+    }
+
+    public async Task<WorkoutTemplateModel> UpdateAsync(
+        long templateId,
+        CreateWorkoutTemplateRequest request,
+        long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        var workoutTemplate = await BuildTemplateDetailsQuery(asNoTracking: false)
+            .FirstOrDefaultAsync(x => x.Id == templateId && x.UserId == userId);
+
+        if (workoutTemplate == null)
+        {
+            throw new FitMateException("Template not found.");
+        }
+
+        var preparedTemplate = await PrepareTemplateAsync(request);
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        try
+        {
+            dbContext.TemplateExerciseGroups.RemoveRange(workoutTemplate.ExerciseGroups);
+            workoutTemplate.ExerciseGroups.Clear();
+            await dbContext.SaveChangesAsync(userId);
+
+            ApplyTemplateDetails(workoutTemplate, preparedTemplate);
+            await dbContext.SaveChangesAsync(userId);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        return MapTemplate(
+            workoutTemplate,
+            preparedTemplate.ExerciseNamesById,
+            preparedTemplate.ExerciseImageUrlsById);
+    }
+
+    private IQueryable<WorkoutTemplate> BuildTemplateDetailsQuery(bool asNoTracking)
+    {
+        var query = dbContext.WorkoutTemplates.AsQueryable();
+
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Exercise)
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery();
+    }
+
+    private async Task<PreparedWorkoutTemplate> PrepareTemplateAsync(CreateWorkoutTemplateRequest request)
+    {
         var name = (request.Name ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -166,6 +263,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             {
                 x.Id,
                 x.Name,
+                x.ImageUrl,
             })
             .ToListAsync();
 
@@ -176,17 +274,31 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 
         var exerciseNamesById = existingExercises
             .ToDictionary(x => x.Id, x => x.Name);
+        var exerciseImageUrlsById = existingExercises
+            .Where(x => !string.IsNullOrWhiteSpace(x.ImageUrl))
+            .ToDictionary(x => x.Id, x => x.ImageUrl!);
 
-        var workoutTemplate = new WorkoutTemplate
+        return new PreparedWorkoutTemplate
         {
-            UserId = userId,
             Name = name,
-            Description = string.IsNullOrWhiteSpace(request.Description)
-                ? null
-                : request.Description.Trim(),
+            Description = NormalizeNullable(request.Description),
             EstimatedDurationMinutes = request.EstimatedDurationMinutes,
             IsPublic = request.IsPublic,
+            Exercises = exercises,
+            ExerciseNamesById = exerciseNamesById,
+            ExerciseImageUrlsById = exerciseImageUrlsById,
         };
+    }
+
+    private static void ApplyTemplateDetails(
+        WorkoutTemplate workoutTemplate,
+        PreparedWorkoutTemplate preparedTemplate)
+    {
+        workoutTemplate.Name = preparedTemplate.Name;
+        workoutTemplate.Description = preparedTemplate.Description;
+        workoutTemplate.EstimatedDurationMinutes = preparedTemplate.EstimatedDurationMinutes;
+        workoutTemplate.IsPublic = preparedTemplate.IsPublic;
+
         var groupsByClientGroupId = new Dictionary<int, TemplateExerciseGroup>();
         var nextGroupSortOrder = 0;
 
@@ -220,68 +332,49 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             return group;
         }
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-
-        try
+        for (var exerciseIndex = 0; exerciseIndex < preparedTemplate.Exercises.Count; exerciseIndex++)
         {
-            for (var exerciseIndex = 0; exerciseIndex < exercises.Count; exerciseIndex++)
+            var exerciseRequest = preparedTemplate.Exercises[exerciseIndex];
+            var sets = exerciseRequest.Sets ?? [];
+            var firstSet = sets[0];
+            var group = ResolveGroup(exerciseRequest);
+            var exerciseOrderIndex = exerciseIndex + 1;
+
+            var templateExercise = new TemplateExercise
             {
-                var exerciseRequest = exercises[exerciseIndex];
-                var sets = exerciseRequest.Sets ?? [];
-                var firstSet = sets[0];
-                var group = ResolveGroup(exerciseRequest);
-                var exerciseOrderIndex = exerciseIndex + 1;
+                ExerciseId = exerciseRequest.ExerciseId,
+                OrderIndex = exerciseOrderIndex,
+                TargetSets = sets.Count,
+                TargetReps = firstSet.Reps?.ToString(),
+                TargetWeightKg = NormalizeWeight(firstSet.WeightKg),
+                TargetRestSeconds = firstSet.RestSeconds,
+                Notes = NormalizeNullable(exerciseRequest.Notes),
+            };
 
-                var templateExercise = new TemplateExercise
+            for (var setIndex = 0; setIndex < sets.Count; setIndex++)
+            {
+                var setRequest = sets[setIndex];
+                templateExercise.Sets.Add(new TemplateExerciseSet
                 {
-                    ExerciseId = exerciseRequest.ExerciseId,
-                    OrderIndex = exerciseOrderIndex,
-                    TargetSets = sets.Count,
-                    TargetReps = firstSet.Reps?.ToString(),
-                    TargetWeightKg = NormalizeWeight(firstSet.WeightKg),
-                    TargetRestSeconds = firstSet.RestSeconds,
-                    Notes = string.IsNullOrWhiteSpace(exerciseRequest.Notes)
-                        ? null
-                        : exerciseRequest.Notes.Trim(),
-                };
-
-                for (var setIndex = 0; setIndex < sets.Count; setIndex++)
-                {
-                    var setRequest = sets[setIndex];
-                    templateExercise.Sets.Add(new TemplateExerciseSet
-                    {
-                        OrderIndex = setIndex + 1,
-                        WeightKg = NormalizeWeight(setRequest.WeightKg),
-                        Reps = setRequest.Reps,
-                        DurationSeconds = setRequest.DurationSeconds,
-                        DistanceMeters = NormalizeDistance(setRequest.DistanceMeters),
-                        Rpe = NormalizeRpe(setRequest.Rpe),
-                        RestSeconds = setRequest.RestSeconds,
-                        Notes = string.IsNullOrWhiteSpace(setRequest.Notes)
-                            ? null
-                            : setRequest.Notes.Trim(),
-                    });
-                }
-
-                group.Exercises.Add(templateExercise);
+                    OrderIndex = setIndex + 1,
+                    WeightKg = NormalizeWeight(setRequest.WeightKg),
+                    Reps = setRequest.Reps,
+                    DurationSeconds = setRequest.DurationSeconds,
+                    DistanceMeters = NormalizeDistance(setRequest.DistanceMeters),
+                    Rpe = NormalizeRpe(setRequest.Rpe),
+                    RestSeconds = setRequest.RestSeconds,
+                    Notes = NormalizeNullable(setRequest.Notes),
+                });
             }
 
-            dbContext.WorkoutTemplates.Add(workoutTemplate);
-            await dbContext.SaveChangesAsync(userId);
-            await transaction.CommitAsync();
+            group.Exercises.Add(templateExercise);
         }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        return MapTemplate(workoutTemplate, exerciseNamesById);
     }
 
     private static WorkoutTemplateModel MapTemplate(
         WorkoutTemplate template,
-        IReadOnlyDictionary<long, string>? exerciseNamesById = null)
+        IReadOnlyDictionary<long, string>? exerciseNamesById = null,
+        IReadOnlyDictionary<long, string>? exerciseImageUrlsById = null)
     {
         var groups = template.ExerciseGroups
             .OrderBy(x => x.SortOrder)
@@ -305,11 +398,20 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                             exerciseName = mappedExerciseName;
                         }
 
+                        var exerciseImageUrl = exercise.Exercise?.ImageUrl;
+                        if (string.IsNullOrWhiteSpace(exerciseImageUrl)
+                            && exerciseImageUrlsById != null
+                            && exerciseImageUrlsById.TryGetValue(exercise.ExerciseId, out var mappedExerciseImageUrl))
+                        {
+                            exerciseImageUrl = mappedExerciseImageUrl;
+                        }
+
                         return new WorkoutTemplateExerciseModel
                         {
                             Id = exercise.Id,
                             ExerciseId = exercise.ExerciseId,
                             ExerciseName = exerciseName,
+                            ExerciseImageUrl = exerciseImageUrl,
                             OrderIndex = exercise.OrderIndex,
                             TargetSets = exercise.TargetSets,
                             TargetReps = exercise.TargetReps,
@@ -418,6 +520,22 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         return value.HasValue
             ? Math.Round(value.Value, 1, MidpointRounding.AwayFromZero)
             : null;
+    }
+
+    private static string? NormalizeNullable(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private sealed class PreparedWorkoutTemplate
+    {
+        public string Name { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public int? EstimatedDurationMinutes { get; init; }
+        public bool IsPublic { get; init; }
+        public IReadOnlyList<CreateWorkoutTemplateExerciseRequest> Exercises { get; init; } = [];
+        public IReadOnlyDictionary<long, string> ExerciseNamesById { get; init; } = new Dictionary<long, string>();
+        public IReadOnlyDictionary<long, string> ExerciseImageUrlsById { get; init; } = new Dictionary<long, string>();
     }
 
 }

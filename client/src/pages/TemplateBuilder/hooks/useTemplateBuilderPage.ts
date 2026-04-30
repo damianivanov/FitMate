@@ -3,9 +3,10 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { exerciseService } from "@/services/exerciseService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
-import type { WorkoutTemplateModel } from "@/types";
+import type { ExerciseLookupModel } from "@/types";
 import {
   cloneTemplateBuilderExercises,
+  type TemplateBuilderDraftModel,
   type TemplateBuilderSetDraftModel as TemplateSetDraft,
 } from "../models/templateBuilderDraft";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../store/templateBuilderStore";
 import { useTemplateDraft, type HandleRestoreTemplateDraft } from "./useTemplateDraft";
 import { buildTemplatePayload } from "../utils/buildTemplatePayload";
+import { buildTemplateBuilderDraftFromTemplate } from "../utils/templateModelToDraft";
 
 const ADD_EXERCISE_FEEDBACK_DURATION_MS = 2000;
 const DRAFT_AUTOSAVE_INTERVAL_MS = 5000;
@@ -72,12 +74,16 @@ export function useTemplateBuilderPage() {
   const quickSetPopover = useTemplateBuilderStore((state) => state.quickSetPopover);
   const [quickSetPopoverAnchorElement, setQuickSetPopoverAnchorElement] = useState<HTMLElement | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [lastSavedTemplate, setLastSavedTemplate] = useState<WorkoutTemplateModel | null>(null);
+  const [loadedTemplateDraft, setLoadedTemplateDraft] = useState<TemplateBuilderDraftModel | null>(null);
+  const [templateLoadError, setTemplateLoadError] = useState<string | null>(null);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
 
   const routeState = useMemo(
     () => parseTemplateRouteState(templateIdParam),
     [templateIdParam],
   );
+  const isCreateMode = routeState.mode === TemplateBuilderMode.Create;
+  const isEditMode = routeState.mode === TemplateBuilderMode.Edit;
 
   useEffect(() => {
     initializeMode(routeState.mode, routeState.templateId);
@@ -154,6 +160,7 @@ export function useTemplateBuilderPage() {
   );
 
   const {
+    isDraftHydrated,
     markCurrentDraftAsSaved,
     resetDraft,
   } = useTemplateDraft({
@@ -161,7 +168,83 @@ export function useTemplateBuilderPage() {
     draftContentFingerprint,
     onRestoreDraft: handleRestoreDraft,
     autosaveIntervalMs: DRAFT_AUTOSAVE_INTERVAL_MS,
+    enabled: isCreateMode,
   });
+
+  useEffect(() => {
+    const templateId = routeState.templateId;
+    if (!isEditMode || !templateId) {
+      setIsLoadingTemplate(false);
+      setTemplateLoadError(null);
+      setLoadedTemplateDraft(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadTemplate = async () => {
+      setIsLoadingTemplate(true);
+      setTemplateLoadError(null);
+      setLoadedTemplateDraft(null);
+
+      try {
+        const response = await workoutTemplateService.getByIdWithListFallback(templateId);
+        const result = response.data;
+        if (!result.success || !result.data) {
+          throw new Error(result.error ?? "Unable to load template.");
+        }
+
+        const template = result.data;
+        const exerciseIds = Array.from(
+          new Set(
+            template.groups
+              .flatMap((group) => group.exercises)
+              .map((exercise) => exercise.exerciseId)
+              .filter((exerciseId) => exerciseId > 0),
+          ),
+        );
+        let exerciseLookups: ExerciseLookupModel[] = [];
+
+        if (exerciseIds.length) {
+          try {
+            const exerciseResponse = await exerciseService.getByIds(exerciseIds);
+            const exerciseResult = exerciseResponse.data;
+            if (exerciseResult.success && exerciseResult.data) {
+              exerciseLookups = exerciseResult.data;
+            }
+          } catch {
+            exerciseLookups = [];
+          }
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        const templateDraft = buildTemplateBuilderDraftFromTemplate(template, exerciseLookups);
+        populateFromDraft(templateDraft);
+        setLoadedTemplateDraft(templateDraft);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : "Unable to load template.";
+        setTemplateLoadError(message);
+        toast.error(message);
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingTemplate(false);
+        }
+      }
+    };
+
+    void loadTemplate();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isEditMode, populateFromDraft, routeState.templateId]);
 
   const activeQuickSetPopoverContext = useMemo<ActiveQuickSetPopoverContext | null>(() => {
     if (!quickSetPopover) {
@@ -222,13 +305,20 @@ export function useTemplateBuilderPage() {
   }, [quickSetPopover]);
 
   const handleDiscardClick = useCallback(() => {
+    if (isEditMode && loadedTemplateDraft) {
+      populateFromDraft(loadedTemplateDraft);
+      toast.success("Template changes discarded.");
+      return;
+    }
+
     resetBuilderState();
-    setLastSavedTemplate(null);
     toast.success("Template reset to initial draft.");
     resetDraft();
-  }, [resetBuilderState, resetDraft, setLastSavedTemplate]);
+  }, [isEditMode, loadedTemplateDraft, populateFromDraft, resetBuilderState, resetDraft]);
 
   const handleSaveTemplateClick = useCallback(async () => {
+    const templateId = routeState.templateId;
+    const isUpdatingTemplate = isEditMode && templateId !== null;
     const payload = buildTemplatePayload({
       templateName,
       templateDescription,
@@ -241,19 +331,31 @@ export function useTemplateBuilderPage() {
     setIsSavingTemplate(true);
 
     try {
-      const response = await workoutTemplateService.create(payload);
+      const response = isUpdatingTemplate && templateId !== null
+        ? await workoutTemplateService.update(templateId, payload)
+        : await workoutTemplateService.create(payload);
       if (!response.data.success || !response.data.data) {
-        toast.error(response.data.error ?? "Could not save template.");
+        toast.error(response.data.error ?? (isUpdatingTemplate ? "Could not update template." : "Could not save template."));
         return;
       }
 
-      setLastSavedTemplate(response.data.data);
       toast.success(
-        `Template saved: ${response.data.data.name} (${response.data.data.exerciseCount} exercises, ${response.data.data.setCount} sets).`,
+        `Template ${isUpdatingTemplate ? "updated" : "saved"}: ${response.data.data.name} (${response.data.data.exerciseCount} exercises, ${response.data.data.setCount} sets).`,
       );
-      markCurrentDraftAsSaved({ clearPersistedDraft: true });
+      if (isUpdatingTemplate) {
+        setLoadedTemplateDraft({
+          draftVersion: 0,
+          ...draftContent,
+        });
+      } else {
+        markCurrentDraftAsSaved({ clearPersistedDraft: true });
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not save template.";
+      const message = error instanceof Error
+        ? error.message
+        : isUpdatingTemplate
+          ? "Could not update template."
+          : "Could not save template.";
       toast.error(message);
     } finally {
       setIsSavingTemplate(false);
@@ -262,10 +364,13 @@ export function useTemplateBuilderPage() {
     durationEnabledExerciseIds,
     durationMinutes,
     exercises,
+    draftContent,
     isPublic,
+    isEditMode,
     markCurrentDraftAsSaved,
+    routeState.templateId,
     setIsSavingTemplate,
-    setLastSavedTemplate,
+    setLoadedTemplateDraft,
     templateDescription,
     templateName,
   ]);
@@ -314,7 +419,10 @@ export function useTemplateBuilderPage() {
     handleDiscardClick,
     handleSaveTemplateClick,
     isSavingTemplate,
-    lastSavedTemplate,
+    isBuilderLoading: isEditMode ? isLoadingTemplate : !isDraftHydrated,
+    templateLoadError,
+    isSaveTemplateDisabled: isEditMode && (isLoadingTemplate || templateLoadError !== null),
+    saveTemplateLabel: isEditMode ? "Update" : "Save",
     activeQuickSetPopoverContext,
     quickSetPopoverAnchorElement,
     handleQuickSetPopoverOpen,

@@ -1,4 +1,9 @@
-import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useRef,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { LuMinus, LuPlus } from "react-icons/lu";
 import { clampNumber } from "@/lib/helpers";
 import { SetPickerPopoverShell } from "./SetPickerPopoverShell";
@@ -15,8 +20,10 @@ type DurationSetPickerPopoverProps = {
   max?: number;
   step?: number;
   quickPresets?: readonly number[];
+  unitLabel?: string;
+  quickPresetSuffix?: string;
 };
-const DEFAULT_DURATION_SECONDS = 90;
+const DEFAULT_DURATION_VALUE = 90;
 const FULL_DIAL_DEGREES = 360;
 const DIAL_VIEWBOX_SIZE = 160;
 const DIAL_CENTER = DIAL_VIEWBOX_SIZE / 2;
@@ -37,13 +44,15 @@ export function DurationSetPickerPopover({
   max = 300,
   step = 15,
   quickPresets = [30, 45, 60, 90, 120],
+  unitLabel = "sec",
+  quickPresetSuffix = "s",
 }: DurationSetPickerPopoverProps) {
   const dialRef = useRef<HTMLDivElement | null>(null);
   const activeDialPointerIdRef = useRef<number | null>(null);
   const minValue = Math.min(min, max);
   const maxValue = Math.max(min, max);
   const normalizedStep = Math.max(1, Math.round(step));
-  const boundedValue = clampNumber(Math.round(value ?? DEFAULT_DURATION_SECONDS), minValue, maxValue);
+  const boundedValue = clampNumber(Math.round(value ?? DEFAULT_DURATION_VALUE), minValue, maxValue);
   const validQuickPresets = quickPresets.filter((preset) => preset >= minValue && preset <= maxValue);
   const durationRange = maxValue - minValue;
   const progressRatio = durationRange > 0
@@ -99,9 +108,13 @@ export function DurationSetPickerPopover({
     onApplyToAll(boundedValue);
   };
 
-  const handlePresetClick = (preset: number) => {
-    const nextValue = clampNumber(Math.round(preset), minValue, maxValue);
-    onChange(nextValue);
+  const handlePresetClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    const presetValue = Number(event.currentTarget.dataset.value);
+    if (!Number.isFinite(presetValue)) {
+      return;
+    }
+
+    onChange(normalizeDurationByStep(presetValue));
   };
 
   const handleDialPointerStart = (
@@ -212,7 +225,7 @@ export function DurationSetPickerPopover({
                 {boundedValue}
               </span>
               <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
-                sec
+                {unitLabel}
               </span>
             </div>
             <button
@@ -242,10 +255,11 @@ export function DurationSetPickerPopover({
             <button
               key={preset}
               type="button"
-              onClick={() => handlePresetClick(preset)}
+              data-value={preset}
+              onClick={handlePresetClick}
               className="cursor-pointer rounded-full border border-primary-300 px-3 py-1 text-xs font-semibold text-primary shadow-none transition hover:bg-primary-200 hover:shadow-none focus:shadow-none"
             >
-              {preset}s
+              {preset}{quickPresetSuffix}
             </button>
           ))}
         </div>

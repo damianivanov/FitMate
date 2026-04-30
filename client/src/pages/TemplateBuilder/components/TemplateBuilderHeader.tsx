@@ -1,22 +1,24 @@
 import { LuArrowLeft } from "react-icons/lu";
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import type { WorkoutTemplateModel } from "@/types";
 
 type TemplateBuilderHeaderProps = {
   onDiscardClick: () => void;
   onSaveTemplateClick: () => void;
   isSavingTemplate: boolean;
-  lastSavedTemplate: WorkoutTemplateModel | null;
+  isSaveTemplateDisabled?: boolean;
+  saveTemplateLabel?: string;
 };
 
 export function TemplateBuilderHeader({
   onDiscardClick,
   onSaveTemplateClick,
   isSavingTemplate,
-  lastSavedTemplate,
+  isSaveTemplateDisabled = false,
+  saveTemplateLabel = "Save",
 }: TemplateBuilderHeaderProps) {
   const navigate = useNavigate();
+  const saveDisabled = isSavingTemplate || isSaveTemplateDisabled;
   const handleBackClick = useCallback(() => {
     navigate("/templates");
   }, [navigate]);
@@ -46,14 +48,13 @@ export function TemplateBuilderHeader({
           <button
             type="button"
             onClick={onSaveTemplateClick}
-            disabled={isSavingTemplate}
+            disabled={saveDisabled}
             className="liquid-primary-btn h-9 cursor-pointer rounded-full px-4 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60 md:h-10 md:px-5 md:text-sm"
           >
-            {isSavingTemplate ? "Saving..." : "Save"}
+            {isSavingTemplate ? "Saving..." : saveTemplateLabel}
           </button>
         </div>
       </div>
-      {lastSavedTemplate ? <p className="mt-1 text-xs text-primary-700">Created template id: {lastSavedTemplate.id}</p> : null}
     </header>
   );
 }

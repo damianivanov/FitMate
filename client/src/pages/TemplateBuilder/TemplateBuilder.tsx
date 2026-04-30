@@ -13,7 +13,10 @@ export default function TemplateBuilder() {
     handleDiscardClick,
     handleSaveTemplateClick,
     isSavingTemplate,
-    lastSavedTemplate,
+    isBuilderLoading,
+    templateLoadError,
+    isSaveTemplateDisabled,
+    saveTemplateLabel,
     activeQuickSetPopoverContext,
     quickSetPopoverAnchorElement,
     handleQuickSetPopoverOpen,
@@ -28,16 +31,31 @@ export default function TemplateBuilder() {
         onDiscardClick={handleDiscardClick}
         onSaveTemplateClick={handleSaveTemplateClick}
         isSavingTemplate={isSavingTemplate}
-        lastSavedTemplate={lastSavedTemplate}
+        isSaveTemplateDisabled={isSaveTemplateDisabled}
+        saveTemplateLabel={saveTemplateLabel}
       />
 
       <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
-        <div className="w-full space-y-6">
-          <section className="min-w-0 md:space-y-4">
-            <TemplateBuilderMetadataPanel />
-            <TemplateBuilderExerciseBoard onOpenQuickSetPopover={handleQuickSetPopoverOpen} />
-          </section>
-        </div>
+        {isBuilderLoading ? (
+          <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
+            <p className="text-sm font-semibold text-foreground">Loading template...</p>
+          </div>
+        ) : null}
+
+        {!isBuilderLoading && templateLoadError ? (
+          <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
+            <p className="text-sm font-semibold text-danger">{templateLoadError}</p>
+          </div>
+        ) : null}
+
+        {!isBuilderLoading && !templateLoadError ? (
+          <div className="w-full space-y-6">
+            <section className="min-w-0 md:space-y-4">
+              <TemplateBuilderMetadataPanel />
+              <TemplateBuilderExerciseBoard onOpenQuickSetPopover={handleQuickSetPopoverOpen} />
+            </section>
+          </div>
+        ) : null}
       </div>
 
       {activeQuickSetPopoverContext && quickSetPopoverAnchorElement ? (

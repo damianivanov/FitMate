@@ -289,7 +289,7 @@ export function TemplateBuilderExerciseBoard({
           <div className="flex flex-col items-stretch justify-start gap-4 md:flex-row md:flex-wrap md:items-center">
             {exerciseRenderBlocks.map((block) => {
               if (block.kind === "single") {
-                const { exercise, exerciseIndex: index } = block;
+                const { exercise } = block;
 
                 return (
                   <SortableHandleItem
@@ -301,7 +301,6 @@ export function TemplateBuilderExerciseBoard({
                     {({ dragHandleProps, setDragHandleRef, isDragging }) => (
                       <TemplateExerciseCard
                         exercise={exercise}
-                        exerciseNumber={index + 1}
                         exerciseDisplayName={getExerciseDisplayName(exercise.exerciseId)}
                         isDurationEnabled={durationEnabledExerciseIds.has(exercise.id)}
                         onOpenQuickSetPopover={onOpenQuickSetPopover}
@@ -378,7 +377,7 @@ export function TemplateBuilderExerciseBoard({
                         type="button"
                         onClick={handleGroupSettingsToggleClick}
                         className={[
-                          "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition md:h-7 md:px-2 md:text-2xs",
+                          "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full p-0 text-xs font-semibold transition md:h-7 md:w-7 md:text-2xs",
                           areGroupSettingsVisible
                             ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
                             : "text-secondary hover:bg-white/8 hover:text-primary",
@@ -402,7 +401,7 @@ export function TemplateBuilderExerciseBoard({
                   </div>
                   <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
                     <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:flex-row md:flex-wrap md:items-start">
-                      {block.items.map(({ exercise, exerciseIndex: index }) => (
+                      {block.items.map(({ exercise }) => (
                         <SortableHandleItem
                           key={exercise.id}
                           id={exercise.id}
@@ -412,7 +411,6 @@ export function TemplateBuilderExerciseBoard({
                           {({ dragHandleProps, setDragHandleRef, isDragging }) => (
                             <TemplateExerciseCard
                               exercise={exercise}
-                              exerciseNumber={index + 1}
                               exerciseDisplayName={getExerciseDisplayName(exercise.exerciseId)}
                               isDurationEnabled={durationEnabledExerciseIds.has(exercise.id)}
                               onOpenQuickSetPopover={onOpenQuickSetPopover}
@@ -458,7 +456,6 @@ export function TemplateBuilderExerciseBoard({
           {activeDragExerciseItem ? (
             <TemplateExerciseCard
               exercise={activeDragExerciseItem.exercise}
-              exerciseNumber={activeDragExerciseItem.exerciseIndex + 1}
               exerciseDisplayName={getExerciseDisplayName(activeDragExerciseItem.exercise.exerciseId)}
               isDurationEnabled={durationEnabledExerciseIds.has(activeDragExerciseItem.exercise.id)}
               onOpenQuickSetPopover={onOpenQuickSetPopover}

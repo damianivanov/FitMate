@@ -5,6 +5,7 @@ public class WorkoutTemplateExerciseModel
     public long Id { get; set; }
     public long ExerciseId { get; set; }
     public string ExerciseName { get; set; } = string.Empty;
+    public string? ExerciseImageUrl { get; set; }
     public int OrderIndex { get; set; }
     public int TargetSets { get; set; }
     public string? TargetReps { get; set; }

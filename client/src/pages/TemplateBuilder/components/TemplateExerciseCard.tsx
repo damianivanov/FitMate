@@ -27,7 +27,6 @@ type ExerciseMenuPosition = { top: number; left: number };
 
 type TemplateExerciseCardProps = {
   exercise: TemplateExerciseDraft;
-  exerciseNumber: number;
   exerciseDisplayName: string;
   isDurationEnabled: boolean;
   onOpenQuickSetPopover: (
@@ -60,8 +59,8 @@ function getSetIndexScaleClassName(setNumber: number): string {
   return "scale-100";
 }
 
-function getCompactSetValueText(value: number | undefined): string {
-  if (value === undefined) {
+function getCompactSetValueText(value: number | null | undefined): string {
+  if (value == null) {
     return "-";
   }
 
@@ -70,7 +69,6 @@ function getCompactSetValueText(value: number | undefined): string {
 
 export function TemplateExerciseCard({
   exercise,
-  exerciseNumber,
   exerciseDisplayName,
   isDurationEnabled,
   onOpenQuickSetPopover,
@@ -303,13 +301,12 @@ export function TemplateExerciseCard({
               onMouseDown={handleDragHandleMouseDown}
               onTouchStart={handleDragHandleTouchStart}
               onKeyDown={handleDragHandleKeyDown}
-              className="mr-2 inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:cursor-grabbing"
+              className="inline-flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:cursor-grabbing"
               aria-label={`Drag to reorder ${exerciseDisplayName}`}
             >
               <LuGripVertical className="h-5 w-5" />
             </button>
             <div className="min-w-0 flex flex-1 items-center gap-1.5 text-sm">
-              <span className="mono shrink-0 font-bold text-primary">{exerciseNumber}</span>
               <span className="truncate font-semibold text-foreground">{exerciseDisplayName}</span>
             </div>
             <div className="relative shrink-0">
@@ -317,7 +314,7 @@ export function TemplateExerciseCard({
                 ref={menuTriggerRef}
                 type="button"
                 onClick={handleExerciseMenuToggleClick}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9"
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9"
                 aria-label={isExerciseMenuOpen ? `Close ${exerciseDisplayName} menu` : `Open ${exerciseDisplayName} menu`}
               >
                 <LuEllipsis className="h-5 w-5" />

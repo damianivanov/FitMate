@@ -11,6 +11,7 @@ import Workouts from "./pages/Workouts";
 import WorkoutHistory from "./pages/WorkoutHistory";
 import Templates from "./pages/Templates";
 import TemplateBuilder from "./pages/TemplateBuilder";
+import TemplatePreview from "./pages/TemplatePreview";
 import Analytics from "./pages/Analytics";
 import PersonalRecords from "./pages/PersonalRecords";
 import ComponentTest from "./pages/ComponentTest";
@@ -82,6 +83,14 @@ export const router = createBrowserRouter([
           },
           {
             path: "new",
+            element: <TemplateBuilder />,
+          },
+          {
+            path: "view/:templateId",
+            element: <TemplatePreview />,
+          },
+          {
+            path: ":templateId",
             element: <TemplateBuilder />,
           },
         ],

@@ -38,6 +38,24 @@ public class WorkoutTemplateController : BaseApiController
         return this.ReturnJson(items);
     }
 
+    [HttpGet("{templateId:long}")]
+    public async Task<ActionResult> GetById(long templateId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var item = await workoutTemplateService.GetByIdAsync(templateId, userId.Value);
+        if (item == null)
+        {
+            return this.ReturnJsonError("Template not found.");
+        }
+
+        return this.ReturnJson(item);
+    }
+
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateWorkoutTemplateRequest request)
     {
@@ -49,5 +67,18 @@ public class WorkoutTemplateController : BaseApiController
 
         var created = await workoutTemplateService.CreateAsync(request, userId.Value);
         return this.ReturnJson(created);
+    }
+
+    [HttpPut("{templateId:long}")]
+    public async Task<ActionResult> Update(long templateId, [FromBody] CreateWorkoutTemplateRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var updated = await workoutTemplateService.UpdateAsync(templateId, request, userId.Value);
+        return this.ReturnJson(updated);
     }
 }

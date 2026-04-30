@@ -20,6 +20,7 @@ type UseTemplateDraftArgs = {
   draftContentFingerprint: string;
   onRestoreDraft: HandleRestoreTemplateDraft;
   autosaveIntervalMs: number;
+  enabled?: boolean;
 };
 
 type MarkCurrentDraftAsSavedOptions = {
@@ -38,6 +39,7 @@ export function useTemplateDraft({
   draftContentFingerprint,
   onRestoreDraft,
   autosaveIntervalMs,
+  enabled = true,
 }: UseTemplateDraftArgs): UseTemplateDraftResult {
   const [draftVersion, setDraftVersion] = useState(0);
   const [isDraftHydrated, setIsDraftHydrated] = useState(false);
@@ -53,7 +55,13 @@ export function useTemplateDraft({
   const lastTrackedDraftFingerprintRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setIsDraftHydrated(true);
+      return;
+    }
+
     let isCancelled = false;
+    setIsDraftHydrated(false);
 
     const restoreDraftAsync = async () => {
       const restoredDraft = loadTemplateBuilderDraft();
@@ -80,10 +88,10 @@ export function useTemplateDraft({
     return () => {
       isCancelled = true;
     };
-  }, [onRestoreDraft]);
+  }, [enabled, onRestoreDraft]);
 
   useEffect(() => {
-    if (!isDraftHydrated) {
+    if (!enabled || !isDraftHydrated) {
       return;
     }
 
@@ -98,14 +106,14 @@ export function useTemplateDraft({
 
     lastTrackedDraftFingerprintRef.current = draftContentFingerprint;
     setDraftVersion((previous) => previous + 1);
-  }, [draftContentFingerprint, isDraftHydrated]);
+  }, [draftContentFingerprint, enabled, isDraftHydrated]);
 
   useEffect(() => {
     currentDraftRef.current = currentDraft;
   }, [currentDraft]);
 
   useEffect(() => {
-    if (!isDraftHydrated) {
+    if (!enabled || !isDraftHydrated) {
       return;
     }
 
@@ -134,7 +142,7 @@ export function useTemplateDraft({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autosaveIntervalMs, isDraftHydrated]);
+  }, [autosaveIntervalMs, enabled, isDraftHydrated]);
 
   const markCurrentDraftAsSaved = useCallback(
     (options?: MarkCurrentDraftAsSavedOptions) => {

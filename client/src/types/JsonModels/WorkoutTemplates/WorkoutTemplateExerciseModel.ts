@@ -5,6 +5,7 @@ export interface WorkoutTemplateExerciseModel
 	id: number;
 	exerciseId: number;
 	exerciseName: string;
+	exerciseImageUrl?: string;
 	orderIndex: number;
 	targetSets: number;
 	targetReps?: string;

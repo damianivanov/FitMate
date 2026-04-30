@@ -12,6 +12,7 @@ export { TextareaField } from "./TextareaField";
 export { DurationSlider } from "./DurationSlider";
 export type { SegmentControlOption } from "./SegmentControl";
 export { SegmentControl } from "./SegmentControl";
+export { SegmentControlSize } from "./SegmentControlSize";
 export { RepsStepper } from "./RepsStepper";
 export { WeightStepper } from "./WeightStepper";
 export { ExerciseLookupPicker } from "./ExerciseLookup";
