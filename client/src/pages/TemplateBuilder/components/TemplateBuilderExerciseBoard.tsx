@@ -480,7 +480,7 @@ export function TemplateBuilderExerciseBoard({
         <button
           type="button"
           onClick={handleAddExerciseClick}
-          className="liquid-primary-btn fixed bottom-5 right-5 z-90 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full md:hidden"
+          className="liquid-primary-btn fixed bottom-28 right-5 z-90 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full md:hidden"
           aria-label="Add Exercise"
         >
           <LuPlus className="h-5 w-5" />

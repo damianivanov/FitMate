@@ -29,8 +29,9 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             .OrderByDescending(x => x.DateCreated)
             .ThenByDescending(x => x.Id)
             .ToListAsync();
-
-        return templates.Select(template => MapTemplate(template)).ToList();
+        
+        var result = templates.Select(template => MapTemplate(template)).ToList();
+        return result;
     }
 
     public async Task<WorkoutTemplateModel?> GetByIdAsync(long templateId, long userId)

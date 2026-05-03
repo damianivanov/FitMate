@@ -75,7 +75,7 @@ export function TemplateListItem({
               {visibleTemplateExercises.map((exercise) => (
                 <span
                   key={exercise.id}
-                  className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) -ml-2 first:ml-0"
+                  className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) first:ml-0"
                 >
                   <img
                     src={exercise.exerciseImageUrl}

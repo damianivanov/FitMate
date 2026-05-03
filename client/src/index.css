@@ -234,8 +234,8 @@
   --accent-strong: #ff7337;
   --accent-soft: rgba(255, 115, 55, 0.12);
   --accent-border: rgba(255, 115, 55, 0.2);
-  --color-primary: rgb(255, 126, 71);
-  --primary-rgb: 255, 126, 71;
+  --color-primary: rgb(255, 106, 43);
+  --primary-rgb: 255, 106, 43;
   --primary-100: rgba(var(--primary-rgb), 0.1);
   --primary-200: rgba(var(--primary-rgb), 0.2);
   --primary-300: rgba(var(--primary-rgb), 0.3);
@@ -603,6 +603,31 @@ textarea { resize: none; }
 
 .liquid-sidebar { border-right: 1px solid var(--glass-border); }
 .liquid-mobile-header { border-bottom: 1px solid var(--glass-border); }
+
+.liquid-mobile-bottom-nav-shell {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+
+.liquid-mobile-bottom-nav {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 44%, rgba(255, 255, 255, 0.06)),
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(120deg, rgba(18, 18, 26, 0.34), rgba(38, 40, 56, 0.2), rgba(var(--primary-rgb), 0.1));
+  box-shadow:
+    0 18px 36px rgba(8, 10, 18, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 28px rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(2px) saturate(1.6);
+  -webkit-backdrop-filter: blur(2px) saturate(1.6);
+}
+
+@media (max-width: 767px) {
+  .liquid-main-shell > .liquid-scrollbar {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);
+  }
+}
 
 .liquid-page-header {
   border-bottom: 1px solid var(--glass-border);

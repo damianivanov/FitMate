@@ -75,6 +75,76 @@ export function buildInitials(firstName?: string, lastName?: string, email?: str
   return prefix.slice(0, 2).toUpperCase() || "U";
 }
 
+export const avatarColorSwatches = [
+  {
+    name: "Pacific Teal",
+    hex: "#0F766E",
+    className: "bg-[#0F766E]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Signal Blue",
+    hex: "#1D4ED8",
+    className: "bg-[#1D4ED8]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Royal Iris",
+    hex: "#4338CA",
+    className: "bg-[#4338CA]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Electric Plum",
+    hex: "#7E22CE",
+    className: "bg-[#7E22CE]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Raspberry",
+    hex: "#BE123C",
+    className: "bg-[#BE123C]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Crimson Clay",
+    hex: "#B91C1C",
+    className: "bg-[#B91C1C]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Burnt Orange",
+    hex: "#C2410C",
+    className: "bg-[#C2410C]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Pine Green",
+    hex: "#15803D",
+    className: "bg-[#15803D]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Graphite Blue",
+    hex: "#334155",
+    className: "bg-[#334155]",
+    textClassName: "text-white",
+  },
+  {
+    name: "Magenta Plum",
+    hex: "#A21CAF",
+    className: "bg-[#A21CAF]",
+    textClassName: "text-white",
+  },
+] as const;
+
+export function getAvatarColorClassName(userId?: number): string {
+  const normalizedUserId = Number.isFinite(userId) ? Math.abs(Math.trunc(userId ?? 0)) : 0;
+  const swatch = avatarColorSwatches[normalizedUserId % avatarColorSwatches.length];
+
+  return `${swatch.className} ${swatch.textClassName}`;
+}
+
 export function formatDate(
   value: Date | string | null | undefined,
   locale = "en-US",

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { FloatingGlassBottomNavCard, RepsStepper, SegmentControl, WeightStepper } from "@/shared/components";
+import { avatarColorSwatches, getAvatarColorClassName } from "@/lib/helpers";
+import { RepsStepper, SegmentControl, WeightStepper } from "@/shared/components";
 
 type WeightUnit = "kg" | "lbs";
 type TimeRange = "week" | "month" | "year";
@@ -109,6 +110,31 @@ export default function ComponentTest() {
         </div>
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-secondary">
+          Avatar Color Preview
+        </h2>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-10">
+          {avatarColorSwatches.map((swatch, index) => (
+            <div
+              key={swatch.hex}
+              className="liquid-panel flex flex-col items-center gap-2 rounded-xl p-2 text-center"
+            >
+              <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold shadow-md ${getAvatarColorClassName(index)}`}
+              >
+                U{index}
+              </span>
+              <div className="min-w-0 space-y-0.5">
+                <p className="truncate text-xs font-bold text-foreground">{swatch.name}</p>
+                <p className="text-xs font-semibold uppercase text-tertiary">{swatch.hex}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="flex flex-wrap items-start gap-6">
         <div className="w-fit">
           <SegmentControl
@@ -150,12 +176,6 @@ export default function ComponentTest() {
         </div>
       </div>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-secondary">
-          Floating Glass Navigation Card
-        </h2>
-        <FloatingGlassBottomNavCard />
-      </section>
     </div>
   );
 }

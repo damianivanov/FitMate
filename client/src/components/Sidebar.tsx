@@ -1,57 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import type { IconType } from "react-icons";
-import {
-  LuBookCopy,
-  LuClock3,
-  LuDumbbell,
-  LuLayoutDashboard,
-  LuMenu,
-  LuX,
-} from "react-icons/lu";
+import { LuMenu, LuX } from "react-icons/lu";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useUserStore } from "@/stores/userStore";
+import MobileBottomNav from "./MobileBottomNav";
+import { navSections } from "./navigation";
 import UserMenu from "./UserMenu";
-
-type NavItem = {
-  label: string;
-  to: string;
-  icon: IconType;
-  end?: boolean;
-  requiresAdmin?: boolean;
-};
-
-type NavSection = {
-  section: string;
-  items: NavItem[];
-};
-
-const navSections: NavSection[] = [
-  {
-    section: "Training",
-    items: [
-      { label: "Dashboard", to: "/workouts", icon: LuLayoutDashboard, end: true },
-      { label: "Add Workout", to: "/workouts/new", icon: LuDumbbell, end: false },
-      { label: "Templates", to: "/templates", icon: LuBookCopy, end: false },
-      { label: "History", to: "/workouts/history", icon: LuClock3, end: false },
-    ],
-  },
-  {
-    section: "Insights",
-    items: [
-      { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
-      { label: "Records", to: "/records", icon: LuLayoutDashboard, end: false },
-    ],
-  },
-  {
-    section: "Management",
-    items: [
-      { label: "Admin Dashboard", to: "/management", icon: LuLayoutDashboard, end: true, requiresAdmin: true },
-      { label: "Exercise Grid", to: "/management/exercises", icon: LuDumbbell, end: false, requiresAdmin: true },
-      { label: "Muscle Group Grid", to: "/management/muscle-groups", icon: LuBookCopy, end: false, requiresAdmin: true },
-    ],
-  },
-];
 
 function getPrimaryItemClassName(isActive: boolean): string {
   const baseClassName =
@@ -221,6 +175,8 @@ function AuthenticatedNav() {
           </aside>
         </div>
       ) : null}
+
+      <MobileBottomNav onNavigate={handleNavigate} />
     </>
   );
 }

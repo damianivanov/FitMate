@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
-import { buildDisplayName, buildInitials } from "@/lib/helpers";
+import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useThemeStore } from "@/stores/themeStore";
 import type { User } from "@/types";
@@ -27,6 +27,7 @@ export default function UserMenu({
   const isLightMode = theme === "light";
   const displayName = buildDisplayName(user.firstName, user.lastName) || "FitMate User";
   const initials = buildInitials(user.firstName, user.lastName, user.email);
+  const avatarColorClassName = getAvatarColorClassName(user.id);
   const sunToggleIconClassName = isLightMode ? "h-4 w-4 text-orange-600" : "h-4 w-4 text-orange-400/85";
   const moonToggleIconClassName = isLightMode ? "h-4 w-4 text-sky-400/85" : "h-4 w-4 text-sky-600";
 
@@ -99,7 +100,7 @@ export default function UserMenu({
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-700 text-xs font-bold text-white">
+        <span className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${avatarColorClassName}`}>
           {initials}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">

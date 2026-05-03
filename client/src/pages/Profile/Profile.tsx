@@ -1,173 +1,120 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import axios from "axios";
-import { PrimaryButton } from "@/shared/components/Buttons";
-import { authService } from "@/services/authService";
+import { NavLink, Outlet } from "react-router-dom";
+import { LuMail, LuShieldCheck, LuUserRound } from "react-icons/lu";
+import { isAdmin as hasAdminRole } from "@/lib/access";
+import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
 import { useUserStore } from "@/stores/userStore";
 
-type ProfileFormValues = {
-  firstName: string;
-  lastName: string;
-};
+const profileNavItems = [
+  {
+    label: "Account",
+    to: ".",
+    icon: LuUserRound,
+    end: true,
+  },
+];
 
-function getInitialFormValues(firstName?: string, lastName?: string): ProfileFormValues {
-  return {
-    firstName: firstName?.trim() ?? "",
-    lastName: lastName?.trim() ?? "",
-  };
-}
+function getProfileNavLinkClassName(isActive: boolean): string {
+  const baseClassName =
+    "liquid-nav-item inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold";
+  const stateClassName = isActive ? "liquid-nav-item-active" : "";
 
-function normalizeValues(values: ProfileFormValues): ProfileFormValues {
-  return {
-    firstName: values.firstName.trim(),
-    lastName: values.lastName.trim(),
-  };
-}
-
-function valuesAreEqual(a: ProfileFormValues, b: ProfileFormValues): boolean {
-  const left = normalizeValues(a);
-  const right = normalizeValues(b);
-  return left.firstName === right.firstName && left.lastName === right.lastName;
+  return `${baseClassName} ${stateClassName}`.trim();
 }
 
 function Profile() {
-  const { user, initUser } = useUserStore();
-
-  const [formValues, setFormValues] = useState<ProfileFormValues>({
-    firstName: "",
-    lastName: "",
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const initialFormValues = useMemo(
-    () => getInitialFormValues(user.firstName, user.lastName),
-    [user.firstName, user.lastName],
-  );
-
-  useEffect(() => {
-    setFormValues(initialFormValues);
-  }, [initialFormValues]);
-
-  const isDirty = useMemo(
-    () => !valuesAreEqual(formValues, initialFormValues),
-    [formValues, initialFormValues],
-  );
-
-  const normalizedFormValues = useMemo(
-    () => normalizeValues(formValues),
-    [formValues],
-  );
-
-  const onFieldChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-
-    if (name !== "firstName" && name !== "lastName") {
-      return;
-    }
-
-    setSuccessMessage(null);
-    setFormValues((previousValues) => ({
-      ...previousValues,
-      [name]: value,
-    }));
-  };
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSuccessMessage(null);
-    setError(null);
-    setIsSaving(true);
-
-    try {
-      const response = await authService.updateProfile({
-        firstName: normalizedFormValues.firstName,
-        lastName: normalizedFormValues.lastName || undefined,
-      });
-      const result = response.data;
-
-      if (!result.success) {
-        setError(result.error ?? "Unable to update profile.");
-        return;
-      }
-
-      await initUser();
-      setSuccessMessage("Profile updated successfully.");
-    } catch (submissionError) {
-      const message = axios.isAxiosError(submissionError)
-        ? (submissionError.response?.data?.error as string | undefined) ?? submissionError.message
-        : "Unable to update profile.";
-      setError(message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const { user } = useUserStore();
+  const displayName = buildDisplayName(user.firstName, user.lastName) || "FitMate User";
+  const initials = buildInitials(user.firstName, user.lastName, user.email);
+  const avatarColorClassName = getAvatarColorClassName(user.id);
+  const isAdminUser = hasAdminRole(user);
+  const roleLabel = isAdminUser ? "Admin" : "Member";
 
   return (
-    <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
-      <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
-        <h1 className="text-3xl font-extrabold text-primary">Your Profile</h1>
-
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary" htmlFor="firstName">
-              First Name
-            </label>
-            <input
-              id="firstName"
-              name="firstName"
-              required
-              value={formValues.firstName}
-              onChange={onFieldChange}
-              autoComplete="given-name"
-              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
-              placeholder="Enter your first name"
-            />
+    <>
+      <header className="liquid-page-header px-4 py-4 md:px-8 md:py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-base font-extrabold shadow-lg ${avatarColorClassName}`}>
+              {initials}
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">
+                {displayName}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium text-secondary">
+                {user.email ? (
+                  <span className="liquid-chip inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1">
+                    <LuMail className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="truncate">{user.email}</span>
+                  </span>
+                ) : null}
+                <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1">
+                  <LuShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary" htmlFor="lastName">
-              Last Name
-            </label>
-            <input
-              id="lastName"
-              name="lastName"
-              value={formValues.lastName}
-              onChange={onFieldChange}
-              autoComplete="family-name"
-              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
-              placeholder="Enter your last name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              readOnly
-              value={user.email}
-              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2 text-tertiary cursor-not-allowed"
-            />
-          </div>
-
-          {error && <p className="text-sm text-danger">{error}</p>}
-          {successMessage && <p className="text-sm text-emerald-700">{successMessage}</p>}
-
-          <PrimaryButton
-            type="submit"
-            disabled={isSaving || !isDirty || normalizedFormValues.firstName.length === 0}
-            className="w-full mt-4"
+          <nav
+            aria-label="Profile sections"
+            className="liquid-pill flex w-full gap-2 rounded-full p-1 lg:w-auto"
           >
-            {isSaving ? "Saving..." : "Save Profile"}
-          </PrimaryButton>
-        </form>
+            {profileNavItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => getProfileNavLinkClassName(isActive)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
+
+      <div className="liquid-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
+        <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
+          <aside className="liquid-panel rounded-2xl p-5">
+            <div className="flex items-center gap-3">
+              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${avatarColorClassName}`}>
+                {initials}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
+                <p className="truncate text-xs text-secondary">{roleLabel}</p>
+              </div>
+            </div>
+
+            <dl className="mt-5 space-y-4 text-sm">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-widest text-tertiary">
+                  Email
+                </dt>
+                <dd className="mt-1 truncate font-medium text-foreground">{user.email}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-widest text-tertiary">
+                  User ID
+                </dt>
+                <dd className="mt-1 font-medium text-foreground">{user.id}</dd>
+              </div>
+            </dl>
+          </aside>
+
+          <section className="min-w-0 lg:col-span-2">
+            <Outlet />
+          </section>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 export default Profile;
-

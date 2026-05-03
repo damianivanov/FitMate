@@ -4,7 +4,7 @@ import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
 import { Login, Register } from "./pages/Auth";
 import Home from "./pages/Home";
-import Profile from "./pages/Profile";
+import Profile, { ProfileAccount } from "./pages/Profile";
 import AdminPanel, { ExerciseGrid, MuscleGroupGrid } from "./pages/AdminPanel";
 import WorkoutBuilder from "./pages/WorkoutBuilder";
 import Workouts from "./pages/Workouts";
@@ -44,6 +44,12 @@ export const router = createBrowserRouter([
             <Profile />
           </AccessGate>
         ),
+        children: [
+          {
+            index: true,
+            element: <ProfileAccount />,
+          },
+        ],
       },
 
       {
