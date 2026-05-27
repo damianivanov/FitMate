@@ -457,7 +457,12 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
       containerClassName={containerClassName}
       labelClassName={labelClassName}
     >
-      <div ref={rootRef} className={cn("relative w-full", className)} onKeyDown={handleKeyDown}>
+      <div
+        ref={rootRef}
+        className={cn("relative w-full", className)}
+        data-dropdown-open={open ? "true" : undefined}
+        onKeyDown={handleKeyDown}
+      >
         <div
           id={id}
           role="button"

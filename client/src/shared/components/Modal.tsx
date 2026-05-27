@@ -15,6 +15,7 @@ type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  titleIcon?: ReactNode;
   children: ReactNode;
   maxWidth?: ModalSize;
 };
@@ -61,7 +62,14 @@ function unlockBodyScroll(): void {
   }
 }
 
-export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  titleIcon,
+  children,
+  maxWidth = "default",
+}: ModalProps) {
   const [isMounted, setIsMounted] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -188,14 +196,21 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "default" }
         onTransitionEnd={handlePanelTransitionEnd}
       >
         {title ? (
-          <div className="liquid-divider flex items-center justify-between border-b px-5 py-4">
-            <h3 id={titleId} className="text-lg font-semibold text-foreground">
-              {title}
-            </h3>
+          <div className="liquid-divider flex items-center justify-between gap-3 border-b px-5 py-4">
+            <div className="flex min-w-0 items-center gap-2">
+              {titleIcon ? (
+                <span className="inline-flex shrink-0 items-center justify-center text-danger">
+                  {titleIcon}
+                </span>
+              ) : null}
+              <h3 id={titleId} className="truncate text-lg font-semibold text-foreground">
+                {title}
+              </h3>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="liquid-pill liquid-subtle-text rounded-full p-2"
+              className="liquid-pill liquid-subtle-text shrink-0 rounded-full p-2"
               aria-label="Close modal"
             >
               <LuX className="h-4 w-4 text-foreground" />

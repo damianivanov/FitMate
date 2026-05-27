@@ -1,10 +1,35 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['logo.svg'],
+      manifest: {
+        name: 'FitMate',
+        short_name: 'FitMate',
+        description: 'Track workouts, templates, sets, and progress.',
+        theme_color: '#171221',
+        background_color: '#120f19',
+        display: 'standalone',
+        orientation: 'portrait',
+        icons: [
+          {
+            src: 'logo.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

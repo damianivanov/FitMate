@@ -54,6 +54,21 @@ export function createLocalId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+export function normalizeUtcIsoString(value: string): string {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return trimmedValue;
+  }
+
+  const hasExplicitTimeZone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(trimmedValue);
+  const normalizedValue = hasExplicitTimeZone || !trimmedValue.includes("T")
+    ? trimmedValue
+    : `${trimmedValue}Z`;
+  const date = new Date(normalizedValue);
+
+  return Number.isNaN(date.getTime()) ? trimmedValue : date.toISOString();
+}
+
 export function buildDisplayName(firstName?: string, lastName?: string): string {
   return [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ").trim();
 }

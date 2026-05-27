@@ -1,10 +1,10 @@
 import { AddExerciseModal } from "./components/AddExerciseModal";
-import { DurationSetPickerPopover } from "./components/DurationSetPickerPopover";
-import { RepsSetPickerPopover } from "./components/RepsSetPickerPopover";
+import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
+import { RepsSetPickerPopover } from "@/shared/components/WorkoutSetPickers/RepsSetPickerPopover";
 import { TemplateBuilderExerciseBoard } from "./components/TemplateBuilderExerciseBoard";
 import { TemplateBuilderHeader } from "./components/TemplateBuilderHeader";
 import { TemplateBuilderMetadataPanel } from "./components/TemplateBuilderMetadataPanel";
-import { WeightSetPickerPopover } from "./components/WeightSetPickerPopover";
+import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/WeightSetPickerPopover";
 import { useTemplateBuilderPage } from "./hooks/useTemplateBuilderPage";
 import { QuickSetField } from "./store/templateBuilderStore";
 

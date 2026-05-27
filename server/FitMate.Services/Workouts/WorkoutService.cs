@@ -16,9 +16,108 @@ public class WorkoutService : IWorkoutService
         this.dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        var workouts = await BuildWorkoutDetailsQuery(asNoTracking: true)
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.StartedAt)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync();
+
+        return workouts.Select(MapWorkout).ToList();
+    }
+
+    public async Task<WorkoutModel?> GetByIdAsync(long workoutId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (workoutId <= 0)
+        {
+            throw new FitMateException("Workout id is invalid.");
+        }
+
+        var workout = await BuildWorkoutDetailsQuery(asNoTracking: true)
+            .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
+
+        return workout == null ? null : MapWorkout(workout);
+    }
+
+    public async Task<long> StartFromTemplateAsync(long templateId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        var template = await LoadWorkoutTemplateForStartAsync(templateId, userId);
+        var workout = BuildWorkoutFromTemplate(template, userId, DateTime.UtcNow);
+
+        dbContext.Workouts.Add(workout);
+        await dbContext.SaveChangesAsync(userId);
+
+        return workout.Id;
+    }
+
     public async Task<WorkoutCreatedModel> CreateAsync(
-        CreateWorkoutRequest request,
+        SaveWorkoutRequest request,
         long userId)
+    {
+        return await SaveWorkoutAsync(request, userId, isDraft: false);
+    }
+
+    public async Task<WorkoutCreatedModel> UpsertDraftAsync(
+        SaveWorkoutRequest request,
+        long userId)
+    {
+        return await SaveWorkoutAsync(request, userId, isDraft: true);
+    }
+
+    public async Task<bool> DeleteAsync(long workoutId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (workoutId <= 0)
+        {
+            throw new FitMateException("Workout id is invalid.");
+        }
+
+        var workout = await dbContext.Workouts
+            .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
+
+        if (workout == null)
+        {
+            throw new FitMateException("Workout not found.");
+        }
+
+        dbContext.Workouts.Remove(workout);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(userId);
+        }
+        catch (DbUpdateException)
+        {
+            throw new FitMateException("Unable to delete workout.");
+        }
+
+        return true;
+    }
+
+    private async Task<WorkoutCreatedModel> SaveWorkoutAsync(
+        SaveWorkoutRequest request,
+        long userId,
+        bool isDraft)
     {
         if (userId <= 0)
         {
@@ -32,7 +131,7 @@ public class WorkoutService : IWorkoutService
         }
 
         var exercises = request.Exercises ?? [];
-        if (exercises.Count == 0)
+        if (!isDraft && exercises.Count == 0)
         {
             throw new FitMateException("At least one exercise is required.");
         }
@@ -52,6 +151,8 @@ public class WorkoutService : IWorkoutService
             throw new FitMateException("Duplicate exercises are not supported in one workout.");
         }
 
+        var workoutTemplate = await LoadWorkoutTemplateAsync(request.WorkoutTemplateId, userId);
+
         var existingExerciseIds = await dbContext.Exercises
             .AsNoTracking()
             .Where(x => distinctExerciseIds.Contains(x.Id))
@@ -63,103 +164,73 @@ public class WorkoutService : IWorkoutService
             throw new FitMateException("One or more selected exercises do not exist.");
         }
 
-        var startedAt = request.StartedAt?.ToUniversalTime() ?? DateTime.UtcNow;
-        var finishedAt = request.FinishedAt?.ToUniversalTime();
+        var startedAt = request.StartedAt.HasValue
+            ? NormalizeUtc(request.StartedAt.Value)
+            : DateTime.UtcNow;
+        DateTime? finishedAt = isDraft
+            ? null
+            : request.FinishedAt.HasValue
+                ? NormalizeUtc(request.FinishedAt.Value)
+                : DateTime.UtcNow;
 
         if (finishedAt.HasValue && finishedAt.Value < startedAt)
         {
             throw new FitMateException("Workout finish time cannot be before start time.");
         }
 
-        var workout = new Workout
+        var workout = await LoadWorkoutForUpdateAsync(request.WorkoutId, userId);
+        var isNewWorkout = workout == null;
+        if (workout != null && workout.FinishedAt.HasValue)
         {
-            UserId = userId,
-            Title = title,
-            StartedAt = startedAt,
-            FinishedAt = finishedAt,
-            DurationSeconds = BuildDurationSeconds(startedAt, finishedAt),
-            Notes = NormalizeNullable(request.Notes),
-        };
-
-        var straightGroup = new WorkoutExerciseGroup
-        {
-            SortOrder = 1,
-            GroupType = ExerciseGroupType.Straight,
-        };
-
-        workout.ExerciseGroups.Add(straightGroup);
-
-        var totalSetCount = 0;
-        var totalVolumeKg = 0m;
-        var hasTotalVolume = false;
-
-        for (var exerciseIndex = 0; exerciseIndex < exercises.Count; exerciseIndex++)
-        {
-            var exerciseRequest = exercises[exerciseIndex];
-            var sets = exerciseRequest.Sets ?? [];
-
-            if (sets.Count == 0)
-            {
-                throw new FitMateException($"Exercise #{exerciseIndex + 1} must include at least one set.");
-            }
-
-            var workoutExercise = new WorkoutExercise
-            {
-                ExerciseId = exerciseRequest.ExerciseId,
-                OrderIndex = exerciseIndex + 1,
-                Notes = NormalizeNullable(exerciseRequest.Notes),
-            };
-
-            for (var setIndex = 0; setIndex < sets.Count; setIndex++)
-            {
-                var setRequest = sets[setIndex];
-                var validationError = ValidateSet(setRequest);
-                if (validationError != null)
-                {
-                    throw new FitMateException($"Exercise #{exerciseIndex + 1}, set #{setIndex + 1}: {validationError}");
-                }
-
-                var exerciseSet = new ExerciseSet
-                {
-                    OrderIndex = setIndex + 1,
-                    SetType = setRequest.SetType,
-                    WeightKg = NormalizeWeight(setRequest.WeightKg),
-                    Reps = setRequest.Reps,
-                    DurationSeconds = setRequest.DurationSeconds,
-                    DistanceMeters = NormalizeDistance(setRequest.DistanceMeters),
-                    Rpe = NormalizeRpe(setRequest.Rpe),
-                    IsPersonalRecord = false,
-                    Notes = NormalizeNullable(setRequest.Notes),
-                };
-
-                if (exerciseSet.WeightKg.HasValue && exerciseSet.Reps.HasValue)
-                {
-                    totalVolumeKg += exerciseSet.WeightKg.Value * exerciseSet.Reps.Value;
-                    hasTotalVolume = true;
-                }
-
-                workoutExercise.Sets.Add(exerciseSet);
-                totalSetCount++;
-            }
-
-            straightGroup.Exercises.Add(workoutExercise);
+            throw new FitMateException("Workout has already been finished.");
         }
 
-        workout.TotalVolumeKg = hasTotalVolume
-            ? Math.Round(totalVolumeKg, 2, MidpointRounding.AwayFromZero)
+        workout ??= new Workout { UserId = userId };
+
+        workout.Title = title;
+        workout.StartedAt = startedAt;
+        workout.FinishedAt = finishedAt;
+        workout.DurationSeconds = BuildDurationSeconds(startedAt, finishedAt);
+        workout.Notes = NormalizeNullable(request.Notes);
+        workout.WorkoutTemplateId = workoutTemplate?.Id;
+
+        var accumulator = new WorkoutCreateAccumulator();
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        if (!isNewWorkout)
+        {
+            dbContext.WorkoutExerciseGroups.RemoveRange(workout.ExerciseGroups);
+            await dbContext.SaveChangesAsync(userId);
+            workout.ExerciseGroups.Clear();
+        }
+
+        AddWorkoutExerciseGroups(
+            workout,
+            exercises,
+            accumulator,
+            requireCompletedSets: !isDraft);
+
+        workout.TotalVolumeKg = accumulator.HasTotalVolume
+            ? Math.Round(accumulator.TotalVolumeKg, 2, MidpointRounding.AwayFromZero)
             : null;
 
-        dbContext.Workouts.Add(workout);
+        if (isNewWorkout)
+        {
+            dbContext.Workouts.Add(workout);
+        }
+
         await dbContext.SaveChangesAsync(userId);
+        await transaction.CommitAsync();
 
         return new WorkoutCreatedModel
         {
             WorkoutId = workout.Id,
             Title = workout.Title,
-            StartedAt = workout.StartedAt,
-            FinishedAt = workout.FinishedAt,
+            StartedAt = EnsureUtcKind(workout.StartedAt),
+            FinishedAt = EnsureUtcKind(workout.FinishedAt),
             ExerciseCount = exercises.Count,
-            SetCount = totalSetCount,
+            SetCount = accumulator.TotalSetCount,
             TotalVolumeKg = workout.TotalVolumeKg,
         };
     }
@@ -188,7 +259,8 @@ public class WorkoutService : IWorkoutService
             .AsNoTracking()
             .Where(x =>
                 normalizedExerciseIds.Contains(x.ExerciseId)
-                && x.WorkoutExerciseGroup.Workout.UserId == userId)
+                && x.WorkoutExerciseGroup.Workout.UserId == userId
+                && x.WorkoutExerciseGroup.Workout.FinishedAt.HasValue)
             .Select(x => new PreviousWorkoutExerciseCandidate
             {
                 WorkoutExerciseId = x.Id,
@@ -219,7 +291,7 @@ public class WorkoutService : IWorkoutService
 
         var previousSets = await dbContext.ExerciseSets
             .AsNoTracking()
-            .Where(x => workoutExerciseIds.Contains(x.WorkoutExerciseId))
+            .Where(x => workoutExerciseIds.Contains(x.WorkoutExerciseId) && x.IsCompleted)
             .OrderBy(x => x.OrderIndex)
             .Select(x => new PreviousSetProjection
             {
@@ -267,13 +339,316 @@ public class WorkoutService : IWorkoutService
                     ExerciseName = latest.ExerciseName,
                     WorkoutId = latest.WorkoutId,
                     WorkoutTitle = latest.WorkoutTitle,
-                    WorkoutStartedAt = latest.WorkoutStartedAt,
+                    WorkoutStartedAt = EnsureUtcKind(latest.WorkoutStartedAt),
                     Sets = sets ?? [],
                 };
             })
             .ToList();
 
         return response;
+    }
+
+    private IQueryable<Workout> BuildWorkoutDetailsQuery(bool asNoTracking)
+    {
+        var query = dbContext.Workouts.AsQueryable();
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query
+            .Include(x => x.WorkoutTemplate)
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Exercise)
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery();
+    }
+
+    private async Task<WorkoutTemplate?> LoadWorkoutTemplateAsync(long? workoutTemplateId, long userId)
+    {
+        if (!workoutTemplateId.HasValue)
+        {
+            return null;
+        }
+
+        if (workoutTemplateId.Value <= 0)
+        {
+            throw new FitMateException("Workout template id is invalid.");
+        }
+
+        var template = await dbContext.WorkoutTemplates
+            .AsNoTracking()
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(x =>
+                x.Id == workoutTemplateId.Value
+                && (x.UserId == userId || x.IsPublic));
+
+        if (template == null)
+        {
+            throw new FitMateException("Template not found.");
+        }
+
+        return template;
+    }
+
+    private async Task<WorkoutTemplate> LoadWorkoutTemplateForStartAsync(long templateId, long userId)
+    {
+        if (templateId <= 0)
+        {
+            throw new FitMateException("Workout template id is invalid.");
+        }
+
+        var template = await dbContext.WorkoutTemplates
+            .AsNoTracking()
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(x => x.Id == templateId && (x.UserId == userId || x.IsPublic));
+
+        if (template == null)
+        {
+            throw new FitMateException("Template not found.");
+        }
+
+        return template;
+    }
+
+    private async Task<Workout?> LoadWorkoutForUpdateAsync(long? workoutId, long userId)
+    {
+        if (!workoutId.HasValue)
+        {
+            return null;
+        }
+
+        if (workoutId.Value <= 0)
+        {
+            throw new FitMateException("Workout id is invalid.");
+        }
+
+        var workout = await dbContext.Workouts
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(x => x.Id == workoutId.Value && x.UserId == userId);
+
+        if (workout == null)
+        {
+            throw new FitMateException("Workout not found.");
+        }
+
+        return workout;
+    }
+
+    private static Workout BuildWorkoutFromTemplate(
+        WorkoutTemplate template,
+        long userId,
+        DateTime startedAt)
+    {
+        var workout = new Workout
+        {
+            UserId = userId,
+            WorkoutTemplateId = template.Id,
+            Title = template.Name,
+            StartedAt = startedAt,
+        };
+
+        foreach (var templateGroup in template.ExerciseGroups.OrderBy(x => x.SortOrder))
+        {
+            var workoutGroup = new WorkoutExerciseGroup
+            {
+                SortOrder = templateGroup.SortOrder,
+                GroupType = templateGroup.GroupType,
+            };
+
+            foreach (var templateExercise in templateGroup.Exercises.OrderBy(x => x.OrderIndex))
+            {
+                var workoutExercise = new WorkoutExercise
+                {
+                    ExerciseId = templateExercise.ExerciseId,
+                    OrderIndex = templateExercise.OrderIndex,
+                    Notes = NormalizeNullable(templateExercise.Notes),
+                };
+
+                foreach (var templateSet in templateExercise.Sets.OrderBy(x => x.OrderIndex))
+                {
+                    workoutExercise.Sets.Add(new ExerciseSet
+                    {
+                        OrderIndex = templateSet.OrderIndex,
+                        SetType = ExerciseSetType.Working,
+                        WeightKg = NormalizeWeight(templateSet.WeightKg),
+                        Reps = templateSet.Reps,
+                        DurationSeconds = templateSet.DurationSeconds,
+                        DistanceMeters = NormalizeDistance(templateSet.DistanceMeters),
+                        Rpe = NormalizeRpe(templateSet.Rpe),
+                        IsCompleted = false,
+                        IsPersonalRecord = false,
+                        Notes = NormalizeNullable(templateSet.Notes),
+                    });
+                }
+
+                workoutGroup.Exercises.Add(workoutExercise);
+            }
+
+            if (workoutGroup.Exercises.Count > 0)
+            {
+                workout.ExerciseGroups.Add(workoutGroup);
+            }
+        }
+
+        return workout;
+    }
+
+    private static void AddWorkoutExerciseGroups(
+        Workout workout,
+        IReadOnlyList<CreateWorkoutExerciseRequest> exercises,
+        WorkoutCreateAccumulator accumulator,
+        bool requireCompletedSets)
+    {
+        var groupSortOrder = 0;
+        var exerciseDisplayIndex = 0;
+
+        foreach (var exerciseGroup in BuildWorkoutExerciseRequestGroups(exercises))
+        {
+            var workoutGroup = new WorkoutExerciseGroup
+            {
+                SortOrder = ++groupSortOrder,
+                GroupType = exerciseGroup.GroupType,
+            };
+
+            var exerciseOrderIndex = 0;
+            foreach (var exerciseRequest in exerciseGroup.Exercises)
+            {
+                exerciseDisplayIndex++;
+                workoutGroup.Exercises.Add(
+                    BuildWorkoutExercise(
+                        exerciseRequest,
+                        ++exerciseOrderIndex,
+                        exerciseDisplayIndex,
+                        accumulator,
+                        requireCompletedSets));
+            }
+
+            if (workoutGroup.Exercises.Count > 0)
+            {
+                workout.ExerciseGroups.Add(workoutGroup);
+            }
+        }
+    }
+
+    private static IReadOnlyList<WorkoutExerciseRequestGroup> BuildWorkoutExerciseRequestGroups(
+        IReadOnlyList<CreateWorkoutExerciseRequest> exercises)
+    {
+        var sortedExercises = exercises
+            .Select((exercise, index) => new
+            {
+                Exercise = exercise,
+                OriginalIndex = index,
+                SafeOrderIndex = exercise.OrderIndex > 0 ? exercise.OrderIndex : index + 1,
+            })
+            .OrderBy(x => x.SafeOrderIndex)
+            .ThenBy(x => x.OriginalIndex)
+            .ToList();
+
+        var groups = new List<WorkoutExerciseRequestGroup>();
+        var groupedByClientGroupId = new Dictionary<string, WorkoutExerciseRequestGroup>();
+
+        foreach (var item in sortedExercises)
+        {
+            var exercise = item.Exercise;
+            var isGrouped = IsGroupedExerciseType(exercise.GroupType) && exercise.ClientGroupId.HasValue;
+            if (!isGrouped)
+            {
+                groups.Add(new WorkoutExerciseRequestGroup
+                {
+                    GroupType = ExerciseGroupType.Straight,
+                    Exercises = [exercise],
+                });
+                continue;
+            }
+
+            var groupKey = $"{(int)exercise.GroupType}:{exercise.ClientGroupId!.Value}";
+            if (!groupedByClientGroupId.TryGetValue(groupKey, out var group))
+            {
+                group = new WorkoutExerciseRequestGroup
+                {
+                    GroupType = exercise.GroupType,
+                    Exercises = [],
+                };
+                groupedByClientGroupId[groupKey] = group;
+                groups.Add(group);
+            }
+
+            group.Exercises.Add(exercise);
+        }
+
+        return groups;
+    }
+
+    private static bool IsGroupedExerciseType(ExerciseGroupType groupType)
+    {
+        return groupType == ExerciseGroupType.Superset || groupType == ExerciseGroupType.Circuit;
+    }
+
+    private static WorkoutExercise BuildWorkoutExercise(
+        CreateWorkoutExerciseRequest exerciseRequest,
+        int orderIndex,
+        int exerciseDisplayIndex,
+        WorkoutCreateAccumulator accumulator,
+        bool requireCompletedSets)
+    {
+        var sets = exerciseRequest.Sets ?? [];
+        if (sets.Count == 0)
+        {
+            throw new FitMateException($"Exercise #{exerciseDisplayIndex} must include at least one set.");
+        }
+
+        if (requireCompletedSets && !sets.Any(x => x.IsCompleted))
+        {
+            throw new FitMateException($"Exercise #{exerciseDisplayIndex} must include at least one completed set.");
+        }
+
+        var workoutExercise = new WorkoutExercise
+        {
+            ExerciseId = exerciseRequest.ExerciseId,
+            OrderIndex = orderIndex,
+            Notes = NormalizeNullable(exerciseRequest.Notes),
+        };
+
+        for (var setIndex = 0; setIndex < sets.Count; setIndex++)
+        {
+            var setRequest = sets[setIndex];
+            var validationError = ValidateSet(setRequest);
+            if (validationError != null)
+            {
+                throw new FitMateException($"Exercise #{exerciseDisplayIndex}, set #{setIndex + 1}: {validationError}");
+            }
+
+            var exerciseSet = new ExerciseSet
+            {
+                OrderIndex = setIndex + 1,
+                SetType = setRequest.SetType,
+                WeightKg = NormalizeWeight(setRequest.WeightKg),
+                Reps = setRequest.Reps,
+                DurationSeconds = setRequest.DurationSeconds,
+                DistanceMeters = NormalizeDistance(setRequest.DistanceMeters),
+                Rpe = NormalizeRpe(setRequest.Rpe),
+                IsCompleted = setRequest.IsCompleted,
+                IsPersonalRecord = false,
+                Notes = NormalizeNullable(setRequest.Notes),
+            };
+
+            accumulator.AddSet(exerciseSet);
+            workoutExercise.Sets.Add(exerciseSet);
+        }
+
+        return workoutExercise;
     }
 
     private static string? ValidateSet(CreateWorkoutSetRequest request)
@@ -306,6 +681,11 @@ public class WorkoutService : IWorkoutService
         if (request.Rpe.HasValue && (request.Rpe.Value < 0 || request.Rpe.Value > 10))
         {
             return "RPE must be between 0 and 10.";
+        }
+
+        if (!request.IsCompleted)
+        {
+            return null;
         }
 
         var hasMainMetric =
@@ -370,6 +750,85 @@ public class WorkoutService : IWorkoutService
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
+    private static DateTime NormalizeUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+    }
+
+    private static DateTime EnsureUtcKind(DateTime value)
+    {
+        return value.Kind == DateTimeKind.Utc
+            ? value
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+    }
+
+    private static DateTime? EnsureUtcKind(DateTime? value)
+    {
+        return value.HasValue ? EnsureUtcKind(value.Value) : null;
+    }
+
+    private static WorkoutModel MapWorkout(Workout workout)
+    {
+        var groups = workout.ExerciseGroups
+            .OrderBy(group => group.SortOrder)
+            .Select(group => new WorkoutExerciseGroupModel
+            {
+                Id = group.Id,
+                SortOrder = group.SortOrder,
+                GroupType = group.GroupType,
+                Exercises = group.Exercises
+                    .OrderBy(exercise => exercise.OrderIndex)
+                    .Select(exercise => new WorkoutExerciseModel
+                    {
+                        Id = exercise.Id,
+                        ExerciseId = exercise.ExerciseId,
+                        ExerciseName = exercise.Exercise.Name,
+                        ExerciseImageUrl = exercise.Exercise.ImageUrl,
+                        OrderIndex = exercise.OrderIndex,
+                        Notes = exercise.Notes,
+                        Sets = exercise.Sets
+                            .OrderBy(set => set.OrderIndex)
+                            .Select(set => new WorkoutSetModel
+                            {
+                                Id = set.Id,
+                                OrderIndex = set.OrderIndex,
+                                SetType = set.SetType,
+                                WeightKg = set.WeightKg,
+                                Reps = set.Reps,
+                                DurationSeconds = set.DurationSeconds,
+                                DistanceMeters = set.DistanceMeters,
+                                Rpe = set.Rpe,
+                                IsCompleted = set.IsCompleted,
+                                Notes = set.Notes,
+                            })
+                            .ToList(),
+                    })
+                    .ToList(),
+            })
+            .ToList();
+
+        return new WorkoutModel
+        {
+            Id = workout.Id,
+            WorkoutTemplateId = workout.WorkoutTemplateId,
+            TemplateName = workout.WorkoutTemplate?.Name,
+            Title = workout.Title,
+            StartedAt = EnsureUtcKind(workout.StartedAt),
+            FinishedAt = EnsureUtcKind(workout.FinishedAt),
+            DurationSeconds = workout.DurationSeconds,
+            TotalVolumeKg = workout.TotalVolumeKg,
+            Notes = workout.Notes,
+            ExerciseCount = groups.Sum(group => group.Exercises.Count),
+            SetCount = groups.Sum(group => group.Exercises.Sum(exercise => exercise.Sets.Count)),
+            Groups = groups,
+        };
+    }
+
     private class PreviousWorkoutExerciseCandidate
     {
         public long WorkoutExerciseId { get; set; }
@@ -391,5 +850,36 @@ public class WorkoutService : IWorkoutService
         public decimal? DistanceMeters { get; set; }
         public decimal? Rpe { get; set; }
         public string? Notes { get; set; }
+    }
+
+    private sealed class WorkoutExerciseRequestGroup
+    {
+        public ExerciseGroupType GroupType { get; set; }
+        public List<CreateWorkoutExerciseRequest> Exercises { get; set; } = [];
+    }
+
+    private sealed class WorkoutCreateAccumulator
+    {
+        public int TotalSetCount { get; private set; }
+        public decimal TotalVolumeKg { get; private set; }
+        public bool HasTotalVolume { get; private set; }
+
+        public void AddSet(ExerciseSet exerciseSet)
+        {
+            if (!exerciseSet.IsCompleted)
+            {
+                return;
+            }
+
+            TotalSetCount++;
+
+            if (!exerciseSet.WeightKg.HasValue || !exerciseSet.Reps.HasValue)
+            {
+                return;
+            }
+
+            TotalVolumeKg += exerciseSet.WeightKg.Value * exerciseSet.Reps.Value;
+            HasTotalVolume = true;
+        }
     }
 }

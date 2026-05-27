@@ -72,6 +72,10 @@ export const router = createBrowserRouter([
             path: "history",
             element: <WorkoutHistory />,
           },
+          {
+            path: ":workoutId",
+            element: <WorkoutBuilder />,
+          },
         ],
       },
 

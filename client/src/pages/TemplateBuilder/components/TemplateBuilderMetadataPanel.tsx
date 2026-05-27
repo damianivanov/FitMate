@@ -1,7 +1,7 @@
 import { useMemo, useState, type ChangeEvent, type MouseEvent as ReactMouseEvent } from "react";
-import { LuChevronDown, LuClock } from "react-icons/lu";
+import { LuChevronDown, LuClock, LuEye, LuLock } from "react-icons/lu";
 import { SegmentControl, SegmentControlSize, type SegmentControlOption } from "@/shared/components";
-import { DurationSetPickerPopover } from "./DurationSetPickerPopover";
+import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
 import { useTemplateBuilderStore } from "../store/templateBuilderStore";
 
 const VISIBILITY_OPTIONS: ReadonlyArray<SegmentControlOption<boolean>> = [
@@ -26,7 +26,7 @@ export function TemplateBuilderMetadataPanel() {
   const setTemplateDescription = useTemplateBuilderStore((state) => state.setTemplateDescription);
   const setDurationMinutes = useTemplateBuilderStore((state) => state.setDurationMinutes);
   const setIsPublic = useTemplateBuilderStore((state) => state.setIsPublic);
-  const [isBuilderCollapsed, setIsBuilderCollapsed] = useState(false);
+  const [isBuilderCollapsed, setIsBuilderCollapsed] = useState(true);
   const [isDurationPickerOpen, setIsDurationPickerOpen] = useState(false);
   const [durationPickerAnchorElement, setDurationPickerAnchorElement] = useState<HTMLElement | null>(null);
 
@@ -41,8 +41,10 @@ export function TemplateBuilderMetadataPanel() {
   const trimmedTemplateName = templateName.trim();
   const collapsedTemplateName = trimmedTemplateName.length > 0
     ? trimmedTemplateName
-    : "Template name...";
+    : "Name...";
   const hasTemplateName = trimmedTemplateName.length > 0;
+  const visibilityLabel = isPublic ? "Public" : "Private";
+  const VisibilityIcon = isPublic ? LuEye : LuLock;
 
   const handleTemplateNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     setTemplateName(event.target.value);
@@ -86,6 +88,10 @@ export function TemplateBuilderMetadataPanel() {
                 >
                   {collapsedTemplateName}
                 </p>
+                <span className="liquid-pill inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-primary-700">
+                  <VisibilityIcon className="h-3.5 w-3.5" />
+                  <span>{visibilityLabel}</span>
+                </span>
                 <button
                   type="button"
                   onClick={handleBuilderCollapseToggle}
@@ -107,14 +113,14 @@ export function TemplateBuilderMetadataPanel() {
                 <input
                   value={templateName}
                   onChange={handleTemplateNameChange}
-                  placeholder="Template name..."
+                  placeholder="Name..."
                   className="liquid-input min-w-0 flex-1 rounded-xl px-3 py-2 text-sm font-medium sm:max-w-md"
                 />
                 <button
                   type="button"
                   onClick={handleDurationPickerOpen}
                   className="liquid-input flex min-h-10 w-max max-w-full shrink-0 cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-                  aria-label="Edit template duration"
+                  aria-label="Edit duration"
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <LuClock className="h-4 w-4 shrink-0 text-primary" />
@@ -126,12 +132,12 @@ export function TemplateBuilderMetadataPanel() {
                     {durationMinutes} min
                   </span>
                 </button>
-                <div className="order-last w-full shrink-0 sm:order-none sm:w-40 xl:w-44">
+                <div className="order-last w-full shrink-0 sm:order-0 sm:w-40 xl:w-44">
                   <SegmentControl
                     className="w-full"
                     value={isPublic}
                     options={VISIBILITY_OPTIONS}
-                    size={SegmentControlSize.Lg}
+                    size={SegmentControlSize.Md}
                     onChange={handleVisibilityChange}
                   />
                 </div>

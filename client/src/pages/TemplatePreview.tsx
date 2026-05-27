@@ -2,6 +2,7 @@ import { LuArrowLeft, LuPencil, LuPlay, LuRefreshCw } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import { TemplatePreviewPanel } from "./Templates/components/TemplatePreviewPanel";
 import { useTemplatePreviewPage } from "./Templates/hooks/useTemplatePreviewPage";
+import { useStartWorkoutFromTemplate } from "./Templates/hooks/useStartWorkoutFromTemplate";
 
 export default function TemplatePreview() {
   const navigate = useNavigate();
@@ -11,6 +12,11 @@ export default function TemplatePreview() {
     templateError,
     handleReloadTemplate,
   } = useTemplatePreviewPage();
+  const {
+    startingTemplateId,
+    startWorkoutFromTemplate,
+  } = useStartWorkoutFromTemplate();
+  const isStartingTemplate = template ? startingTemplateId === template.id : false;
 
   const handleBackClick = () => {
     navigate("/templates");
@@ -29,7 +35,7 @@ export default function TemplatePreview() {
       return;
     }
 
-    console.log("Start workout from template", template);
+    void startWorkoutFromTemplate(template.id);
   };
 
   return (
@@ -60,11 +66,11 @@ export default function TemplatePreview() {
         <button
           type="button"
           onClick={handleStartTemplateClick}
-          disabled={!template || isLoadingTemplate || Boolean(templateError)}
+          disabled={!template || isLoadingTemplate || Boolean(templateError) || isStartingTemplate}
           className="liquid-primary-btn inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LuPlay className="h-4 w-4" />
-          <span>Start</span>
+          <span>{isStartingTemplate ? "Starting" : "Start"}</span>
         </button>
       </header>
 

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useUserStore } from "@/stores/userStore";
 import { mobileBottomNavItems } from "./navigation";
 
 type MobileBottomNavProps = {
@@ -29,6 +30,12 @@ function getBottomNavIconClassName(): string {
 }
 
 export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
+  const { userLoaded, isAuthenticated } = useUserStore();
+
+  if (!userLoaded || !isAuthenticated) {
+    return null;
+  }
+
   return (
     <nav
       aria-label="Mobile primary navigation"

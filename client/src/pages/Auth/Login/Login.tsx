@@ -17,13 +17,19 @@ export default function Login() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? "").trim();
+    const submittedPassword = String(formData.get("password") ?? "");
+
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await authService.login({
-        email,
-        password,
+        email: submittedEmail,
+        password: submittedPassword,
       });
       const result = response.data;
 
@@ -65,7 +71,7 @@ export default function Login() {
           <h1 className="text-3xl font-extrabold text-primary">Welcome Back</h1>
         </div>
 
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={onSubmit} autoComplete="on">
           <div className="space-y-2">
             <label className="text-sm font-medium text-secondary" htmlFor="email">
               Email

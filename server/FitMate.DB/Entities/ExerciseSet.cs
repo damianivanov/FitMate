@@ -13,7 +13,7 @@ public class ExerciseSet : BaseEntity
     public int? DurationSeconds { get; set; }
     public decimal? DistanceMeters { get; set; }
     public decimal? Rpe { get; set; }
-    public bool IsCompleted { get; set; } = true;
+    public bool IsCompleted { get; set; }
     public bool IsPersonalRecord { get; set; }
     public string? Notes { get; set; }
 

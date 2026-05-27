@@ -22,7 +22,7 @@ type SegmentControlProps<TValue extends string | number | boolean> = {
 
 const segmentSizeClassName: Record<SegmentControlSize, string> = {
   [SegmentControlSize.Sm]: "px-3 py-1.5 text-xs",
-  [SegmentControlSize.Md]: "px-3 py-2 text-xs",
+  [SegmentControlSize.Md]: "px-4 py-3 text-xs",
   [SegmentControlSize.Lg]: "p-4 text-sm",
 };
 

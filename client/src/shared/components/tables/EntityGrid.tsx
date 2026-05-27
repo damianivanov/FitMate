@@ -50,7 +50,9 @@ export default function EntityGrid<TRow extends GridValidRowModel>({
           backgroundColor: "#f8fafcf2",
         },
         "& .MuiDataGrid-cell": {
+          alignItems: "center",
           borderColor: "#1c1c1e0f",
+          display: "flex",
         },
         "& .MuiDataGrid-row:hover": {
           backgroundColor: "#ffffff73",

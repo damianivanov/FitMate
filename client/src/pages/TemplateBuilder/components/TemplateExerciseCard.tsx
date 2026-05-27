@@ -67,6 +67,76 @@ function getCompactSetValueText(value: number | null | undefined): string {
   return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
+type TemplateExerciseCardShellProps = {
+  title: string;
+  children: React.ReactNode;
+  leading?: React.ReactNode;
+  actions?: React.ReactNode;
+  titleClassName?: string;
+  isCollapsed?: boolean;
+  isDragging?: boolean;
+  isDragOverlay?: boolean;
+  widthClassName?: string;
+  bodyClassName?: string;
+  onCollapseClick?: () => void;
+  collapseAriaLabel?: string;
+};
+
+function TemplateExerciseCardShell({
+  title,
+  children,
+  leading,
+  actions,
+  titleClassName = "font-semibold text-foreground",
+  isCollapsed = false,
+  isDragging = false,
+  isDragOverlay = false,
+  widthClassName = "md:w-86",
+  bodyClassName = "space-y-2 px-3 pb-3 pt-2.5 md:px-4 md:pb-4 md:pt-3",
+  onCollapseClick,
+  collapseAriaLabel,
+}: TemplateExerciseCardShellProps) {
+  const shouldShowCollapseButton = Boolean(onCollapseClick);
+
+  return (
+    <article
+      aria-hidden={isDragOverlay ? true : undefined}
+      className={[
+        "liquid-panel w-full rounded-3xl transition-[border-color,box-shadow,opacity,transform] duration-200 ease-out md:shrink-0",
+        widthClassName,
+        isDragOverlay ? "liquid-drag-overlay opacity-100" : "",
+        isDragging && !isDragOverlay ? "opacity-25" : "opacity-100",
+      ].join(" ")}
+    >
+      <div className={`px-3 py-2.5 md:px-4 md:py-3 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
+        <div className="flex items-center">
+          {leading}
+          <div className="min-w-0 flex flex-1 items-center gap-1.5 text-sm">
+            <span className={`truncate ${titleClassName}`}>{title}</span>
+          </div>
+          {actions}
+          {shouldShowCollapseButton ? (
+            <button
+              type="button"
+              onClick={onCollapseClick}
+              className="shrink-0 cursor-pointer rounded-full border-none bg-transparent p-1.5 text-secondary transition hover:bg-white/8 hover:text-primary md:hidden"
+              aria-label={collapseAriaLabel}
+            >
+              <LuChevronDown className={`h-5 w-5 transition-transform ${isCollapsed ? "rotate-0" : "rotate-180"}`} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {!isCollapsed ? (
+        <div className={bodyClassName}>
+          {children}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 export function TemplateExerciseCard({
   exercise,
   exerciseDisplayName,
@@ -283,17 +353,14 @@ export function TemplateExerciseCard({
 
   return (
     <>
-      <article
-        aria-hidden={isDragOverlay ? true : undefined}
-        className={[
-          "liquid-panel w-full rounded-3xl transition-[border-color,box-shadow,opacity,transform] duration-200 ease-out",
-          "md:w-86 md:shrink-0",
-          isDragOverlay ? "liquid-drag-overlay opacity-100" : "",
-          isDragging && !isDragOverlay ? "opacity-25" : "opacity-100",
-        ].join(" ")}
-      >
-        <div className={`px-3 py-2.5 md:px-4 md:py-3 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
-          <div className="flex items-center">
+      <TemplateExerciseCardShell
+        title={exerciseDisplayName}
+        isCollapsed={isCollapsed}
+        isDragging={isDragging}
+        isDragOverlay={isDragOverlay}
+        onCollapseClick={handleExerciseCollapseClick}
+        collapseAriaLabel={isCollapsed ? "Expand exercise card" : "Collapse exercise card"}
+        leading={(
             <button
               type="button"
               ref={(element) => setDragHandleRef?.(element)}
@@ -306,9 +373,8 @@ export function TemplateExerciseCard({
             >
               <LuGripVertical className="h-5 w-5" />
             </button>
-            <div className="min-w-0 flex flex-1 items-center gap-1.5 text-sm">
-              <span className="truncate font-semibold text-foreground">{exerciseDisplayName}</span>
-            </div>
+        )}
+        actions={(
             <div className="relative shrink-0">
               <button
                 ref={menuTriggerRef}
@@ -320,19 +386,8 @@ export function TemplateExerciseCard({
                 <LuEllipsis className="h-5 w-5" />
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleExerciseCollapseClick}
-              className="shrink-0 cursor-pointer rounded-full border-none bg-transparent p-1.5 text-secondary transition hover:bg-red-100/20 hover:text-primary md:hidden"
-              aria-label={isCollapsed ? "Expand exercise card" : "Collapse exercise card"}
-            >
-              <LuChevronDown className={`h-5 w-5 transition-transform ${isCollapsed ? "rotate-0" : "rotate-180"}`} />
-            </button>
-          </div>
-        </div>
-
-        {!isCollapsed ? (
-          <div className="space-y-2 px-3 pb-3 pt-2.5 md:px-4 md:pb-4 md:pt-3">
+        )}
+      >
             {isNotesVisible ? (
               <input
                 value={exercise.notes}
@@ -452,9 +507,7 @@ export function TemplateExerciseCard({
             >
               <LuPlus className="h-5 w-5" />
             </button>
-          </div>
-        ) : null}
-      </article>
+      </TemplateExerciseCardShell>
       {exerciseMenu}
     </>
   );

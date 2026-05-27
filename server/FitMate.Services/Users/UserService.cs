@@ -1,8 +1,9 @@
 using FitMate.Core.Settings;
+using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
-using FitMate.DB.Repositories.User;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace FitMate.Services.Users;
@@ -10,7 +11,7 @@ namespace FitMate.Services.Users;
 public class UserService : IUserService
 {
     private readonly IHttpContextAccessor contextAccessor;
-    private readonly IUserRepository userRepository;
+    private readonly AppDbContext dbContext;
     private readonly ApplicationSettings applicationSettings;
 
     private bool userIdRetrieved;
@@ -24,11 +25,11 @@ public class UserService : IUserService
 
     public UserService(
         IHttpContextAccessor contextAccessor,
-        IUserRepository userRepository,
+        AppDbContext dbContext,
         ApplicationSettings applicationSettings)
     {
         this.contextAccessor = contextAccessor;
-        this.userRepository = userRepository;
+        this.dbContext = dbContext;
         this.applicationSettings = applicationSettings;
     }
 
@@ -84,7 +85,9 @@ public class UserService : IUserService
 
             if (userId.HasValue)
             {
-                cachedUser = userRepository.GetByIdNoTracking(userId.Value);
+                cachedUser = dbContext.Users
+                    .AsNoTracking()
+                    .FirstOrDefault(x => x.Id == userId.Value);
             }
 
             return cachedUser;

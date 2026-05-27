@@ -8,6 +8,7 @@ import {
   getTemplateGroupTypeLabel,
   getTemplateVisibilityLabel,
 } from "../utils/templateDisplay";
+import { useStartWorkoutFromTemplate } from "../hooks/useStartWorkoutFromTemplate";
 
 type TemplatePreviewPanelProps = {
   template: WorkoutTemplate | null;
@@ -54,6 +55,11 @@ export function TemplatePreviewPanel({
   const navigate = useNavigate();
   const isTemplateViewRoute = Boolean(useMatch(TEMPLATE_VIEW_ROUTE_PATTERN));
   const showHeaderActions = !isTemplateViewRoute;
+  const {
+    startingTemplateId,
+    startWorkoutFromTemplate,
+  } = useStartWorkoutFromTemplate();
+  const isStartingTemplate = template ? startingTemplateId === template.id : false;
 
   const handleEditClick = () => {
     if (!template) {
@@ -68,7 +74,7 @@ export function TemplatePreviewPanel({
       return;
     }
 
-    console.log("Start workout from template", template);
+    void startWorkoutFromTemplate(template.id);
   };
 
   if (!template) {
@@ -109,10 +115,11 @@ export function TemplatePreviewPanel({
             <button
               type="button"
               onClick={handleStartClick}
-              className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
+              disabled={isStartingTemplate}
+              className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               <LuPlay className="h-4 w-4" />
-              <span>Start</span>
+              <span>{isStartingTemplate ? "Starting" : "Start"}</span>
             </button>
           ) : null}
           {showHeaderActions ? (

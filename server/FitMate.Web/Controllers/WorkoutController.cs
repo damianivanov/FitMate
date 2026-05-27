@@ -25,6 +25,19 @@ public class WorkoutController : BaseApiController
         this.workoutService = workoutService;
     }
 
+    [HttpGet]
+    public async Task<ActionResult> List()
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var items = await workoutService.ListAsync(userId.Value);
+        return this.ReturnJson(items);
+    }
+
     [HttpGet("previous-sets")]
     public async Task<ActionResult> GetPreviousSets([FromQuery] PreviousExerciseSetsQueryRequest request)
     {
@@ -41,8 +54,39 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(response);
     }
 
+    [HttpGet("{workoutId:long}")]
+    public async Task<ActionResult> GetById(long workoutId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var item = await workoutService.GetByIdAsync(workoutId, userId.Value);
+        if (item == null)
+        {
+            return this.ReturnJsonError("Workout not found.");
+        }
+
+        return this.ReturnJson(item);
+    }
+
+    [HttpPost("start-from-template/{templateId:long}")]
+    public async Task<ActionResult> StartFromTemplate(long templateId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var result = await workoutService.StartFromTemplateAsync(templateId, userId.Value);
+        return this.ReturnJson(result);
+    }
+
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] CreateWorkoutRequest request)
+    public async Task<ActionResult> Create([FromBody] SaveWorkoutRequest request)
     {
         var userId = UserService.LoggedInUserId;
         if (!userId.HasValue)
@@ -52,5 +96,31 @@ public class WorkoutController : BaseApiController
 
         var result = await workoutService.CreateAsync(request, userId.Value);
         return this.ReturnJson(result);
+    }
+
+    [HttpPost("draft")]
+    public async Task<ActionResult> UpsertDraft([FromBody] SaveWorkoutRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var result = await workoutService.UpsertDraftAsync(request, userId.Value);
+        return this.ReturnJson(result);
+    }
+
+    [HttpDelete("{workoutId:long}")]
+    public async Task<ActionResult> Delete(long workoutId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var isDeleted = await workoutService.DeleteAsync(workoutId, userId.Value);
+        return this.ReturnJson(isDeleted);
     }
 }

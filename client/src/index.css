@@ -572,6 +572,10 @@ textarea { resize: none; }
     inset 0 0 0 1px rgba(104, 93, 178, 0.16);
 }
 
+.liquid-modal-surface:has([data-dropdown-open="true"]) {
+  overflow: visible !important;
+}
+
 .liquid-info-surface {
   border: 1px solid var(--accent-border);
   background: var(--accent-soft);

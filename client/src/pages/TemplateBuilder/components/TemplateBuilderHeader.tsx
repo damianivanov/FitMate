@@ -24,24 +24,28 @@ export function TemplateBuilderHeader({
   }, [navigate]);
 
   return (
-    <header className="liquid-page-header px-4 py-3 md:px-8 md:py-5">
+    <header className="liquid-page-header px-4 py-2 md:px-8 md:py-3">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={handleBackClick}
-          className="liquid-pill flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium text-primary-700 transition md:h-10 md:gap-2 md:px-4"
+          className="liquid-pill flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition md:h-9 md:w-9"
+          aria-label="Back to templates"
         >
           <LuArrowLeft className="h-4 w-4" />
-          <span>Back</span>
         </button>
-        <p className="hidden flex-1 text-lg text-white md:block">
-          Build reusable templates with grouped exercises and polished set cards.
-        </p>
+
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-center text-2xl font-extrabold tracking-tight text-foreground md:text-xl">
+            New Template
+          </h1>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onDiscardClick}
-            className="liquid-pill h-9 cursor-pointer rounded-full px-3 text-xs font-semibold text-primary-700 transition md:h-10 md:px-4 md:text-sm"
+            className="liquid-pill h-9 cursor-pointer rounded-full px-4 text-sm font-semibold text-primary-700 transition"
           >
             Discard
           </button>
@@ -49,7 +53,7 @@ export function TemplateBuilderHeader({
             type="button"
             onClick={onSaveTemplateClick}
             disabled={saveDisabled}
-            className="liquid-primary-btn h-9 cursor-pointer rounded-full px-4 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60 md:h-10 md:px-5 md:text-sm"
+            className="liquid-primary-btn h-10 cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSavingTemplate ? "Saving..." : saveTemplateLabel}
           </button>

@@ -1,0 +1,477 @@
+import { createLocalId, normalizeUtcIsoString } from "@/lib/helpers";
+import {
+  ExerciseGroupType,
+  ExerciseSetType,
+  type CreateWorkoutExerciseRequest,
+  type CreateWorkoutSetRequest,
+  type ExerciseLookupModel,
+  type PreviousExerciseSet,
+  type SaveWorkoutRequest,
+  type Workout,
+  type WorkoutExerciseGroup,
+  type WorkoutTemplate,
+  type WorkoutTemplateExercise,
+  type WorkoutTemplateExerciseGroup,
+  type WorkoutTemplateExerciseSet,
+} from "@/types";
+
+export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds";
+
+export type WorkoutSetDraft = CreateWorkoutSetRequest & {
+  id: string;
+  templateSetId?: number;
+  orderIndex: number;
+  restSeconds?: number;
+  notes: string;
+  isCompleted: boolean;
+};
+
+export type WorkoutExerciseDraft = Omit<CreateWorkoutExerciseRequest, "notes" | "sets"> & {
+  id: string;
+  templateExerciseId?: number;
+  orderIndex: number;
+  exerciseName: string;
+  exerciseImageUrl?: string;
+  notes: string;
+  sets: WorkoutSetDraft[];
+};
+
+export type WorkoutDraft = Omit<SaveWorkoutRequest, "exercises" | "notes" | "startedAt" | "title"> & {
+  workoutTemplateId?: number;
+  templateName?: string;
+  title: string;
+  startedAt?: string;
+  notes: string;
+  exercises: WorkoutExerciseDraft[];
+};
+
+export type WorkoutExerciseGroupDraft = Pick<
+  WorkoutTemplateExerciseGroup,
+  "sortOrder" | "groupType" | "restBetweenExercisesSeconds" | "restAfterGroupSeconds" | "rounds"
+> & {
+  id: string;
+  exercises: WorkoutExerciseDraft[];
+};
+
+export type WorkoutSummary = {
+  exerciseCount: number;
+  totalSetCount: number;
+  completedSetCount: number;
+  totalVolumeKg: number | null;
+};
+
+function normalizeMetricValue(value: number | null | undefined): number | undefined {
+  return value == null ? undefined : value;
+}
+
+function normalizeOptionalText(value: string): string | undefined {
+  const trimmedValue = value.trim();
+  return trimmedValue ? trimmedValue : undefined;
+}
+
+function hasMainMetric(set: WorkoutSetDraft): boolean {
+  return (
+    set.weightKg !== undefined
+    || set.reps !== undefined
+    || set.durationSeconds !== undefined
+    || set.distanceMeters !== undefined
+  );
+}
+
+function buildSetDraft(
+  set: WorkoutTemplateExerciseSet,
+  setIndex: number,
+): WorkoutSetDraft {
+  return {
+    id: `template-set-${set.id}`,
+    templateSetId: set.id,
+    orderIndex: setIndex + 1,
+    setType: ExerciseSetType.Working,
+    weightKg: normalizeMetricValue(set.weightKg),
+    reps: normalizeMetricValue(set.reps),
+    durationSeconds: normalizeMetricValue(set.durationSeconds),
+    distanceMeters: normalizeMetricValue(set.distanceMeters),
+    rpe: normalizeMetricValue(set.rpe),
+    restSeconds: normalizeMetricValue(set.restSeconds),
+    notes: set.notes ?? "",
+    isCompleted: false,
+  };
+}
+
+function isGroupedExerciseType(groupType: ExerciseGroupType): boolean {
+  return groupType === ExerciseGroupType.Superset || groupType === ExerciseGroupType.Circuit;
+}
+
+function buildExerciseDraft(
+  exercise: WorkoutTemplateExercise,
+  group: WorkoutTemplateExerciseGroup,
+  orderIndex: number,
+): WorkoutExerciseDraft {
+  return {
+    id: `template-exercise-${exercise.id}`,
+    templateExerciseId: exercise.id,
+    groupType: group.groupType,
+    clientGroupId: isGroupedExerciseType(group.groupType) ? group.id : undefined,
+    exerciseId: exercise.exerciseId,
+    orderIndex,
+    exerciseName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
+    exerciseImageUrl: exercise.exerciseImageUrl,
+    notes: exercise.notes ?? "",
+    sets: exercise.sets
+      .slice()
+      .sort((left, right) => left.orderIndex - right.orderIndex)
+      .map(buildSetDraft),
+  };
+}
+
+export function buildEmptyWorkoutDraft(startedAt?: Date): WorkoutDraft {
+  return {
+    title: "New Workout",
+    notes: "",
+    startedAt: startedAt?.toISOString(),
+    exercises: [],
+  };
+}
+
+export function buildWorkoutDraftFromTemplate(
+  template: WorkoutTemplate,
+  startedAt?: Date,
+): WorkoutDraft {
+  let exerciseOrderIndex = 0;
+
+  return {
+    workoutTemplateId: template.id,
+    templateName: template.name,
+    title: template.name,
+    notes: "",
+    startedAt: startedAt?.toISOString(),
+    exercises: template.groups
+      .slice()
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .flatMap((group) =>
+        group.exercises
+          .slice()
+          .sort((left, right) => left.orderIndex - right.orderIndex)
+          .map((exercise) => buildExerciseDraft(exercise, group, ++exerciseOrderIndex)),
+      ),
+  };
+}
+
+export function buildWorkoutDraftFromWorkout(workout: Workout): WorkoutDraft {
+  let exerciseOrderIndex = 0;
+
+  return {
+    workoutId: workout.id,
+    workoutTemplateId: workout.workoutTemplateId,
+    templateName: workout.templateName,
+    title: workout.title,
+    startedAt: normalizeUtcIsoString(workout.startedAt),
+    notes: workout.notes ?? "",
+    exercises: workout.groups
+      .slice()
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .flatMap((group) =>
+        group.exercises
+          .slice()
+          .sort((left, right) => left.orderIndex - right.orderIndex)
+          .map((exercise) => ({
+            id: `workout-exercise-${exercise.id}`,
+            groupType: group.groupType,
+            clientGroupId: getWorkoutGroupClientId(group),
+            exerciseId: exercise.exerciseId,
+            orderIndex: ++exerciseOrderIndex,
+            exerciseName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
+            exerciseImageUrl: exercise.exerciseImageUrl,
+            notes: exercise.notes ?? "",
+            sets: exercise.sets
+              .slice()
+              .sort((left, right) => left.orderIndex - right.orderIndex)
+              .map((set) => ({
+                id: `workout-set-${set.id}`,
+                orderIndex: set.orderIndex,
+                setType: set.setType,
+                weightKg: normalizeMetricValue(set.weightKg),
+                reps: normalizeMetricValue(set.reps),
+                durationSeconds: normalizeMetricValue(set.durationSeconds),
+                distanceMeters: normalizeMetricValue(set.distanceMeters),
+                rpe: normalizeMetricValue(set.rpe),
+                notes: set.notes ?? "",
+                isCompleted: set.isCompleted,
+              })),
+          })),
+      ),
+  };
+}
+
+export function buildWorkoutExerciseGroups(
+  draft: WorkoutDraft,
+): WorkoutExerciseGroupDraft[] {
+  const groups: WorkoutExerciseGroupDraft[] = [];
+  const groupedByClientGroupId = new Map<string, WorkoutExerciseGroupDraft>();
+
+  draft.exercises
+    .slice()
+    .sort((left, right) => left.orderIndex - right.orderIndex)
+    .forEach((exercise) => {
+      const isGrouped = isGroupedExerciseType(exercise.groupType) && exercise.clientGroupId !== undefined;
+      if (!isGrouped) {
+        groups.push({
+          id: `straight-${exercise.id}`,
+          sortOrder: groups.length + 1,
+          groupType: ExerciseGroupType.Straight,
+          rounds: 1,
+          exercises: [exercise],
+        });
+        return;
+      }
+
+      const groupKey = `${exercise.groupType}-${exercise.clientGroupId}`;
+      const existingGroup = groupedByClientGroupId.get(groupKey);
+      if (existingGroup) {
+        existingGroup.exercises.push(exercise);
+        return;
+      }
+
+      const nextGroup: WorkoutExerciseGroupDraft = {
+        id: `group-${groupKey}`,
+        sortOrder: groups.length + 1,
+        groupType: exercise.groupType,
+        rounds: 1,
+        exercises: [exercise],
+      };
+      groupedByClientGroupId.set(groupKey, nextGroup);
+      groups.push(nextGroup);
+    });
+
+  return groups.map((group, index) => ({
+    ...group,
+    sortOrder: index + 1,
+  }));
+}
+
+function getWorkoutGroupClientId(group: WorkoutExerciseGroup): number | undefined {
+  return isGroupedExerciseType(group.groupType) ? group.id : undefined;
+}
+
+export function createWorkoutSetDraft(exercise: WorkoutExerciseDraft): WorkoutSetDraft {
+  const latestSet = exercise.sets[exercise.sets.length - 1];
+  const nextOrderIndex = exercise.sets.length + 1;
+
+  if (!latestSet) {
+    return {
+      id: createLocalId("workout-set"),
+      orderIndex: nextOrderIndex,
+      setType: ExerciseSetType.Working,
+      notes: "",
+      isCompleted: false,
+    };
+  }
+
+  return {
+    ...latestSet,
+    id: createLocalId("workout-set"),
+    templateSetId: undefined,
+    orderIndex: nextOrderIndex,
+    notes: "",
+    isCompleted: false,
+  };
+}
+
+export function createWorkoutExerciseDraftFromLookup(
+  exercise: ExerciseLookupModel,
+  orderIndex: number,
+): WorkoutExerciseDraft {
+  return {
+    id: createLocalId("workout-exercise"),
+    groupType: ExerciseGroupType.Straight,
+    orderIndex,
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    exerciseImageUrl: exercise.imageUrl ?? undefined,
+    notes: "",
+    sets: [
+      {
+        id: createLocalId("workout-set"),
+        orderIndex: 1,
+        setType: ExerciseSetType.Working,
+        reps: 8,
+        notes: "",
+        isCompleted: false,
+      },
+    ],
+  };
+}
+
+export function normalizeWorkoutExerciseOrderIndexes(
+  exercises: readonly WorkoutExerciseDraft[],
+): WorkoutExerciseDraft[] {
+  return exercises.map((exercise, index) => ({
+    ...exercise,
+    orderIndex: index + 1,
+  }));
+}
+
+export function calculateWorkoutSummary(draft: WorkoutDraft): WorkoutSummary {
+  const sets = draft.exercises.flatMap((exercise) => exercise.sets);
+  const completedSets = sets.filter((set) => set.isCompleted);
+  let totalVolumeKg = 0;
+  let hasTotalVolume = false;
+
+  completedSets.forEach((set) => {
+    if (set.weightKg === undefined || set.reps === undefined) {
+      return;
+    }
+
+    totalVolumeKg += set.weightKg * set.reps;
+    hasTotalVolume = true;
+  });
+
+  return {
+    exerciseCount: draft.exercises.length,
+    totalSetCount: sets.length,
+    completedSetCount: completedSets.length,
+    totalVolumeKg: hasTotalVolume ? Math.round(totalVolumeKg * 100) / 100 : null,
+  };
+}
+
+export function validateWorkoutDraft(draft: WorkoutDraft): string | null {
+  if (!draft.title.trim()) {
+    return "Workout title is required.";
+  }
+
+  if (!draft.exercises.length) {
+    return "At least one exercise is required.";
+  }
+
+  for (const exercise of draft.exercises) {
+    const completedSets = exercise.sets.filter((set) => set.isCompleted);
+    if (!completedSets.length) {
+      return `Exercise #${exercise.orderIndex} needs at least one completed set.`;
+    }
+
+    for (const set of completedSets) {
+      if (set.weightKg !== undefined && set.weightKg < 0) {
+        return `Exercise #${exercise.orderIndex} weight cannot be negative.`;
+      }
+
+      if (set.reps !== undefined && set.reps <= 0) {
+        return `Exercise #${exercise.orderIndex} reps must be greater than zero.`;
+      }
+
+      if (set.durationSeconds !== undefined && set.durationSeconds <= 0) {
+        return `Exercise #${exercise.orderIndex} duration must be greater than zero.`;
+      }
+
+      if (set.distanceMeters !== undefined && set.distanceMeters <= 0) {
+        return `Exercise #${exercise.orderIndex} distance must be greater than zero.`;
+      }
+
+      if (set.rpe !== undefined && (set.rpe < 0 || set.rpe > 10)) {
+        return `Exercise #${exercise.orderIndex} RPE must be between 0 and 10.`;
+      }
+
+      if (!hasMainMetric(set)) {
+        return `Exercise #${exercise.orderIndex} set ${set.orderIndex} needs a metric.`;
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildCreateWorkoutSetRequest(set: WorkoutSetDraft): CreateWorkoutSetRequest {
+  return {
+    setType: set.setType,
+    isCompleted: set.isCompleted,
+    weightKg: set.weightKg,
+    reps: set.reps,
+    durationSeconds: set.durationSeconds,
+    distanceMeters: set.distanceMeters,
+    rpe: set.rpe,
+    notes: normalizeOptionalText(set.notes),
+  };
+}
+
+export function buildWorkoutPayload(
+  draft: WorkoutDraft,
+  finishedAt?: Date,
+): SaveWorkoutRequest {
+  return {
+    workoutId: draft.workoutId,
+    workoutTemplateId: draft.workoutTemplateId,
+    title: draft.title.trim(),
+    startedAt: draft.startedAt ? normalizeUtcIsoString(draft.startedAt) : undefined,
+    finishedAt: finishedAt?.toISOString(),
+    notes: normalizeOptionalText(draft.notes),
+    exercises: draft.exercises.map((exercise) => ({
+      groupType: exercise.groupType,
+      clientGroupId: exercise.clientGroupId,
+      orderIndex: exercise.orderIndex,
+      exerciseId: exercise.exerciseId,
+      notes: normalizeOptionalText(exercise.notes),
+      sets: exercise.sets.map(buildCreateWorkoutSetRequest),
+    })),
+  };
+}
+
+export function formatElapsedTime(totalSeconds: number): string {
+  const boundedSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(boundedSeconds / 3600);
+  const minutes = Math.floor((boundedSeconds % 3600) / 60);
+  const seconds = boundedSeconds % 60;
+  const paddedMinutes = hours > 0 ? minutes.toString().padStart(2, "0") : String(minutes);
+  const paddedSeconds = seconds.toString().padStart(2, "0");
+
+  return hours > 0
+    ? `${hours}:${paddedMinutes}:${paddedSeconds}`
+    : `${paddedMinutes}:${paddedSeconds}`;
+}
+
+export function formatMetricValue(value: number | null | undefined): string {
+  if (value == null) {
+    return "";
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+export function formatPreviousSetLabel(previousSet: PreviousExerciseSet | undefined): string | null {
+  if (!previousSet) {
+    return null;
+  }
+
+  const weight = formatMetricValue(previousSet.weightKg);
+  const reps = formatMetricValue(previousSet.reps);
+  const duration = formatMetricValue(previousSet.durationSeconds);
+  const distance = formatMetricValue(previousSet.distanceMeters);
+
+  if (weight && reps) {
+    return `${weight} kg x ${reps}`;
+  }
+
+  if (reps) {
+    return `${reps} reps`;
+  }
+
+  if (duration) {
+    return `${duration}s`;
+  }
+
+  if (distance) {
+    return `${distance} m`;
+  }
+
+  return null;
+}
+
+export function getCompactSetValueText(value: number | null | undefined): string {
+  if (value == null) {
+    return "-";
+  }
+
+  return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+export function isWorkoutExerciseDurationEnabled(exercise: WorkoutExerciseDraft): boolean {
+  return exercise.sets.some((set) => set.durationSeconds !== undefined && set.reps === undefined);
+}
