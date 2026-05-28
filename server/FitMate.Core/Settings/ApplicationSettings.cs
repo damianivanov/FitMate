@@ -26,8 +26,8 @@ public class ApplicationSettings
     public string RefreshTokenAudience => GetSetting("RefreshToken:Audience") ?? JwtAudience;
     public int RefreshTokenExpirationDays => ParseOrDefault(GetSetting("RefreshToken:ExpirationDays"), 7);
 
-    public string ApplicationUrl => GetSetting("Application:Url") ?? "http://localhost:5165";
-    public string ClientUrl => GetSetting("Application:ClientUrl") ?? "http://localhost:5173";
+    public string ApplicationUrl => GetSetting("Application:Url") ?? "http://localhost:5265";
+    public string ClientUrl => GetSetting("Application:ClientUrl") ?? "http://localhost:5273";
 
     public string AdminEmail => GetSetting("AdminUser:Email") ?? string.Empty;
     public string AdminPassword => GetSetting("AdminUser:Password") ?? string.Empty;

@@ -7,6 +7,7 @@ import {
 } from "@/lib/workoutSessionStorage";
 import { workoutService } from "@/services/workoutService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
+import { getExerciseDragOrderIndexes } from "@/shared/components";
 import { ExerciseGroupType, type ExerciseLookupModel, type ExerciseSetType, type PreviousExerciseSets } from "@/types";
 import {
   buildEmptyWorkoutDraft,
@@ -100,6 +101,25 @@ function reorderWorkoutSetsForDrag(
   return normalizeSetOrderIndexes(moveArrayItem(sets, activeIndex, overIndex));
 }
 
+function reorderWorkoutExercisesForDrag(
+  exercises: readonly WorkoutExerciseDraft[],
+  activeExerciseId: string,
+  overExerciseId: string,
+): WorkoutExerciseDraft[] {
+  const activeIndex = exercises.findIndex((exercise) => exercise.id === activeExerciseId);
+  const overIndex = exercises.findIndex((exercise) => exercise.id === overExerciseId);
+  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+    return exercises.slice();
+  }
+
+  const groupKeys = exercises.map((exercise) => ({
+    groupId: exercise.clientGroupId ?? null,
+    groupType: exercise.groupType,
+  }));
+  const nextIndexes = getExerciseDragOrderIndexes(groupKeys, activeIndex, overIndex);
+  return normalizeWorkoutExerciseOrderIndexes(nextIndexes.map((index) => exercises[index]));
+}
+
 function setExerciseDurationMode(
   exercise: WorkoutExerciseDraft,
   isDurationEnabled: boolean,
@@ -147,6 +167,7 @@ export function useTemplateWorkoutBuilderPage() {
   const [quickSetPopoverAnchorElement, setQuickSetPopoverAnchorElement] = useState<HTMLElement | null>(null);
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [groupAddContext, setGroupAddContext] = useState<GroupAddContext | null>(null);
+  const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<string>>(() => new Set());
   const draftRef = useRef<WorkoutDraft | null>(null);
   const draftSavePromiseRef = useRef<Promise<void> | null>(null);
   const isDraftSaveInFlightRef = useRef(false);
@@ -867,6 +888,45 @@ export function useTemplateWorkoutBuilderPage() {
     );
   }, []);
 
+  const handleExerciseReorder = useCallback((activeExerciseId: string, overExerciseId: string) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            exercises: reorderWorkoutExercisesForDrag(current.exercises, activeExerciseId, overExerciseId),
+          }
+        : current,
+    );
+  }, []);
+
+  const handleToggleExerciseCollapse = useCallback((exerciseDraftId: string) => {
+    setCollapsedExerciseIds((current) => {
+      const next = new Set(current);
+      if (next.has(exerciseDraftId)) {
+        next.delete(exerciseDraftId);
+      } else {
+        next.add(exerciseDraftId);
+      }
+
+      return next;
+    });
+  }, []);
+
+  const handleSetGroupCollapse = useCallback((exerciseDraftIds: string[], collapsed: boolean) => {
+    setCollapsedExerciseIds((current) => {
+      const next = new Set(current);
+      exerciseDraftIds.forEach((exerciseDraftId) => {
+        if (collapsed) {
+          next.add(exerciseDraftId);
+        } else {
+          next.delete(exerciseDraftId);
+        }
+      });
+
+      return next;
+    });
+  }, []);
+
   const handleQuickSetPopoverOpen = useCallback((
     exerciseDraftId: string,
     setDraftId: string,
@@ -981,6 +1041,7 @@ export function useTemplateWorkoutBuilderPage() {
     activeQuickSetPopoverContext,
     quickSetPopoverAnchorElement,
     isAddExerciseModalOpen,
+    collapsedExerciseIds,
     handleBackClick,
     handleCancelDeleteWorkout,
     handleConfirmDeleteWorkout,
@@ -1001,6 +1062,9 @@ export function useTemplateWorkoutBuilderPage() {
     handleAddSet,
     handleRemoveSet,
     handleSetReorder,
+    handleExerciseReorder,
+    handleToggleExerciseCollapse,
+    handleSetGroupCollapse,
     handleQuickSetPopoverOpen,
     handleQuickSetPopoverClose,
     handleQuickSetValueChange,

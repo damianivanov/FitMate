@@ -80,7 +80,7 @@ export default function Workouts() {
                 className="liquid-primary-btn mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
               >
                 <LuPlus className="h-4 w-4" />
-                <span>New Workout</span>
+                <span>New workout</span>
               </button>
             </div>
           )

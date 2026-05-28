@@ -149,11 +149,15 @@ public class ExerciseService : IExerciseService
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
 
         var normalizedSearch = request.Search?.Trim();
-        var muscleGroupId = request.MuscleGroupId > 0 ? request.MuscleGroupId : null;
+        var muscleGroupIds = (request.MuscleGroupIds ?? new List<long>())
+            .Where(id => id > 0)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToArray();
         var skip = request.Skip < 0 ? 0 : request.Skip;
         var take = request.Take <= 0 ? 30 : Math.Min(request.Take, 100);
         var cacheVersion = GetLookupCacheVersion();
-        var cacheKey = BuildLookupCacheKey(cacheVersion, userId, normalizedSearch, muscleGroupId, skip, take);
+        var cacheKey = BuildLookupCacheKey(cacheVersion, userId, normalizedSearch, muscleGroupIds, skip, take);
 
         if (memoryCache.TryGetValue<IReadOnlyList<ExerciseLookupModel>>(cacheKey, out var cachedItems) && cachedItems != null)
         {
@@ -164,10 +168,11 @@ public class ExerciseService : IExerciseService
             .AsNoTracking()
             .AsQueryable();
 
-        if (muscleGroupId.HasValue)
+        if (muscleGroupIds.Length > 0)
         {
             query = query.Where(x =>
-                x.PrimaryMuscleGroupId == muscleGroupId.Value || x.SecondaryMuscleGroupId == muscleGroupId.Value);
+                muscleGroupIds.Contains(x.PrimaryMuscleGroupId)
+                || (x.SecondaryMuscleGroupId != null && muscleGroupIds.Contains(x.SecondaryMuscleGroupId.Value)));
         }
 
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
@@ -316,7 +321,7 @@ public class ExerciseService : IExerciseService
         long version,
         long userId,
         string? search,
-        long? muscleGroupId,
+        IReadOnlyList<long> muscleGroupIds,
         int skip,
         int take)
     {
@@ -324,9 +329,11 @@ public class ExerciseService : IExerciseService
             ? "_"
             : search.Trim().ToLowerInvariant();
 
-        var normalizedMuscleGroup = muscleGroupId?.ToString() ?? "all";
+        var normalizedMuscleGroups = muscleGroupIds.Count == 0
+            ? "all"
+            : string.Join(",", muscleGroupIds);
         return
-            $"{LookupCacheKeyPrefix}:v{version}:user:{userId}:mg:{normalizedMuscleGroup}:skip:{skip}:take:{take}:q:{normalizedSearch}";
+            $"{LookupCacheKeyPrefix}:v{version}:user:{userId}:mg:{normalizedMuscleGroups}:skip:{skip}:take:{take}:q:{normalizedSearch}";
     }
 
     private static long GetLookupCacheVersion()

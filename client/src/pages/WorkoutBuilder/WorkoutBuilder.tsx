@@ -1,18 +1,34 @@
-import { LuArrowLeft, LuPlus, LuRefreshCw } from "react-icons/lu";
-import { DeleteConfirmationModal } from "@/shared/components";
+import { useMemo } from "react";
+import { LuArrowLeft, LuRefreshCw } from "react-icons/lu";
+import {
+  DeleteConfirmationModal,
+  ExerciseAddModal,
+  ExerciseBoard,
+  type ExerciseBuilderCallbacks,
+  type ExerciseBuilderCapabilities,
+  type ExerciseBuilderExerciseVM,
+} from "@/shared/components";
 import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
 import { RepsSetPickerPopover } from "@/shared/components/WorkoutSetPickers/RepsSetPickerPopover";
 import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/WeightSetPickerPopover";
-import { WorkoutAddExerciseModal } from "./components/WorkoutAddExerciseModal";
-import { WorkoutExerciseGroupCard } from "./components/WorkoutExerciseGroupCard";
 import { WorkoutSessionHeader } from "./components/WorkoutSessionHeader";
 import { WorkoutSessionSummary } from "./components/WorkoutSessionSummary";
 import { useTemplateWorkoutBuilderPage } from "./hooks/useTemplateWorkoutBuilderPage";
+import { isWorkoutExerciseDurationEnabled } from "./utils/workoutDraft";
+
+const WORKOUT_CAPABILITIES: ExerciseBuilderCapabilities = {
+  showRestColumn: false,
+  showCompletionCheckbox: true,
+  showSetTypeDropdown: true,
+  showPreviousColumn: true,
+  allowCollapse: true,
+  allowExerciseDnd: true,
+  allowSetDnd: true,
+};
 
 export default function WorkoutBuilder() {
   const {
     draft,
-    groups,
     summary,
     elapsedSeconds,
     isWorkoutStarted,
@@ -27,6 +43,7 @@ export default function WorkoutBuilder() {
     activeQuickSetPopoverContext,
     quickSetPopoverAnchorElement,
     isAddExerciseModalOpen,
+    collapsedExerciseIds,
     handleBackClick,
     handleCancelDeleteWorkout,
     handleConfirmDeleteWorkout,
@@ -47,6 +64,9 @@ export default function WorkoutBuilder() {
     handleAddSet,
     handleRemoveSet,
     handleSetReorder,
+    handleExerciseReorder,
+    handleToggleExerciseCollapse,
+    handleSetGroupCollapse,
     handleQuickSetPopoverOpen,
     handleQuickSetPopoverClose,
     handleQuickSetValueChange,
@@ -54,6 +74,76 @@ export default function WorkoutBuilder() {
     handleStartWorkout,
     handleFinishWorkout,
   } = useTemplateWorkoutBuilderPage();
+
+  const exerciseVms = useMemo<ExerciseBuilderExerciseVM[]>(() => {
+    if (!draft) {
+      return [];
+    }
+
+    return draft.exercises.map((exercise) => {
+      const previousSets = previousSetsByExerciseId[exercise.exerciseId];
+
+      return {
+        id: exercise.id,
+        exerciseId: exercise.exerciseId,
+        displayName: exercise.exerciseName,
+        groupId: exercise.clientGroupId ?? null,
+        groupType: exercise.groupType,
+        notes: exercise.notes,
+        collapsed: collapsedExerciseIds.has(exercise.id),
+        isDurationEnabled: isWorkoutExerciseDurationEnabled(exercise),
+        sets: exercise.sets.map((set, index) => ({
+          id: set.id,
+          weightKg: set.weightKg,
+          reps: set.reps,
+          durationSeconds: set.durationSeconds,
+          setType: set.setType,
+          isCompleted: set.isCompleted,
+          previousSet: previousSets?.sets[index],
+        })),
+      };
+    });
+  }, [draft, previousSetsByExerciseId, collapsedExerciseIds]);
+
+  const callbacks = useMemo<ExerciseBuilderCallbacks>(() => ({
+    onOpenQuickSetPopover: (exerciseId, setId, field, anchorElement) => {
+      if (field === "restSeconds") {
+        return;
+      }
+
+      handleQuickSetPopoverOpen(exerciseId, setId, field, anchorElement);
+    },
+    onExerciseNotesChange: handleExerciseNotesChange,
+    onExerciseMetricModeChange: handleExerciseMetricModeChange,
+    onExerciseGroupingChange: handleExerciseGroupingChange,
+    onRemoveExercise: handleRemoveExercise,
+    onAddSet: handleAddSet,
+    onRemoveSet: handleRemoveSet,
+    onAddExerciseClick: handleAddExerciseModalOpen,
+    onAddExerciseToGroup: handleAddExerciseToGroup,
+    onToggleExerciseCollapse: handleToggleExerciseCollapse,
+    onSetGroupCollapse: handleSetGroupCollapse,
+    onExerciseReorder: handleExerciseReorder,
+    onSetReorder: handleSetReorder,
+    onSetCompletedToggle: handleSetCompletedToggle,
+    onSetTypeChange: handleSetTypeChange,
+  }), [
+    handleAddExerciseModalOpen,
+    handleAddExerciseToGroup,
+    handleAddSet,
+    handleExerciseGroupingChange,
+    handleExerciseMetricModeChange,
+    handleExerciseNotesChange,
+    handleExerciseReorder,
+    handleQuickSetPopoverOpen,
+    handleRemoveExercise,
+    handleRemoveSet,
+    handleSetCompletedToggle,
+    handleSetGroupCollapse,
+    handleSetReorder,
+    handleSetTypeChange,
+    handleToggleExerciseCollapse,
+  ]);
 
   if (!draft || !summary) {
     return (
@@ -68,7 +158,7 @@ export default function WorkoutBuilder() {
             <LuArrowLeft className="h-4 w-4" />
           </button>
           <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-foreground md:text-2xl">
-            New Workout
+            New workout
           </h1>
         </header>
 
@@ -127,67 +217,12 @@ export default function WorkoutBuilder() {
               onNotesChange={handleWorkoutNotesChange}
             />
 
-            <div className="mt-5 py-5 md:px-2 md:py-5">
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-5">
-                <div className="border-t border-gray-100/10" />
-                <div className="text-center">
-                  <div className="text-sm font-semibold uppercase tracking-[0.22em] text-muted md:text-lg">
-                    Exercises
-                  </div>
-                  <p className="mt-0.5 max-w-3xs text-xs text-secondary md:max-w-100">
-                    Add exercises from your library and configure your sets.
-                  </p>
-                </div>
-                <div className="border-t border-gray-100/10" />
-              </div>
-            </div>
-
-            <div className="flex flex-col items-stretch gap-4 md:flex-row md:flex-wrap md:items-start">
-              {!groups.length ? (
-                <button
-                  type="button"
-                  onClick={handleAddExerciseModalOpen}
-                  className="liquid-template-dashed flex w-full cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-700 transition"
-                >
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-200 text-primary-700">
-                    <LuPlus className="h-3.5 w-3.5" />
-                  </span>
-                  <span>Add Exercise</span>
-                </button>
-              ) : null}
-
-              {groups.map((group) => (
-                <WorkoutExerciseGroupCard
-                  key={group.id}
-                  group={group}
-                  previousSetsByExerciseId={previousSetsByExerciseId}
-                  onExerciseNotesChange={handleExerciseNotesChange}
-                  onExerciseMetricModeChange={handleExerciseMetricModeChange}
-                  onExerciseGroupingChange={handleExerciseGroupingChange}
-                  onAddExerciseToGroup={handleAddExerciseToGroup}
-                  onRemoveExercise={handleRemoveExercise}
-                  onSetTypeChange={handleSetTypeChange}
-                  onSetCompletedToggle={handleSetCompletedToggle}
-                  onAddSet={handleAddSet}
-                  onRemoveSet={handleRemoveSet}
-                  onSetReorder={handleSetReorder}
-                  onOpenQuickSetPopover={handleQuickSetPopoverOpen}
-                />
-              ))}
-            </div>
-
-            {groups.length ? (
-              <button
-                type="button"
-                onClick={handleAddExerciseModalOpen}
-                className="liquid-template-dashed mt-1 hidden w-full cursor-pointer items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary-700 transition sm:flex"
-              >
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-200 text-primary-700">
-                  <LuPlus className="h-3.5 w-3.5" />
-                </span>
-                <span>Add Exercise</span>
-              </button>
-            ) : null}
+            <ExerciseBoard
+              exercises={exerciseVms}
+              capabilities={WORKOUT_CAPABILITIES}
+              callbacks={callbacks}
+              isInteractionLocked={isAddExerciseModalOpen || activeQuickSetPopoverContext !== null}
+            />
           </section>
         </div>
       </div>
@@ -230,7 +265,7 @@ export default function WorkoutBuilder() {
         </>
       ) : null}
 
-      <WorkoutAddExerciseModal
+      <ExerciseAddModal
         isOpen={isAddExerciseModalOpen}
         selectedExerciseIds={draft.exercises.map((exercise) => exercise.exerciseId)}
         onAddExercise={handleAddExercise}

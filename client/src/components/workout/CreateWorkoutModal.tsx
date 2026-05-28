@@ -100,7 +100,7 @@ export default function CreateWorkoutModal({
     <Modal
       isOpen={open}
       onClose={onClose}
-      title="Start New Workout"
+      title="Start New workout"
       maxWidth="md"
     >
       {/* Title */}

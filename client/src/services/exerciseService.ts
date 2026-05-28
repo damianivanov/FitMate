@@ -11,7 +11,10 @@ import type {
 
 export const exerciseService = {
   async getAll(params: ExerciseLookupRequest) {
-    return api.get<JsonData<ExerciseLookupModel[]>>("exercises/get-all", { params });
+    return api.get<JsonData<ExerciseLookupModel[]>>("exercises/get-all", {
+      params,
+      paramsSerializer: { indexes: null },
+    });
   },
 
   async getByIds(exerciseIds: number[]) {

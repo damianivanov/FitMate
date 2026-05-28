@@ -80,9 +80,13 @@ export function ExerciseLookupPicker({
 }: ExerciseLookupPickerProps) {
   const currentUserId = useUserStore((state) => state.user.id);
   const muscleGroupId = muscleGroupFilterId ? Number(muscleGroupFilterId) : undefined;
+  const muscleGroupIds = useMemo(
+    () => (muscleGroupId ? [muscleGroupId] : undefined),
+    [muscleGroupId],
+  );
   const { options, isLoading, error, reload, hasQuery } = useExerciseLookup({
     search: searchValue,
-    muscleGroupId,
+    muscleGroupIds,
     enabled,
     take,
   });

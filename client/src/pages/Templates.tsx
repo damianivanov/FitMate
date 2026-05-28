@@ -73,7 +73,7 @@ export default function Templates() {
             </div>
           ) : (
             <div className="liquid-panel rounded-2xl px-5 py-10 text-center">
-              <p className="text-base font-bold text-foreground">No templates yet</p>
+              <p className="italic text-gray-100/70">No templates yet</p>
               <button
                 type="button"
                 onClick={handleCreateTemplateClick}

@@ -20,7 +20,7 @@ const lookupCache = new Map<string, LookupCacheEntry>();
 const inFlightRequests = new Map<string, Promise<ExerciseLookupModel[]>>();
 
 function buildCacheKey(params: ExerciseLookupRequest, cacheScope: string): string {
-  return `${cacheScope}|${params.search ?? ""}|${params.muscleGroupId ?? ""}|${params.skip ?? 0}|${params.take}`;
+  return `${cacheScope}|${params.search ?? ""}|${(params.muscleGroupIds ?? []).join(",")}|${params.skip ?? 0}|${params.take}`;
 }
 
 function isCacheFresh(entry: LookupCacheEntry | undefined, staleTimeMs: number): boolean {
@@ -113,7 +113,7 @@ type UseExerciseLookupOptions = Partial<ExerciseLookupRequest> & {
 
 export function useExerciseLookup({
   search = "",
-  muscleGroupId,
+  muscleGroupIds,
   skip = DEFAULT_SKIP,
   take = DEFAULT_TAKE,
   enabled = true,
@@ -139,23 +139,32 @@ export function useExerciseLookup({
     ? Math.max(0, minSearchLength)
     : DEFAULT_MIN_SEARCH_LENGTH;
   const safeStaleTimeMs = Number.isFinite(staleTimeMs) && staleTimeMs >= 0 ? staleTimeMs : DEFAULT_STALE_TIME_MS;
-  const normalizedMuscleGroupId =
-    typeof muscleGroupId === "number" && Number.isInteger(muscleGroupId) && muscleGroupId > 0
-      ? muscleGroupId
-      : undefined;
+  const normalizedMuscleGroupIdsKey = useMemo(() => {
+    if (!muscleGroupIds || muscleGroupIds.length === 0) {
+      return "";
+    }
+
+    const unique = Array.from(
+      new Set(muscleGroupIds.filter((id) => Number.isInteger(id) && id > 0)),
+    );
+    unique.sort((first, second) => first - second);
+    return unique.join(",");
+  }, [muscleGroupIds]);
   const hasSearch = debouncedSearch.length >= safeMinSearchLength;
-  const hasFilter = normalizedMuscleGroupId !== undefined;
+  const hasFilter = normalizedMuscleGroupIdsKey.length > 0;
   const hasQuery = hasSearch || hasFilter || includeWhenSearchEmpty;
   const isDebouncing = enabled && normalizedSearch !== debouncedSearch;
 
   const requestParams = useMemo<ExerciseLookupRequest>(
     () => ({
       search: debouncedSearch || undefined,
-      muscleGroupId: normalizedMuscleGroupId,
+      muscleGroupIds: normalizedMuscleGroupIdsKey
+        ? normalizedMuscleGroupIdsKey.split(",").map(Number)
+        : undefined,
       skip: safeSkip,
       take: safeTake,
     }),
-    [debouncedSearch, normalizedMuscleGroupId, safeSkip, safeTake],
+    [debouncedSearch, normalizedMuscleGroupIdsKey, safeSkip, safeTake],
   );
 
   const load = useCallback(

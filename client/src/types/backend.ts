@@ -267,7 +267,7 @@ export namespace JsonModels.Exercises {
 	export interface ExerciseLookupRequest
 	{
 		search?: string;
-		muscleGroupId?: number;
+		muscleGroupIds?: number[];
 		skip: number;
 		take: number;
 	}

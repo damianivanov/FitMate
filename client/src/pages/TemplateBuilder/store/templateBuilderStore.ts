@@ -130,6 +130,7 @@ type TemplateBuilderActions = {
   removeExercise: (exerciseId: string) => void;
   removeExerciseSet: (exerciseId: string, setId: string) => void;
   addExerciseSet: (exerciseId: string) => void;
+  reorderExerciseSet: (exerciseId: string, activeSetId: string, overSetId: string) => void;
   openQuickSetPopover: (exerciseId: string, setId: string, field: QuickSetField) => void;
   closeQuickSetPopover: () => void;
   setGroupCollapse: (groupExerciseIds: string[], nextCollapsedValue: boolean) => void;
@@ -342,9 +343,13 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
         };
       }
 
-      const removedExerciseDraftIds = state.exercises
-        .filter((item) => item.exerciseId === exercise.id)
-        .map((item) => item.id);
+      const removedExercises = state.exercises.filter((item) => item.exerciseId === exercise.id);
+      const removedExerciseDraftIds = removedExercises.map((item) => item.id);
+      const dissolvableGroupIds = new Set(
+        removedExercises
+          .map((item) => item.groupId)
+          .filter((groupId): groupId is number => groupId != null),
+      );
 
       const nextDurationEnabledExerciseIds = new Set(state.durationEnabledExerciseIds);
       removedExerciseDraftIds.forEach((draftId) => {
@@ -360,7 +365,7 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
       return {
         exercises: normalizeTemplateBuilderExerciseGroups(
           state.exercises.filter((item) => item.exerciseId !== exercise.id),
-          true,
+          dissolvableGroupIds,
         ),
         durationEnabledExerciseIds: nextDurationEnabledExerciseIds,
         groupAddContext:
@@ -464,7 +469,10 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
         });
 
         return {
-          exercises: normalizeTemplateBuilderExerciseGroups(nextExercises, true),
+          exercises: normalizeTemplateBuilderExerciseGroups(
+            nextExercises,
+            typeof targetExercise.groupId === "number" ? new Set([targetExercise.groupId]) : undefined,
+          ),
         };
       }
 
@@ -523,6 +531,9 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
 
   removeExercise: (exerciseId) => {
     set((state) => {
+      const removedExercise = state.exercises.find((exercise) => exercise.id === exerciseId);
+      const dissolvableGroupIds =
+        removedExercise?.groupId != null ? new Set([removedExercise.groupId]) : undefined;
       const shouldCloseQuickSetPopover = state.quickSetPopover?.exerciseId === exerciseId;
       const nextDurationEnabledExerciseIds = new Set(state.durationEnabledExerciseIds);
       nextDurationEnabledExerciseIds.delete(exerciseId);
@@ -530,7 +541,7 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
       return {
         exercises: normalizeTemplateBuilderExerciseGroups(
           state.exercises.filter((exercise) => exercise.id !== exerciseId),
-          true,
+          dissolvableGroupIds,
         ),
         groupAddContext:
           state.groupAddContext?.insertAfterExerciseId === exerciseId
@@ -573,6 +584,34 @@ export const useTemplateBuilderStore = create<TemplateBuilderStore>((set, get) =
               sets: [...exercise.sets, createDefaultSet()],
             }
           : exercise),
+    }));
+  },
+
+  reorderExerciseSet: (exerciseId, activeSetId, overSetId) => {
+    set((state) => ({
+      exercises: state.exercises.map((exercise) => {
+        if (exercise.id !== exerciseId) {
+          return exercise;
+        }
+
+        const activeIndex = exercise.sets.findIndex((setItem) => setItem.id === activeSetId);
+        const overIndex = exercise.sets.findIndex((setItem) => setItem.id === overSetId);
+        if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+          return exercise;
+        }
+
+        const nextSets = exercise.sets.slice();
+        const [movedSet] = nextSets.splice(activeIndex, 1);
+        if (!movedSet) {
+          return exercise;
+        }
+
+        nextSets.splice(overIndex, 0, movedSet);
+        return {
+          ...exercise,
+          sets: nextSets,
+        };
+      }),
     }));
   },
 

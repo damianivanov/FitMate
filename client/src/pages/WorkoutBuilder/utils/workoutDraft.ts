@@ -5,7 +5,6 @@ import {
   type CreateWorkoutExerciseRequest,
   type CreateWorkoutSetRequest,
   type ExerciseLookupModel,
-  type PreviousExerciseSet,
   type SaveWorkoutRequest,
   type Workout,
   type WorkoutExerciseGroup,
@@ -126,7 +125,7 @@ function buildExerciseDraft(
 
 export function buildEmptyWorkoutDraft(startedAt?: Date): WorkoutDraft {
   return {
-    title: "New Workout",
+    title: "New workout",
     notes: "",
     startedAt: startedAt?.toISOString(),
     exercises: [],
@@ -433,43 +432,6 @@ export function formatMetricValue(value: number | null | undefined): string {
   }
 
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
-}
-
-export function formatPreviousSetLabel(previousSet: PreviousExerciseSet | undefined): string | null {
-  if (!previousSet) {
-    return null;
-  }
-
-  const weight = formatMetricValue(previousSet.weightKg);
-  const reps = formatMetricValue(previousSet.reps);
-  const duration = formatMetricValue(previousSet.durationSeconds);
-  const distance = formatMetricValue(previousSet.distanceMeters);
-
-  if (weight && reps) {
-    return `${weight} kg x ${reps}`;
-  }
-
-  if (reps) {
-    return `${reps} reps`;
-  }
-
-  if (duration) {
-    return `${duration}s`;
-  }
-
-  if (distance) {
-    return `${distance} m`;
-  }
-
-  return null;
-}
-
-export function getCompactSetValueText(value: number | null | undefined): string {
-  if (value == null) {
-    return "-";
-  }
-
-  return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
 export function isWorkoutExerciseDurationEnabled(exercise: WorkoutExerciseDraft): boolean {

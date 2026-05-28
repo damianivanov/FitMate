@@ -188,7 +188,7 @@ export function populateTemplateBuilderExerciseGroupIds(
 
 export function normalizeTemplateBuilderExerciseGroups(
   exercises: readonly TemplateBuilderExerciseDraftModel[],
-  dissolveSingleMemberGroups = false,
+  dissolvableGroupIds?: ReadonlySet<number>,
 ): TemplateBuilderExerciseDraftModel[] {
   const groupMemberCounts = new Map<number, number>();
   const groupTypeById = new Map<number, ExerciseGroupType>();
@@ -218,7 +218,7 @@ export function normalizeTemplateBuilderExerciseGroups(
     }
 
     const memberCount = groupMemberCounts.get(exercise.groupId) ?? 0;
-    if (dissolveSingleMemberGroups && memberCount < 2) {
+    if (memberCount < 2 && dissolvableGroupIds?.has(exercise.groupId)) {
       return {
         ...exercise,
         groupId: undefined,

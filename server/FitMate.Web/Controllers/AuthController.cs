@@ -129,8 +129,8 @@ namespace FitMate.Web.Controllers
         [HttpPut("profile")]
         public async Task<ActionResult> UpdateProfile([FromBody] UpdateProfileRequest model)
         {
-            var user = UserService.LoggedInUser;
-            if (user == null)
+            var userId = UserService.LoggedInUserId;
+            if (userId == null)
             {
                 return this.ReturnJsonError("Unauthorized.");
             }
@@ -140,6 +140,16 @@ namespace FitMate.Web.Controllers
             if (validationError != null)
             {
                 return this.ReturnJsonError(validationError);
+            }
+
+            // Load through UserManager so the update operates on the tracked instance.
+            // UserService.LoggedInUser is read with AsNoTracking, and Identity's UpdateAsync
+            // validation (RequireUniqueEmail) re-queries and tracks the user, which would
+            // otherwise collide with the detached cached instance on Attach.
+            var user = await userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
             }
 
             user.FirstName = firstName;

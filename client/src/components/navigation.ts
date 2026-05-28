@@ -29,7 +29,7 @@ export type MobileNavItem = Pick<NavItem, "label" | "to" | "icon" | "end"> & {
 
 export const trainingNavItems: NavItem[] = [
   { label: "Dashboard", to: "/workouts", icon: LuDumbbell, end: true },
-  { label: "New Workout", to: "/workouts/new", icon: LuDumbbell, end: false },
+  { label: "New workout", to: "/workouts/new", icon: LuDumbbell, end: false },
   { label: "Templates", to: "/templates", icon: LuLayoutTemplate, end: false },
   { label: "History", to: "/workouts/history", icon: LuClock3, end: false },
 ];
@@ -63,7 +63,7 @@ export const navSections: NavSection[] = [
 export const mobileBottomNavItems: MobileNavItem[] = [
   { label: "All Workouts", to: "/workouts", icon: LuDumbbell, end: true },
   { label: "All Workout Templates", to: "/templates", icon: LuLayoutTemplate, end: true },
-  { label: "New Workout", to: "/workouts/new", icon: LuPlus, end: true, isPrimaryAction: true },
+  { label: "New workout", to: "/workouts/new", icon: LuPlus, end: true, isPrimaryAction: true },
   { label: "Workout History", to: "/workouts/history", icon: LuHistory, end: true },
   { label: "Profile", to: "/profile", icon: LuCircleUserRound, end: true },
 ];

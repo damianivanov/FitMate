@@ -173,7 +173,7 @@ export function ExerciseSetTypeDropdown({
         type="button"
         onClick={handleTriggerClick}
         className={[
-          "liquid-input inline-flex h-8 w-full cursor-pointer items-center justify-center gap-1 rounded-lg px-1 text-xs font-extrabold text-foreground transition md:h-10 md:gap-2 md:px-2 md:text-sm",
+          "liquid-input inline-flex w-full cursor-pointer items-center justify-center gap-1 rounded-md px-1 py-2 text-xs font-extrabold text-foreground transition sm:gap-2 sm:rounded-lg sm:px-2 sm:py-1.5 sm:text-sm",
           isOpen ? "border-primary-600 text-primary ring-2 ring-primary-300" : "",
         ].join(" ")}
         aria-expanded={isOpen}

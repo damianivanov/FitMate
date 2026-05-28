@@ -1,12 +1,28 @@
-import { AddExerciseModal } from "./components/AddExerciseModal";
+import { useMemo } from "react";
+import {
+  ExerciseAddModal,
+  ExerciseBoard,
+  type ExerciseBuilderCallbacks,
+  type ExerciseBuilderCapabilities,
+  type ExerciseBuilderExerciseVM,
+} from "@/shared/components";
 import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
 import { RepsSetPickerPopover } from "@/shared/components/WorkoutSetPickers/RepsSetPickerPopover";
-import { TemplateBuilderExerciseBoard } from "./components/TemplateBuilderExerciseBoard";
+import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/WeightSetPickerPopover";
 import { TemplateBuilderHeader } from "./components/TemplateBuilderHeader";
 import { TemplateBuilderMetadataPanel } from "./components/TemplateBuilderMetadataPanel";
-import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/WeightSetPickerPopover";
 import { useTemplateBuilderPage } from "./hooks/useTemplateBuilderPage";
-import { QuickSetField } from "./store/templateBuilderStore";
+import { QuickSetField, useTemplateBuilderStore } from "./store/templateBuilderStore";
+
+const TEMPLATE_CAPABILITIES: ExerciseBuilderCapabilities = {
+  showRestColumn: true,
+  showCompletionCheckbox: false,
+  showSetTypeDropdown: false,
+  showPreviousColumn: false,
+  allowCollapse: true,
+  allowExerciseDnd: true,
+  allowSetDnd: true,
+};
 
 export default function TemplateBuilder() {
   const {
@@ -24,6 +40,96 @@ export default function TemplateBuilder() {
     handleQuickSetValueChange,
     handleQuickSetApplyToAll,
   } = useTemplateBuilderPage();
+
+  const exercises = useTemplateBuilderStore((state) => state.exercises);
+  const exerciseIndex = useTemplateBuilderStore((state) => state.exerciseIndex);
+  const durationEnabledExerciseIds = useTemplateBuilderStore((state) => state.durationEnabledExerciseIds);
+  const isAddExerciseModalOpen = useTemplateBuilderStore((state) => state.isAddExerciseModalOpen);
+  const quickSetPopover = useTemplateBuilderStore((state) => state.quickSetPopover);
+  const addExerciseFeedback = useTemplateBuilderStore((state) => state.addExerciseFeedback);
+
+  const openAddExerciseModal = useTemplateBuilderStore((state) => state.openAddExerciseModal);
+  const openAddExerciseModalForGroup = useTemplateBuilderStore((state) => state.openAddExerciseModalForGroup);
+  const closeAddExerciseModal = useTemplateBuilderStore((state) => state.closeAddExerciseModal);
+  const addLibraryExercise = useTemplateBuilderStore((state) => state.addLibraryExercise);
+  const removeLibraryExercise = useTemplateBuilderStore((state) => state.removeLibraryExercise);
+  const setExerciseNotes = useTemplateBuilderStore((state) => state.setExerciseNotes);
+  const setExerciseGrouping = useTemplateBuilderStore((state) => state.setExerciseGrouping);
+  const setExerciseMetricMode = useTemplateBuilderStore((state) => state.setExerciseMetricMode);
+  const removeExercise = useTemplateBuilderStore((state) => state.removeExercise);
+  const addExerciseSet = useTemplateBuilderStore((state) => state.addExerciseSet);
+  const removeExerciseSet = useTemplateBuilderStore((state) => state.removeExerciseSet);
+  const reorderExerciseSet = useTemplateBuilderStore((state) => state.reorderExerciseSet);
+  const toggleExerciseCollapse = useTemplateBuilderStore((state) => state.toggleExerciseCollapse);
+  const setGroupCollapse = useTemplateBuilderStore((state) => state.setGroupCollapse);
+  const endExerciseDrag = useTemplateBuilderStore((state) => state.endExerciseDrag);
+
+  const exerciseIndexById = useMemo(
+    () => new Map(exerciseIndex.map((item) => [item.id, item] as const)),
+    [exerciseIndex],
+  );
+
+  const exerciseVms = useMemo<ExerciseBuilderExerciseVM[]>(
+    () => exercises.map((exercise) => ({
+      id: exercise.id,
+      exerciseId: exercise.exerciseId,
+      displayName: exerciseIndexById.get(exercise.exerciseId)?.name ?? `Exercise #${exercise.exerciseId}`,
+      groupId: exercise.groupId ?? null,
+      groupType: exercise.groupType,
+      notes: exercise.notes,
+      collapsed: exercise.collapsed,
+      isDurationEnabled: durationEnabledExerciseIds.has(exercise.id),
+      sets: exercise.sets.map((set) => ({
+        id: set.id,
+        weightKg: set.weightKg,
+        reps: set.reps,
+        durationSeconds: set.durationSeconds,
+        restSeconds: set.restSeconds,
+      })),
+    })),
+    [exercises, exerciseIndexById, durationEnabledExerciseIds],
+  );
+
+  const callbacks = useMemo<ExerciseBuilderCallbacks>(() => ({
+    onOpenQuickSetPopover: (exerciseId, setId, field, anchorElement) => {
+      handleQuickSetPopoverOpen(exerciseId, setId, field as QuickSetField, anchorElement);
+    },
+    onExerciseNotesChange: setExerciseNotes,
+    onExerciseMetricModeChange: (exerciseId, isDurationEnabled) => {
+      setExerciseMetricMode(exerciseId, !isDurationEnabled);
+    },
+    onExerciseGroupingChange: setExerciseGrouping,
+    onRemoveExercise: removeExercise,
+    onAddSet: addExerciseSet,
+    onRemoveSet: removeExerciseSet,
+    onAddExerciseClick: openAddExerciseModal,
+    onAddExerciseToGroup: (insertAfterExerciseId, groupType, groupId) => {
+      openAddExerciseModalForGroup(insertAfterExerciseId, groupType, groupId);
+    },
+    onToggleExerciseCollapse: toggleExerciseCollapse,
+    onSetGroupCollapse: setGroupCollapse,
+    onExerciseReorder: endExerciseDrag,
+    onSetReorder: reorderExerciseSet,
+  }), [
+    addExerciseSet,
+    endExerciseDrag,
+    handleQuickSetPopoverOpen,
+    openAddExerciseModal,
+    openAddExerciseModalForGroup,
+    removeExercise,
+    removeExerciseSet,
+    reorderExerciseSet,
+    setExerciseGrouping,
+    setExerciseMetricMode,
+    setExerciseNotes,
+    setGroupCollapse,
+    toggleExerciseCollapse,
+  ]);
+
+  const selectedExerciseIds = useMemo(
+    () => exercises.map((exercise) => exercise.exerciseId),
+    [exercises],
+  );
 
   return (
     <>
@@ -52,7 +158,12 @@ export default function TemplateBuilder() {
           <div className="w-full space-y-6">
             <section className="min-w-0 md:space-y-4">
               <TemplateBuilderMetadataPanel />
-              <TemplateBuilderExerciseBoard onOpenQuickSetPopover={handleQuickSetPopoverOpen} />
+              <ExerciseBoard
+                exercises={exerciseVms}
+                capabilities={TEMPLATE_CAPABILITIES}
+                callbacks={callbacks}
+                isInteractionLocked={isAddExerciseModalOpen || quickSetPopover !== null}
+              />
             </section>
           </div>
         ) : null}
@@ -108,7 +219,14 @@ export default function TemplateBuilder() {
         </>
       ) : null}
 
-      <AddExerciseModal />
+      <ExerciseAddModal
+        isOpen={isAddExerciseModalOpen}
+        selectedExerciseIds={selectedExerciseIds}
+        onAddExercise={addLibraryExercise}
+        onRemoveExercise={removeLibraryExercise}
+        onClose={closeAddExerciseModal}
+        feedback={addExerciseFeedback}
+      />
     </>
   );
 }

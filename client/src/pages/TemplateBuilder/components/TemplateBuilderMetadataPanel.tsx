@@ -74,39 +74,37 @@ export function TemplateBuilderMetadataPanel() {
 
   return (
     <>
-      <div className="liquid-panel rounded-2xl p-2 md:rounded-lg md:p-5">
+      <div
+        className={[
+          "liquid-panel rounded-2xl md:rounded-lg",
+          isBuilderCollapsed ? "p-1.5" : "p-2 md:p-5",
+        ].join(" ")}
+      >
         <div className="grid gap-3 lg:grid-cols-1">
           {isBuilderCollapsed ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p
-                  className={
-                    hasTemplateName
-                      ? "min-w-0 flex-1 truncate px-1 text-sm font-semibold text-foreground"
-                      : "min-w-0 flex-1 truncate px-1 text-sm font-semibold text-muted"
-                  }
-                >
-                  {collapsedTemplateName}
-                </p>
-                <span className="liquid-pill inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-primary-700">
-                  <VisibilityIcon className="h-3.5 w-3.5" />
-                  <span>{visibilityLabel}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleBuilderCollapseToggle}
-                  className="liquid-pill flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full"
-                  aria-label={isBuilderCollapsed ? "Expand builder details" : "Collapse builder details"}
-                >
-                  <LuChevronDown
-                    className={[
-                      "h-4 w-4 text-muted transition-transform",
-                      isBuilderCollapsed ? "rotate-0" : "rotate-180",
-                    ].join(" ")}
-                  />
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleBuilderCollapseToggle}
+              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-1 text-left"
+              aria-label="Expand builder details"
+            >
+              <span
+                className={
+                  hasTemplateName
+                    ? "min-w-0 flex-1 truncate px-1 text-sm font-semibold text-foreground"
+                    : "min-w-0 flex-1 truncate px-1 text-sm font-semibold text-muted"
+                }
+              >
+                {collapsedTemplateName}
+              </span>
+              <span className="liquid-pill inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-primary-700">
+                <VisibilityIcon className="h-3.5 w-3.5" />
+                <span>{visibilityLabel}</span>
+              </span>
+              <span className="liquid-pill flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+                <LuChevronDown className="h-4 w-4 text-muted" />
+              </span>
+            </button>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
@@ -119,7 +117,7 @@ export function TemplateBuilderMetadataPanel() {
                 <button
                   type="button"
                   onClick={handleDurationPickerOpen}
-                  className="liquid-input flex min-h-10 w-max max-w-full shrink-0 cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+                  className="liquid-input flex min-h-10 w-max min-w-[206px] max-w-full shrink-0 cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
                   aria-label="Edit duration"
                 >
                   <span className="flex min-w-0 items-center gap-2">

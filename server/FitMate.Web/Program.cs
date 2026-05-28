@@ -25,8 +25,8 @@ var configuredOrigins = builder.Configuration
 var allowedOrigins = configuredOrigins
     .Concat([
         builder.Configuration["Application:ClientUrl"],
-        "http://localhost:5173",
-        "https://localhost:5173",
+        "http://localhost:5273",
+        "https://localhost:5273",
     ])
     .Where(origin => !string.IsNullOrWhiteSpace(origin))
     .Select(origin => origin!.Trim().TrimEnd('/'))
