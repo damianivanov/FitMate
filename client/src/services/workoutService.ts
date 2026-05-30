@@ -20,6 +20,10 @@ export const workoutService = {
     return api.post<JsonData<number>>(`workouts/start-from-template/${templateId}`);
   },
 
+  async duplicate(id: number) {
+    return api.post<JsonData<number>>(`workouts/duplicate/${id}`);
+  },
+
   async create(payload: SaveWorkoutRequest) {
     return api.post<JsonData<WorkoutCreatedModel>>("workouts", payload);
   },

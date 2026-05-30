@@ -12,12 +12,12 @@ import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/We
 import { TemplateBuilderHeader } from "./components/TemplateBuilderHeader";
 import { TemplateBuilderMetadataPanel } from "./components/TemplateBuilderMetadataPanel";
 import { useTemplateBuilderPage } from "./hooks/useTemplateBuilderPage";
-import { QuickSetField, useTemplateBuilderStore } from "./store/templateBuilderStore";
+import { isTemplateExerciseDurationEnabled } from "./utils/templateDraft";
 
 const TEMPLATE_CAPABILITIES: ExerciseBuilderCapabilities = {
   showRestColumn: true,
   showCompletionCheckbox: false,
-  showSetTypeDropdown: false,
+  showSetTypeDropdown: true,
   showPreviousColumn: false,
   allowCollapse: true,
   allowExerciseDnd: true,
@@ -25,207 +25,157 @@ const TEMPLATE_CAPABILITIES: ExerciseBuilderCapabilities = {
 };
 
 export default function TemplateBuilder() {
-  const {
-    handleDiscardClick,
-    handleSaveTemplateClick,
-    isSavingTemplate,
-    isBuilderLoading,
-    templateLoadError,
-    isSaveTemplateDisabled,
-    saveTemplateLabel,
-    activeQuickSetPopoverContext,
-    quickSetPopoverAnchorElement,
-    handleQuickSetPopoverOpen,
-    handleQuickSetPopoverClose,
-    handleQuickSetValueChange,
-    handleQuickSetApplyToAll,
-  } = useTemplateBuilderPage();
-
-  const exercises = useTemplateBuilderStore((state) => state.exercises);
-  const exerciseIndex = useTemplateBuilderStore((state) => state.exerciseIndex);
-  const durationEnabledExerciseIds = useTemplateBuilderStore((state) => state.durationEnabledExerciseIds);
-  const isAddExerciseModalOpen = useTemplateBuilderStore((state) => state.isAddExerciseModalOpen);
-  const quickSetPopover = useTemplateBuilderStore((state) => state.quickSetPopover);
-  const addExerciseFeedback = useTemplateBuilderStore((state) => state.addExerciseFeedback);
-
-  const openAddExerciseModal = useTemplateBuilderStore((state) => state.openAddExerciseModal);
-  const openAddExerciseModalForGroup = useTemplateBuilderStore((state) => state.openAddExerciseModalForGroup);
-  const closeAddExerciseModal = useTemplateBuilderStore((state) => state.closeAddExerciseModal);
-  const addLibraryExercise = useTemplateBuilderStore((state) => state.addLibraryExercise);
-  const removeLibraryExercise = useTemplateBuilderStore((state) => state.removeLibraryExercise);
-  const setExerciseNotes = useTemplateBuilderStore((state) => state.setExerciseNotes);
-  const setExerciseGrouping = useTemplateBuilderStore((state) => state.setExerciseGrouping);
-  const setExerciseMetricMode = useTemplateBuilderStore((state) => state.setExerciseMetricMode);
-  const removeExercise = useTemplateBuilderStore((state) => state.removeExercise);
-  const addExerciseSet = useTemplateBuilderStore((state) => state.addExerciseSet);
-  const removeExerciseSet = useTemplateBuilderStore((state) => state.removeExerciseSet);
-  const reorderExerciseSet = useTemplateBuilderStore((state) => state.reorderExerciseSet);
-  const toggleExerciseCollapse = useTemplateBuilderStore((state) => state.toggleExerciseCollapse);
-  const setGroupCollapse = useTemplateBuilderStore((state) => state.setGroupCollapse);
-  const endExerciseDrag = useTemplateBuilderStore((state) => state.endExerciseDrag);
-
-  const exerciseIndexById = useMemo(
-    () => new Map(exerciseIndex.map((item) => [item.id, item] as const)),
-    [exerciseIndex],
-  );
+  const { state, actions } = useTemplateBuilderPage();
+  const { draft, collapsedExerciseIds } = state;
 
   const exerciseVms = useMemo<ExerciseBuilderExerciseVM[]>(
-    () => exercises.map((exercise) => ({
-      id: exercise.id,
-      exerciseId: exercise.exerciseId,
-      displayName: exerciseIndexById.get(exercise.exerciseId)?.name ?? `Exercise #${exercise.exerciseId}`,
-      groupId: exercise.groupId ?? null,
-      groupType: exercise.groupType,
-      notes: exercise.notes,
-      collapsed: exercise.collapsed,
-      isDurationEnabled: durationEnabledExerciseIds.has(exercise.id),
-      sets: exercise.sets.map((set) => ({
-        id: set.id,
-        weightKg: set.weightKg,
-        reps: set.reps,
-        durationSeconds: set.durationSeconds,
-        restSeconds: set.restSeconds,
+    () =>
+      (draft?.exercises ?? []).map((exercise) => ({
+        id: exercise.id,
+        exerciseId: exercise.exerciseId,
+        displayName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
+        groupId: exercise.clientGroupId ?? null,
+        groupType: exercise.groupType,
+        notes: exercise.notes,
+        collapsed: collapsedExerciseIds.has(exercise.id),
+        isDurationEnabled: isTemplateExerciseDurationEnabled(exercise),
+        sets: exercise.sets.map((set) => ({
+          id: set.id,
+          weightKg: set.weightKg,
+          reps: set.reps,
+          durationSeconds: set.durationSeconds,
+          restSeconds: set.restSeconds,
+          setType: set.setType,
+        })),
       })),
-    })),
-    [exercises, exerciseIndexById, durationEnabledExerciseIds],
+    [draft, collapsedExerciseIds],
   );
 
   const callbacks = useMemo<ExerciseBuilderCallbacks>(() => ({
-    onOpenQuickSetPopover: (exerciseId, setId, field, anchorElement) => {
-      handleQuickSetPopoverOpen(exerciseId, setId, field as QuickSetField, anchorElement);
-    },
-    onExerciseNotesChange: setExerciseNotes,
-    onExerciseMetricModeChange: (exerciseId, isDurationEnabled) => {
-      setExerciseMetricMode(exerciseId, !isDurationEnabled);
-    },
-    onExerciseGroupingChange: setExerciseGrouping,
-    onRemoveExercise: removeExercise,
-    onAddSet: addExerciseSet,
-    onRemoveSet: removeExerciseSet,
-    onAddExerciseClick: openAddExerciseModal,
-    onAddExerciseToGroup: (insertAfterExerciseId, groupType, groupId) => {
-      openAddExerciseModalForGroup(insertAfterExerciseId, groupType, groupId);
-    },
-    onToggleExerciseCollapse: toggleExerciseCollapse,
-    onSetGroupCollapse: setGroupCollapse,
-    onExerciseReorder: endExerciseDrag,
-    onSetReorder: reorderExerciseSet,
-  }), [
-    addExerciseSet,
-    endExerciseDrag,
-    handleQuickSetPopoverOpen,
-    openAddExerciseModal,
-    openAddExerciseModalForGroup,
-    removeExercise,
-    removeExerciseSet,
-    reorderExerciseSet,
-    setExerciseGrouping,
-    setExerciseMetricMode,
-    setExerciseNotes,
-    setGroupCollapse,
-    toggleExerciseCollapse,
-  ]);
+    onOpenQuickSetPopover: actions.handleQuickSetPopoverOpen,
+    onExerciseNotesChange: actions.handleExerciseNotesChange,
+    onExerciseMetricModeChange: actions.handleExerciseMetricModeChange,
+    onExerciseGroupingChange: actions.handleExerciseGroupingChange,
+    onRemoveExercise: actions.handleRemoveExercise,
+    onAddSet: actions.handleAddSet,
+    onRemoveSet: actions.handleRemoveSet,
+    onAddExerciseClick: actions.handleAddExerciseModalOpen,
+    onAddExerciseToGroup: actions.handleAddExerciseToGroup,
+    onToggleExerciseCollapse: actions.handleToggleExerciseCollapse,
+    onSetGroupCollapse: actions.handleSetGroupCollapse,
+    onExerciseReorder: actions.handleExerciseReorder,
+    onSetReorder: actions.handleSetReorder,
+    onSetTypeChange: actions.handleSetTypeChange,
+  }), [actions]);
 
   const selectedExerciseIds = useMemo(
-    () => exercises.map((exercise) => exercise.exerciseId),
-    [exercises],
+    () => (draft?.exercises ?? []).map((exercise) => exercise.exerciseId),
+    [draft],
   );
 
   return (
     <>
       <TemplateBuilderHeader
-        onDiscardClick={handleDiscardClick}
-        onSaveTemplateClick={handleSaveTemplateClick}
-        isSavingTemplate={isSavingTemplate}
-        isSaveTemplateDisabled={isSaveTemplateDisabled}
-        saveTemplateLabel={saveTemplateLabel}
+        onDiscardClick={actions.handleDiscardClick}
+        onSaveTemplateClick={actions.handleSaveTemplateClick}
+        isSavingTemplate={state.isSavingTemplate}
+        isSaveTemplateDisabled={state.isSaveTemplateDisabled}
+        saveTemplateLabel={state.saveTemplateLabel}
       />
 
       <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
-        {isBuilderLoading ? (
+        {state.isBuilderLoading ? (
           <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
             <p className="text-sm font-semibold text-foreground">Loading template...</p>
           </div>
         ) : null}
 
-        {!isBuilderLoading && templateLoadError ? (
+        {!state.isBuilderLoading && state.templateLoadError ? (
           <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
-            <p className="text-sm font-semibold text-danger">{templateLoadError}</p>
+            <p className="text-sm font-semibold text-danger">{state.templateLoadError}</p>
           </div>
         ) : null}
 
-        {!isBuilderLoading && !templateLoadError ? (
+        {!state.isBuilderLoading && !state.templateLoadError && draft ? (
           <div className="w-full space-y-6">
             <section className="min-w-0 md:space-y-4">
-              <TemplateBuilderMetadataPanel />
+              <TemplateBuilderMetadataPanel
+                templateName={draft.name}
+                templateDescription={draft.description}
+                durationMinutes={draft.estimatedDurationMinutes}
+                isPublic={draft.isPublic}
+                onNameChange={actions.handleNameChange}
+                onDescriptionChange={actions.handleDescriptionChange}
+                onDurationChange={actions.handleDurationChange}
+                onIsPublicChange={actions.handleIsPublicChange}
+              />
               <ExerciseBoard
                 exercises={exerciseVms}
                 capabilities={TEMPLATE_CAPABILITIES}
                 callbacks={callbacks}
-                isInteractionLocked={isAddExerciseModalOpen || quickSetPopover !== null}
+                isInteractionLocked={state.isAddExerciseModalOpen || state.activeQuickSetPopoverContext !== null}
               />
             </section>
           </div>
         ) : null}
       </div>
 
-      {activeQuickSetPopoverContext && quickSetPopoverAnchorElement ? (
+      {state.activeQuickSetPopoverContext && state.quickSetPopoverAnchorElement ? (
         <>
-          {activeQuickSetPopoverContext.field === QuickSetField.WeightKg ? (
+          {state.activeQuickSetPopoverContext.field === "weightKg" ? (
             <WeightSetPickerPopover
               isOpen
-              value={activeQuickSetPopoverContext.set.weightKg}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
+              value={state.activeQuickSetPopoverContext.set.weightKg}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
               quickIncrements={[1.25, 5, 10, 15, 20] as const}
-              anchorElement={quickSetPopoverAnchorElement}
+              anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}
 
-          {activeQuickSetPopoverContext.field === QuickSetField.DurationSeconds ? (
+          {state.activeQuickSetPopoverContext.field === "durationSeconds" ? (
             <DurationSetPickerPopover
               isOpen
-              value={activeQuickSetPopoverContext.set.durationSeconds}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
-              anchorElement={quickSetPopoverAnchorElement}
+              value={state.activeQuickSetPopoverContext.set.durationSeconds}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
+              anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}
 
-          {activeQuickSetPopoverContext.field === QuickSetField.Reps ? (
+          {state.activeQuickSetPopoverContext.field === "reps" ? (
             <RepsSetPickerPopover
               isOpen
-              value={activeQuickSetPopoverContext.set.reps}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
-              anchorElement={quickSetPopoverAnchorElement}
+              value={state.activeQuickSetPopoverContext.set.reps}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
+              anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}
 
-          {activeQuickSetPopoverContext.field === QuickSetField.RestSeconds ? (
+          {state.activeQuickSetPopoverContext.field === "restSeconds" ? (
             <DurationSetPickerPopover
               isOpen
               title="Rest"
-              value={activeQuickSetPopoverContext.set.restSeconds}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
-              anchorElement={quickSetPopoverAnchorElement}
+              value={state.activeQuickSetPopoverContext.set.restSeconds}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
+              anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}
         </>
       ) : null}
 
       <ExerciseAddModal
-        isOpen={isAddExerciseModalOpen}
+        isOpen={state.isAddExerciseModalOpen}
         selectedExerciseIds={selectedExerciseIds}
-        onAddExercise={addLibraryExercise}
-        onRemoveExercise={removeLibraryExercise}
-        onClose={closeAddExerciseModal}
-        feedback={addExerciseFeedback}
+        onAddExercise={actions.handleAddExercise}
+        onRemoveExercise={actions.handleRemoveLibraryExercise}
+        onClose={actions.handleAddExerciseModalClose}
       />
     </>
   );

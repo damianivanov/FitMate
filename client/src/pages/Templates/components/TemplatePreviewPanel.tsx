@@ -8,7 +8,7 @@ import {
   getTemplateGroupTypeLabel,
   getTemplateVisibilityLabel,
 } from "../utils/templateDisplay";
-import { useStartWorkoutFromTemplate } from "../hooks/useStartWorkoutFromTemplate";
+import { useStartWorkoutFromTemplate } from "@/shared/hooks/useStartWorkoutFromTemplate";
 
 type TemplatePreviewPanelProps = {
   template: WorkoutTemplate | null;

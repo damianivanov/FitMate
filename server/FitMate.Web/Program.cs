@@ -1,6 +1,7 @@
 using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Services.Analytics;
 using FitMate.Services.Exercises;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.Users;
@@ -152,6 +153,7 @@ builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<IMuscleGroupService, MuscleGroupService>();
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IWorkoutTemplateService, WorkoutTemplateService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

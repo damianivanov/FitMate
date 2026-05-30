@@ -85,6 +85,19 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(result);
     }
 
+    [HttpPost("duplicate/{workoutId:long}")]
+    public async Task<ActionResult> Duplicate(long workoutId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var newWorkoutId = await workoutService.DuplicateAsync(workoutId, userId.Value);
+        return this.ReturnJson(newWorkoutId);
+    }
+
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] SaveWorkoutRequest request)
     {

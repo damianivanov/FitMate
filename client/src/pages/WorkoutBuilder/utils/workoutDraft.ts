@@ -85,7 +85,7 @@ function buildSetDraft(
     id: `template-set-${set.id}`,
     templateSetId: set.id,
     orderIndex: setIndex + 1,
-    setType: ExerciseSetType.Working,
+    setType: set.setType,
     weightKg: normalizeMetricValue(set.weightKg),
     reps: normalizeMetricValue(set.reps),
     durationSeconds: normalizeMetricValue(set.durationSeconds),
@@ -436,4 +436,23 @@ export function formatMetricValue(value: number | null | undefined): string {
 
 export function isWorkoutExerciseDurationEnabled(exercise: WorkoutExerciseDraft): boolean {
   return exercise.sets.some((set) => set.durationSeconds !== undefined && set.reps === undefined);
+}
+
+export function isWorkoutExerciseCompleted(exercise: WorkoutExerciseDraft): boolean {
+  return exercise.sets.length > 0 && exercise.sets.every((set) => set.isCompleted);
+}
+
+export function findNextIncompleteWorkoutExercise(
+  exercises: readonly WorkoutExerciseDraft[],
+  currentExercise: WorkoutExerciseDraft,
+): WorkoutExerciseDraft | null {
+  return (
+    exercises
+      .filter(
+        (exercise) =>
+          exercise.orderIndex > currentExercise.orderIndex
+          && exercise.sets.some((set) => !set.isCompleted),
+      )
+      .sort((left, right) => left.orderIndex - right.orderIndex)[0] ?? null
+  );
 }

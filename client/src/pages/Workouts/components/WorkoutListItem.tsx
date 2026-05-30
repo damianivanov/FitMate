@@ -1,4 +1,12 @@
-import { LuCalendar, LuClock, LuDumbbell, LuLoaderCircle, LuTrash2 } from "react-icons/lu";
+import {
+  LuCalendar,
+  LuClock,
+  LuDumbbell,
+  LuLayoutTemplate,
+  LuLoaderCircle,
+  LuRepeat2,
+  LuTrash2,
+} from "react-icons/lu";
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import type { Workout, WorkoutExercise } from "@/types";
 
@@ -6,7 +14,9 @@ type WorkoutListItemProps = {
   workout: Workout;
   isDeleting: boolean;
   onDelete: (workout: Workout) => void;
-  onOpen: (workoutId: number) => void;
+  onOpen: (workout: Workout) => void;
+  onRepeat?: (workout: Workout) => void;
+  onSaveAsTemplate?: (workout: Workout) => void;
 };
 
 const WORKOUT_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
@@ -67,6 +77,8 @@ export function WorkoutListItem({
   isDeleting,
   onDelete,
   onOpen,
+  onRepeat,
+  onSaveAsTemplate,
 }: WorkoutListItemProps) {
   const workoutExercises = getWorkoutExercises(workout);
   const imageExercises = workoutExercises.filter((exercise) => exercise.exerciseImageUrl);
@@ -78,11 +90,19 @@ export function WorkoutListItem({
   const workoutTitle = getWorkoutTitle(workout);
 
   const handleWorkoutOpen = () => {
-    onOpen(workout.id);
+    onOpen(workout);
   };
 
   const handleWorkoutDelete = () => {
     onDelete(workout);
+  };
+
+  const handleWorkoutRepeat = () => {
+    onRepeat?.(workout);
+  };
+
+  const handleWorkoutSaveAsTemplate = () => {
+    onSaveAsTemplate?.(workout);
   };
 
   return (
@@ -98,9 +118,31 @@ export function WorkoutListItem({
         </button>
 
         <div className="flex shrink-0 items-center gap-2">
-          <span className="liquid-primary-chip inline-flex h-9 items-center rounded-full px-3 text-xs font-semibold">
+          <span className="liquid-primary-chip hidden h-9 items-center rounded-full px-3 text-xs font-semibold sm:inline-flex">
             {workout.exerciseCount} exercise{workout.exerciseCount === 1 ? "" : "s"}
           </span>
+          {onRepeat ? (
+            <button
+              type="button"
+              onClick={handleWorkoutRepeat}
+              className="liquid-pill inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-foreground"
+              aria-label={`Repeat ${workoutTitle}`}
+              title="Repeat workout"
+            >
+              <LuRepeat2 className="h-4 w-4" />
+            </button>
+          ) : null}
+          {onSaveAsTemplate ? (
+            <button
+              type="button"
+              onClick={handleWorkoutSaveAsTemplate}
+              className="liquid-pill inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-foreground"
+              aria-label={`Save ${workoutTitle} as template`}
+              title="Save as template"
+            >
+              <LuLayoutTemplate className="h-4 w-4" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleWorkoutDelete}

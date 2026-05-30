@@ -154,7 +154,7 @@ export function ExerciseBoard({
   };
 
   const boardContent = (
-    <div className="flex flex-col items-stretch justify-start gap-4 md:flex-row md:flex-wrap md:items-stretch">
+    <div className="flex flex-col items-stretch justify-start gap-4 md:flex-row md:flex-wrap md:items-center">
       {exerciseRenderBlocks.map((block) => {
         if (block.kind === "single") {
           return renderExerciseCard(block.exercise);
@@ -166,7 +166,6 @@ export function ExerciseBoard({
         const groupAnchorExercise = block.items[0]?.exercise;
         const groupExerciseIds = block.items.map(({ exercise }) => exercise.id);
         const isGroupCollapsed = block.items.every(({ exercise }) => exercise.collapsed);
-        const isCompactGroupAddColumn = block.items.length > 1;
         const areGroupSettingsVisible = visibleGroupSettingsIds.has(block.groupId);
         const groupSettingsId = `exercise-builder-group-${block.groupId}-settings`;
 
@@ -257,22 +256,17 @@ export function ExerciseBoard({
               <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:flex-row md:flex-wrap md:items-stretch">
                 {block.items.map(({ exercise }) => renderExerciseCard(exercise))}
               </div>
-              <div className="flex w-full justify-end md:w-20 md:shrink-0">
+              <div className="flex w-full justify-end md:w-10 md:shrink-0">
                 <button
                   type="button"
                   onClick={handleAddGroupedExerciseClick}
-                  className="liquid-template-dashed flex h-12 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl px-1.5 py-3 text-xs font-semibold text-primary-700 transition hover:text-primary md:h-full md:min-h-0 md:w-20 md:flex-col"
+                  className="liquid-template-dashed flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl p-3 text-xs font-semibold text-primary-700 transition hover:text-primary md:h-full md:min-h-0"
                 >
                   <span
-                    className={
-                      isCompactGroupAddColumn
-                        ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-200 text-primary-700"
-                        : "inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary-200 text-primary-700"
-                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary-200 text-primary-700 shrink-0"
                   >
-                    <LuPlus className={isCompactGroupAddColumn ? "h-3 w-3" : "h-3.5 w-3.5"} />
+                    <LuPlus className= "h-3.5 w-3.5" />
                   </span>
-                  <span>Add</span>
                 </button>
               </div>
             </div>

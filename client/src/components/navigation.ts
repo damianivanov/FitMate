@@ -1,6 +1,5 @@
 import type { IconType } from "react-icons";
 import {
-  LuBookCopy,
   LuCircleUserRound,
   LuClock3,
   LuDumbbell,
@@ -10,39 +9,40 @@ import {
   LuPlus,
 } from "react-icons/lu";
 
-export type NavItem = {
+export interface NavItem {
   label: string;
   to: string;
   icon: IconType;
   end?: boolean;
+}
+
+export interface DesktopNavItem extends NavItem {
   requiresAdmin?: boolean;
-};
+}
 
-export type NavSection = {
-  section: string;
-  items: NavItem[];
-};
-
-export type MobileNavItem = Pick<NavItem, "label" | "to" | "icon" | "end"> & {
+export interface MobileNavItem extends NavItem {
   isPrimaryAction?: boolean;
-};
+}
 
-export const trainingNavItems: NavItem[] = [
+export interface NavSection {
+  section: string;
+  items: DesktopNavItem[];
+}
+
+export const trainingNavItems: DesktopNavItem[] = [
   { label: "Dashboard", to: "/workouts", icon: LuDumbbell, end: true },
   { label: "New workout", to: "/workouts/new", icon: LuDumbbell, end: false },
   { label: "Templates", to: "/templates", icon: LuLayoutTemplate, end: false },
   { label: "History", to: "/workouts/history", icon: LuClock3, end: false },
 ];
 
-export const insightNavItems: NavItem[] = [
+export const insightNavItems: DesktopNavItem[] = [
   { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
   { label: "Records", to: "/records", icon: LuLayoutDashboard, end: false },
 ];
 
-const managementNavItems: NavItem[] = [
-  { label: "Admin Dashboard", to: "/management", icon: LuLayoutDashboard, end: true, requiresAdmin: true },
-  { label: "Exercise Grid", to: "/management/exercises", icon: LuDumbbell, end: false, requiresAdmin: true },
-  { label: "Muscle Group Grid", to: "/management/muscle-groups", icon: LuBookCopy, end: false, requiresAdmin: true },
+const managementNavItems: DesktopNavItem[] = [
+  { label: "Admin Dashboard", to: "/management", icon: LuLayoutDashboard, end: false, requiresAdmin: true },
 ];
 
 export const navSections: NavSection[] = [

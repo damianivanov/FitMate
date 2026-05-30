@@ -11,6 +11,11 @@ const gridLinks = [
     title: "Muscle Group Grid",
     description: "Manage muscle group names and image URLs.",
   },
+  {
+    to: "/management/users",
+    title: "User Grid",
+    description: "Manage application users. (Coming soon)",
+  },
 ] as const;
 
 export default function AdminPanel() {

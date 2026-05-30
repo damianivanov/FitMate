@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { unwrap } from "@/lib/unwrap";
 import {
   clearWorkoutSessionState,
   saveWorkoutSessionState,
@@ -18,6 +19,7 @@ import {
   calculateWorkoutSummary,
   createWorkoutExerciseDraftFromLookup,
   createWorkoutSetDraft,
+  findNextIncompleteWorkoutExercise,
   normalizeWorkoutExerciseOrderIndexes,
   validateWorkoutDraft,
   type WorkoutDraft,
@@ -168,6 +170,7 @@ export function useTemplateWorkoutBuilderPage() {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [groupAddContext, setGroupAddContext] = useState<GroupAddContext | null>(null);
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<string>>(() => new Set());
+  const [scrollToExerciseId, setScrollToExerciseId] = useState<string | null>(null);
   const draftRef = useRef<WorkoutDraft | null>(null);
   const draftSavePromiseRef = useRef<Promise<void> | null>(null);
   const isDraftSaveInFlightRef = useRef(false);
@@ -309,12 +312,9 @@ export function useTemplateWorkoutBuilderPage() {
               workoutId: currentDraft.workoutId ?? draftWorkoutIdRef.current,
             });
             const response = await workoutService.upsertDraft(payload);
-            const result = response.data;
-            if (!result.success || !result.data) {
-              throw new Error(result.error ?? "Unable to auto-save workout.");
-            }
+            const savedWorkout = unwrap(response.data, "Unable to auto-save workout.");
 
-            const savedWorkoutId = result.data.workoutId;
+            const savedWorkoutId = savedWorkout.workoutId;
             draftWorkoutIdRef.current = savedWorkoutId;
             hasShownDraftSaveErrorRef.current = false;
             saveWorkoutSessionState(
@@ -470,10 +470,7 @@ export function useTemplateWorkoutBuilderPage() {
       const latestDraft = draftRef.current ?? currentDraft;
       const latestWorkoutId = latestDraft?.workoutId ?? draftWorkoutIdRef.current ?? workoutIdToDelete;
       const response = await workoutService.remove(latestWorkoutId);
-      const result = response.data;
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Unable to delete workout.");
-      }
+      unwrap(response.data, "Unable to delete workout.");
 
       clearWorkoutSessionStorage(latestDraft);
       setIsDeleteConfirmationOpen(false);
@@ -570,6 +567,10 @@ export function useTemplateWorkoutBuilderPage() {
   }, []);
 
   const handleSetCompletedToggle = useCallback((exerciseDraftId: string, setDraftId: string) => {
+    const currentDraft = draftRef.current;
+    const targetExercise = currentDraft?.exercises.find((exercise) => exercise.id === exerciseDraftId);
+    const targetSet = targetExercise?.sets.find((set) => set.id === setDraftId);
+
     setDraft((current) =>
       current
         ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
@@ -580,6 +581,36 @@ export function useTemplateWorkoutBuilderPage() {
           }))
         : current,
     );
+
+    // When checking off an exercise's final set, collapse it and advance to the next incomplete one.
+    if (!currentDraft || !targetExercise || !targetSet || targetSet.isCompleted) {
+      return;
+    }
+
+    const willCompleteExercise = targetExercise.sets.every(
+      (set) => set.id === setDraftId || set.isCompleted,
+    );
+    if (!willCompleteExercise) {
+      return;
+    }
+
+    const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
+
+    setCollapsedExerciseIds((collapsed) => {
+      const next = new Set(collapsed);
+      next.add(exerciseDraftId);
+      if (nextExercise) {
+        next.delete(nextExercise.id);
+      }
+
+      return next;
+    });
+
+    setScrollToExerciseId(nextExercise ? nextExercise.id : null);
+  }, []);
+
+  const handleExerciseScrolled = useCallback(() => {
+    setScrollToExerciseId(null);
   }, []);
 
   const handleAddSet = useCallback((exerciseDraftId: string) => {
@@ -655,12 +686,9 @@ export function useTemplateWorkoutBuilderPage() {
 
       try {
         const response = await workoutService.upsertDraft(buildWorkoutPayload(nextDraft));
-        const result = response.data;
-        if (!result.success || !result.data) {
-          throw new Error(result.error ?? "Unable to start workout.");
-        }
+        const savedWorkout = unwrap(response.data, "Unable to start workout.");
 
-        const savedWorkoutId = result.data.workoutId;
+        const savedWorkoutId = savedWorkout.workoutId;
         draftWorkoutIdRef.current = savedWorkoutId;
         hasShownDraftSaveErrorRef.current = false;
         saveWorkoutSessionState(nextDraft.workoutTemplateId, startedAt, savedWorkoutId);
@@ -1006,13 +1034,10 @@ export function useTemplateWorkoutBuilderPage() {
         workoutId: latestDraft.workoutId ?? draftWorkoutIdRef.current,
       }, new Date());
       const response = await workoutService.create(payload);
-      const result = response.data;
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Unable to save workout.");
-      }
+      const savedWorkout = unwrap(response.data, "Unable to save workout.");
 
       toast.success(
-        `Workout saved: ${result.data.exerciseCount} exercises, ${result.data.setCount} sets.`,
+        `Workout saved: ${savedWorkout.exerciseCount} exercises, ${savedWorkout.setCount} sets.`,
       );
       clearWorkoutSessionState(latestDraft.workoutTemplateId);
       navigate("/workouts/history", { replace: true });
@@ -1024,52 +1049,113 @@ export function useTemplateWorkoutBuilderPage() {
     }
   }, [draft, isDeletingWorkout, isSavingWorkout, navigate, saveDraftToBackend]);
 
-  return {
-    draft,
-    groups,
-    summary,
-    elapsedSeconds,
-    isWorkoutStarted: Boolean(draft?.startedAt),
-    previousSetsByExerciseId,
-    isLoadingTemplate,
-    templateError,
-    isSavingWorkout,
-    isDeletingWorkout,
-    canDeleteWorkout: Boolean(draft?.workoutId ?? draftWorkoutIdRef.current ?? workoutId),
-    deleteConfirmationWorkoutTitle: getWorkoutTitle(draft),
-    isDeleteConfirmationOpen,
-    activeQuickSetPopoverContext,
-    quickSetPopoverAnchorElement,
-    isAddExerciseModalOpen,
-    collapsedExerciseIds,
-    handleBackClick,
-    handleCancelDeleteWorkout,
-    handleConfirmDeleteWorkout,
-    handleDeleteWorkoutRequest,
-    handleRetryLoad: loadTemplateWorkout,
-    handleAddExerciseModalOpen,
-    handleAddExerciseModalClose,
-    handleAddExercise,
-    handleAddExerciseToGroup,
-    handleRemoveExercise,
-    handleExerciseGroupingChange,
-    handleTitleChange,
-    handleWorkoutNotesChange,
-    handleExerciseNotesChange,
-    handleExerciseMetricModeChange,
-    handleSetTypeChange,
-    handleSetCompletedToggle,
-    handleAddSet,
-    handleRemoveSet,
-    handleSetReorder,
-    handleExerciseReorder,
-    handleToggleExerciseCollapse,
-    handleSetGroupCollapse,
-    handleQuickSetPopoverOpen,
-    handleQuickSetPopoverClose,
-    handleQuickSetValueChange,
-    handleQuickSetApplyToAll,
-    handleStartWorkout,
-    handleFinishWorkout,
-  };
+  const state = useMemo(
+    () => ({
+      draft,
+      groups,
+      summary,
+      elapsedSeconds,
+      isWorkoutStarted: Boolean(draft?.startedAt),
+      previousSetsByExerciseId,
+      isLoadingTemplate,
+      templateError,
+      isSavingWorkout,
+      isDeletingWorkout,
+      canDeleteWorkout: Boolean(draft?.workoutId ?? draftWorkoutIdRef.current ?? workoutId),
+      deleteConfirmationWorkoutTitle: getWorkoutTitle(draft),
+      isDeleteConfirmationOpen,
+      activeQuickSetPopoverContext,
+      quickSetPopoverAnchorElement,
+      isAddExerciseModalOpen,
+      collapsedExerciseIds,
+      scrollToExerciseId,
+    }),
+    [
+      draft,
+      groups,
+      summary,
+      elapsedSeconds,
+      previousSetsByExerciseId,
+      isLoadingTemplate,
+      templateError,
+      isSavingWorkout,
+      isDeletingWorkout,
+      workoutId,
+      isDeleteConfirmationOpen,
+      activeQuickSetPopoverContext,
+      quickSetPopoverAnchorElement,
+      isAddExerciseModalOpen,
+      collapsedExerciseIds,
+      scrollToExerciseId,
+    ],
+  );
+
+  const actions = useMemo(
+    () => ({
+      handleBackClick,
+      handleCancelDeleteWorkout,
+      handleConfirmDeleteWorkout,
+      handleDeleteWorkoutRequest,
+      handleRetryLoad: loadTemplateWorkout,
+      handleAddExerciseModalOpen,
+      handleAddExerciseModalClose,
+      handleAddExercise,
+      handleAddExerciseToGroup,
+      handleRemoveExercise,
+      handleExerciseGroupingChange,
+      handleTitleChange,
+      handleWorkoutNotesChange,
+      handleExerciseNotesChange,
+      handleExerciseMetricModeChange,
+      handleSetTypeChange,
+      handleSetCompletedToggle,
+      handleAddSet,
+      handleRemoveSet,
+      handleSetReorder,
+      handleExerciseReorder,
+      handleToggleExerciseCollapse,
+      handleSetGroupCollapse,
+      handleExerciseScrolled,
+      handleQuickSetPopoverOpen,
+      handleQuickSetPopoverClose,
+      handleQuickSetValueChange,
+      handleQuickSetApplyToAll,
+      handleStartWorkout,
+      handleFinishWorkout,
+    }),
+    [
+      handleBackClick,
+      handleCancelDeleteWorkout,
+      handleConfirmDeleteWorkout,
+      handleDeleteWorkoutRequest,
+      loadTemplateWorkout,
+      handleAddExerciseModalOpen,
+      handleAddExerciseModalClose,
+      handleAddExercise,
+      handleAddExerciseToGroup,
+      handleRemoveExercise,
+      handleExerciseGroupingChange,
+      handleTitleChange,
+      handleWorkoutNotesChange,
+      handleExerciseNotesChange,
+      handleExerciseMetricModeChange,
+      handleSetTypeChange,
+      handleSetCompletedToggle,
+      handleAddSet,
+      handleRemoveSet,
+      handleSetReorder,
+      handleExerciseReorder,
+      handleToggleExerciseCollapse,
+      handleSetGroupCollapse,
+      handleExerciseScrolled,
+      handleQuickSetPopoverOpen,
+      handleQuickSetPopoverClose,
+      handleQuickSetValueChange,
+      handleQuickSetApplyToAll,
+      handleStartWorkout,
+      handleFinishWorkout,
+    ],
+  );
+
+  return { state, actions };
 }

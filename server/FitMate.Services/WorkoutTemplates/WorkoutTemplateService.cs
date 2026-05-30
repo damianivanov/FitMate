@@ -83,6 +83,52 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             preparedTemplate.ExerciseImageUrlsById);
     }
 
+    public async Task<WorkoutTemplateModel> CreateFromWorkoutAsync(
+        long workoutId,
+        CreateTemplateFromWorkoutRequest request,
+        long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (workoutId <= 0)
+        {
+            throw new FitMateException("Workout id is invalid.");
+        }
+
+        var workout = await dbContext.Workouts
+            .AsNoTracking()
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
+
+        if (workout == null)
+        {
+            throw new FitMateException("Workout not found.");
+        }
+
+        var name = NormalizeNullable(request.Name) ?? NormalizeNullable(workout.Title) ?? "New template";
+        var templateRequest = new CreateWorkoutTemplateRequest
+        {
+            Name = name,
+            Description = NormalizeNullable(request.Description),
+            EstimatedDurationMinutes = request.EstimatedDurationMinutes,
+            IsPublic = request.IsPublic,
+            Exercises = BuildTemplateExercisesFromWorkout(workout),
+        };
+
+        if (templateRequest.Exercises.Count == 0)
+        {
+            throw new FitMateException("This workout has no completed sets to build a template from.");
+        }
+
+        return await CreateAsync(templateRequest, userId);
+    }
+
     public async Task<WorkoutTemplateModel> UpdateAsync(
         long templateId,
         CreateWorkoutTemplateRequest request,
@@ -358,6 +404,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                 templateExercise.Sets.Add(new TemplateExerciseSet
                 {
                     OrderIndex = setIndex + 1,
+                    SetType = setRequest.SetType,
                     WeightKg = NormalizeWeight(setRequest.WeightKg),
                     Reps = setRequest.Reps,
                     DurationSeconds = setRequest.DurationSeconds,
@@ -370,6 +417,63 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 
             group.Exercises.Add(templateExercise);
         }
+    }
+
+    private static List<CreateWorkoutTemplateExerciseRequest> BuildTemplateExercisesFromWorkout(Workout workout)
+    {
+        var exercises = new List<CreateWorkoutTemplateExerciseRequest>();
+        var nextClientGroupId = 0;
+
+        foreach (var group in workout.ExerciseGroups.OrderBy(x => x.SortOrder))
+        {
+            var isGrouped =
+                group.GroupType == ExerciseGroupType.Superset
+                || group.GroupType == ExerciseGroupType.Circuit;
+            int? clientGroupId = isGrouped ? ++nextClientGroupId : null;
+
+            foreach (var exercise in group.Exercises.OrderBy(x => x.OrderIndex))
+            {
+                var sets = exercise.Sets
+                    .OrderBy(x => x.OrderIndex)
+                    .Where(HasMainMetric)
+                    .Select(set => new CreateWorkoutTemplateExerciseSetRequest
+                    {
+                        SetType = set.SetType,
+                        WeightKg = set.WeightKg,
+                        Reps = set.Reps,
+                        DurationSeconds = set.DurationSeconds,
+                        DistanceMeters = set.DistanceMeters,
+                        Rpe = set.Rpe,
+                        RestSeconds = null,
+                        Notes = NormalizeNullable(set.Notes),
+                    })
+                    .ToList();
+
+                if (sets.Count == 0)
+                {
+                    continue;
+                }
+
+                exercises.Add(new CreateWorkoutTemplateExerciseRequest
+                {
+                    GroupType = group.GroupType,
+                    ClientGroupId = clientGroupId,
+                    ExerciseId = exercise.ExerciseId,
+                    Notes = NormalizeNullable(exercise.Notes),
+                    Sets = sets,
+                });
+            }
+        }
+
+        return exercises;
+    }
+
+    private static bool HasMainMetric(ExerciseSet set)
+    {
+        return set.WeightKg.HasValue
+            || set.Reps.HasValue
+            || set.DurationSeconds.HasValue
+            || set.DistanceMeters.HasValue;
     }
 
     private static WorkoutTemplateModel MapTemplate(
@@ -426,6 +530,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                                 {
                                     Id = set.Id,
                                     OrderIndex = set.OrderIndex,
+                                    SetType = set.SetType,
                                     WeightKg = set.WeightKg,
                                     Reps = set.Reps,
                                     DurationSeconds = set.DurationSeconds,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { unwrap } from "@/lib/unwrap";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
 import { useUserStore } from "@/stores/userStore";
@@ -9,80 +10,84 @@ export function useTemplatesPage() {
   const navigate = useNavigate();
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
   const currentUserId = useUserStore((state) => state.user.id);
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+  const [templates, setTemplates] = useState<WorkoutTemplate[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadIndex, setReloadIndex] = useState(0);
+
+  useEffect(() => {
+    async function loadTemplates() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await workoutTemplateService.list();
+        setTemplates(unwrap(response.data, "Unable to load templates."));
+      } catch (loadError) {
+        setTemplates(null);
+        setError(loadError instanceof Error ? loadError.message : "Unable to load templates.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadTemplates();
+  }, [reloadIndex]);
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
-  const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   const ownTemplates = useMemo(
-    () => templates.filter((template) => currentUserId > 0 && template.userId === currentUserId),
+    () =>
+      (templates ?? []).filter(
+        (template) => currentUserId > 0 && template.userId === currentUserId,
+      ),
     [currentUserId, templates],
   );
 
-  const selectedTemplate = useMemo(
-    () => ownTemplates.find((template) => template.id === selectedTemplateId) ?? null,
-    [ownTemplates, selectedTemplateId],
-  );
-
-  const loadTemplates = useCallback(async () => {
-    setIsLoadingTemplates(true);
-    setTemplatesError(null);
-
-    try {
-      const response = await workoutTemplateService.list();
-      const result = response.data;
-      if (!result.success || !result.data) {
-        throw new Error(result.error ?? "Unable to load templates.");
-      }
-
-      setTemplates(result.data);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to load templates.";
-      setTemplates([]);
-      setSelectedTemplateId(null);
-      setTemplatesError(message);
-    } finally {
-      setIsLoadingTemplates(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadTemplates();
-  }, [loadTemplates]);
-
-  useEffect(() => {
+  // Derive the effective selection during render (no effect): keep the user's choice
+  // while it is still valid, otherwise fall back to the first template.
+  const selectedTemplate = useMemo(() => {
     if (!ownTemplates.length) {
-      setSelectedTemplateId(null);
-      return;
+      return null;
     }
 
-    if (selectedTemplateId && ownTemplates.some((template) => template.id === selectedTemplateId)) {
-      return;
-    }
-
-    setSelectedTemplateId(ownTemplates[0].id);
+    return ownTemplates.find((template) => template.id === selectedTemplateId) ?? ownTemplates[0];
   }, [ownTemplates, selectedTemplateId]);
 
-  const handleTemplateSelect = useCallback((templateId: number) => {
-    setSelectedTemplateId(templateId);
+  const select = useCallback(
+    (templateId: number) => {
+      setSelectedTemplateId(templateId);
 
-    if (isMobileViewport) {
-      navigate(`/templates/view/${templateId}`);
-      return;
-    }
-  }, [isMobileViewport, navigate]);
+      if (isMobileViewport) {
+        navigate(`/templates/view/${templateId}`);
+        return;
+      }
+    },
+    [isMobileViewport, navigate],
+  );
 
-  const handleCreateTemplateClick = useCallback(() => {
+  const create = useCallback(() => {
     navigate("/templates/new");
   }, [navigate]);
 
-  return {
-    templates: ownTemplates,
-    selectedTemplate,
-    isLoadingTemplates,
-    templatesError,
-    handleTemplateSelect,
-    handleCreateTemplateClick,
-    handleReloadTemplates: loadTemplates,
-  };
+  const state = useMemo(
+    () => ({
+      templates: ownTemplates,
+      selectedTemplate,
+      isLoading,
+      error,
+    }),
+    [ownTemplates, selectedTemplate, isLoading, error],
+  );
+
+  const actions = useMemo(
+    () => ({
+      select,
+      create,
+      reload: () => setReloadIndex((index) => index + 1),
+    }),
+    [select, create],
+  );
+
+  return { state, actions };
 }

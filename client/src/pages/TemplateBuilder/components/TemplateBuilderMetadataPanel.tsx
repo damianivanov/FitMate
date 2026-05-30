@@ -2,7 +2,6 @@ import { useMemo, useState, type ChangeEvent, type MouseEvent as ReactMouseEvent
 import { LuChevronDown, LuClock, LuEye, LuLock } from "react-icons/lu";
 import { SegmentControl, SegmentControlSize, type SegmentControlOption } from "@/shared/components";
 import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
-import { useTemplateBuilderStore } from "../store/templateBuilderStore";
 
 const VISIBILITY_OPTIONS: ReadonlyArray<SegmentControlOption<boolean>> = [
   { value: false, label: "Private" },
@@ -16,16 +15,27 @@ const DURATION_PRESET_MINUTES = [30, 45, 60, 75, 90, 120] as const;
 const TEMPLATE_DESCRIPTION_MIN_ROWS = 2;
 const TEMPLATE_DESCRIPTION_MAX_ROWS = 6;
 
-export function TemplateBuilderMetadataPanel() {
-  const templateName = useTemplateBuilderStore((state) => state.templateName);
-  const templateDescription = useTemplateBuilderStore((state) => state.templateDescription);
-  const durationMinutes = useTemplateBuilderStore((state) => state.durationMinutes);
-  const isPublic = useTemplateBuilderStore((state) => state.isPublic);
+type TemplateBuilderMetadataPanelProps = {
+  templateName: string;
+  templateDescription: string;
+  durationMinutes: number;
+  isPublic: boolean;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onDurationChange: (value: number) => void;
+  onIsPublicChange: (value: boolean) => void;
+};
 
-  const setTemplateName = useTemplateBuilderStore((state) => state.setTemplateName);
-  const setTemplateDescription = useTemplateBuilderStore((state) => state.setTemplateDescription);
-  const setDurationMinutes = useTemplateBuilderStore((state) => state.setDurationMinutes);
-  const setIsPublic = useTemplateBuilderStore((state) => state.setIsPublic);
+export function TemplateBuilderMetadataPanel({
+  templateName,
+  templateDescription,
+  durationMinutes,
+  isPublic,
+  onNameChange,
+  onDescriptionChange,
+  onDurationChange,
+  onIsPublicChange,
+}: TemplateBuilderMetadataPanelProps) {
   const [isBuilderCollapsed, setIsBuilderCollapsed] = useState(true);
   const [isDurationPickerOpen, setIsDurationPickerOpen] = useState(false);
   const [durationPickerAnchorElement, setDurationPickerAnchorElement] = useState<HTMLElement | null>(null);
@@ -47,11 +57,11 @@ export function TemplateBuilderMetadataPanel() {
   const VisibilityIcon = isPublic ? LuEye : LuLock;
 
   const handleTemplateNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setTemplateName(event.target.value);
+    onNameChange(event.target.value);
   };
 
   const handleTemplateDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    setTemplateDescription(event.target.value);
+    onDescriptionChange(event.target.value);
   };
 
   const handleDurationPickerOpen = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -63,8 +73,8 @@ export function TemplateBuilderMetadataPanel() {
     setIsDurationPickerOpen(false);
   };
 
-  const handleVisibilityChange = (isPublic: boolean) => {
-    setIsPublic(isPublic);
+  const handleVisibilityChange = (nextIsPublic: boolean) => {
+    onIsPublicChange(nextIsPublic);
   };
 
   const handleBuilderCollapseToggle = () => {
@@ -76,8 +86,8 @@ export function TemplateBuilderMetadataPanel() {
     <>
       <div
         className={[
-          "liquid-panel rounded-2xl md:rounded-lg",
-          isBuilderCollapsed ? "p-1.5" : "p-2 md:p-5",
+          "liquid-panel rounded-2xl md:rounded-lg p-2",
+          isBuilderCollapsed && "md:p-5",
         ].join(" ")}
       >
         <div className="grid gap-3 lg:grid-cols-1">
@@ -170,7 +180,7 @@ export function TemplateBuilderMetadataPanel() {
       <DurationSetPickerPopover
         isOpen={isDurationPickerOpen}
         value={durationMinutes}
-        onChange={setDurationMinutes}
+        onChange={onDurationChange}
         onClose={handleDurationPickerClose}
         title="Duration"
         anchorElement={durationPickerAnchorElement}

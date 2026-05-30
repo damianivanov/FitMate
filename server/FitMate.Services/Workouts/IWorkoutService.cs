@@ -7,6 +7,7 @@ public interface IWorkoutService
     Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId);
     Task<WorkoutModel?> GetByIdAsync(long workoutId, long userId);
     Task<long> StartFromTemplateAsync(long templateId, long userId);
+    Task<long> DuplicateAsync(long workoutId, long userId);
     Task<WorkoutCreatedModel> UpsertDraftAsync(SaveWorkoutRequest request, long userId);
     Task<WorkoutCreatedModel> CreateAsync(SaveWorkoutRequest request, long userId);
     Task<bool> DeleteAsync(long workoutId, long userId);

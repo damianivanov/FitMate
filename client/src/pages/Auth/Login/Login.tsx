@@ -8,7 +8,7 @@ import { useUserStore } from "@/stores/userStore";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { initUser } = useUserStore();
+  const { initUser, isAuthenticated } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export default function Login() {
 
       await initUser();
 
-      if (useUserStore.getState().isAuthenticated) {
+      if (isAuthenticated) {
         navigate("/");
         return;
       }

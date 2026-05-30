@@ -26,6 +26,13 @@ export namespace Enums {
 	}
 }
 export namespace JsonModels.WorkoutTemplates {
+	export interface CreateTemplateFromWorkoutRequest
+	{
+		name?: string;
+		description?: string;
+		estimatedDurationMinutes?: number;
+		isPublic: boolean;
+	}
 	export interface CreateWorkoutTemplateExerciseRequest
 	{
 		groupType: Enums.ExerciseGroupType;
@@ -36,6 +43,7 @@ export namespace JsonModels.WorkoutTemplates {
 	}
 	export interface CreateWorkoutTemplateExerciseSetRequest
 	{
+		setType: Enums.ExerciseSetType;
 		weightKg?: number;
 		reps?: number;
 		durationSeconds?: number;
@@ -81,6 +89,7 @@ export namespace JsonModels.WorkoutTemplates {
 	{
 		id: number;
 		orderIndex: number;
+		setType: Enums.ExerciseSetType;
 		weightKg?: number;
 		reps?: number;
 		durationSeconds?: number;
@@ -337,6 +346,60 @@ export namespace JsonModels.Auth {
 		firstName?: string;
 		lastName?: string;
 		roles: Enums.UserRole[];
+	}
+}
+export namespace JsonModels.Analytics {
+	export interface AnalyticsOverviewModel
+	{
+		workoutCount: number;
+		totalVolumeKg: number;
+		totalSets: number;
+		totalReps: number;
+		volumeTrend: JsonModels.Analytics.VolumeTrendPointModel[];
+		muscleGroupVolumes: JsonModels.Analytics.MuscleGroupVolumeModel[];
+		personalRecords: JsonModels.Analytics.PersonalRecordSummaryModel[];
+	}
+	export interface AnalyticsQueryRequest
+	{
+		from?: string;
+		to?: string;
+	}
+	export interface ExerciseProgressionModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		points: JsonModels.Analytics.ExerciseProgressionPointModel[];
+	}
+	export interface ExerciseProgressionPointModel
+	{
+		date: string;
+		bestWeightKg?: number;
+		bestReps?: number;
+		estimatedOneRepMax?: number;
+		totalVolumeKg: number;
+	}
+	export interface MuscleGroupVolumeModel
+	{
+		muscleGroupId: number;
+		muscleGroupName: string;
+		totalVolumeKg: number;
+		setCount: number;
+	}
+	export interface PersonalRecordSummaryModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		bestWeightKg?: number;
+		bestReps?: number;
+		bestEstimatedOneRepMax?: number;
+		bestVolumeKg?: number;
+		lastTrainedOn: string;
+	}
+	export interface VolumeTrendPointModel
+	{
+		periodStart: string;
+		totalVolumeKg: number;
+		workoutCount: number;
 	}
 }
 export interface JsonData<T>

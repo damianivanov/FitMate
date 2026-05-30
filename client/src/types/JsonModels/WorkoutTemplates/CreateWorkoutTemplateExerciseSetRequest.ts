@@ -1,5 +1,8 @@
+import type { ExerciseSetType } from "../Enums/ExerciseSetType";
+
 export interface CreateWorkoutTemplateExerciseSetRequest
 {
+	setType: ExerciseSetType;
 	weightKg?: number;
 	reps?: number;
 	durationSeconds?: number;

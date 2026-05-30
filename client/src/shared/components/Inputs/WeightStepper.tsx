@@ -48,6 +48,19 @@ export function WeightStepper({
     displayValueSizeClassName = "text-[2.7rem]";
   }
 
+  // The editing input renders the whole draft (digits + dot + decimals) at one size,
+  // so scale the font down as it grows to keep it inside the fixed-width field.
+  let editingValueSizeClassName = "text-4xl";
+  if (draftValue.length >= 8) {
+    editingValueSizeClassName = "text-lg";
+  } else if (draftValue.length >= 7) {
+    editingValueSizeClassName = "text-xl";
+  } else if (draftValue.length >= 6) {
+    editingValueSizeClassName = "text-2xl";
+  } else if (draftValue.length >= 5) {
+    editingValueSizeClassName = "text-3xl";
+  }
+
   useEffect(() => {
     if (!isEditingValue || !valueInputRef.current) {
       return;
@@ -184,7 +197,10 @@ export function WeightStepper({
                 onBlur={handleWeightInputBlur}
                 onKeyDown={handleWeightInputKeyDown}
                 disabled={disabled}
-                className="mono h-14 w-24 cursor-text bg-transparent text-center text-4xl font-bold leading-none text-foreground tabular-nums outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className={[
+                  "mono h-14 w-24 shrink-0 cursor-text bg-transparent text-center font-bold leading-none text-foreground tabular-nums outline-none disabled:cursor-not-allowed disabled:opacity-60",
+                  editingValueSizeClassName,
+                ].join(" ")}
                 aria-label={`${label} value`}
               />
             ) : (
@@ -192,7 +208,7 @@ export function WeightStepper({
                 type="button"
                 onClick={handleValueDisplayClick}
                 disabled={disabled}
-                className="flex h-14 w-24 cursor-text! items-end justify-center bg-transparent outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-14 w-24 shrink-0 cursor-text! items-end justify-center bg-transparent outline-none disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label={`Edit ${label.toLowerCase()} value`}
               >
                 <span className="relative inline-flex items-end justify-center">

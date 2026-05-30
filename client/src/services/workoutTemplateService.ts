@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
 import api from "@/lib/api";
 import type {
+  CreateTemplateFromWorkoutRequest,
   CreateWorkoutTemplateRequest,
   JsonData,
   WorkoutTemplateModel,
@@ -51,5 +52,12 @@ export const workoutTemplateService = {
 
   async update(id: number, payload: CreateWorkoutTemplateRequest) {
     return api.put<JsonData<WorkoutTemplateModel>>(`workout-templates/${id}`, payload);
+  },
+
+  async createFromWorkout(workoutId: number, payload: CreateTemplateFromWorkoutRequest) {
+    return api.post<JsonData<WorkoutTemplateModel>>(
+      `workout-templates/from-workout/${workoutId}`,
+      payload,
+    );
   },
 };

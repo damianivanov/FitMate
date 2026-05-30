@@ -5,8 +5,9 @@ import { UserRole } from "@/types";
 import { Login, Register } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount } from "./pages/Profile";
-import AdminPanel, { ExerciseGrid, MuscleGroupGrid } from "./pages/AdminPanel";
+import AdminPanel, { ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
 import WorkoutBuilder from "./pages/WorkoutBuilder";
+import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
 import WorkoutHistory from "./pages/WorkoutHistory";
 import Templates from "./pages/Templates";
@@ -27,11 +28,19 @@ export const router = createBrowserRouter([
       },
       {
         path: "login",
-        element: <Login />,
+        element: (
+          <AccessGate requireUnauthenticated>
+            <Login />
+          </AccessGate>
+        ),
       },
       {
         path: "register",
-        element: <Register />,
+        element: (
+          <AccessGate requireUnauthenticated>
+            <Register />
+          </AccessGate>
+        ),
       },
       {
         path: "component-test",
@@ -71,6 +80,10 @@ export const router = createBrowserRouter([
           {
             path: "history",
             element: <WorkoutHistory />,
+          },
+          {
+            path: ":workoutId/summary",
+            element: <WorkoutSummary />,
           },
           {
             path: ":workoutId",
@@ -143,6 +156,10 @@ export const router = createBrowserRouter([
           {
             path: "muscle-groups",
             element: <MuscleGroupGrid />,
+          },
+          {
+            path: "users",
+            element: <UserGrid />,
           },
         ],
       },

@@ -476,6 +476,9 @@ namespace FitMate.DB.Migrations
                         .HasPrecision(3, 1)
                         .HasColumnType("decimal(3,1)");
 
+                    b.Property<int>("SetType")
+                        .HasColumnType("int");
+
                     b.Property<long>("TemplateExerciseId")
                         .HasColumnType("bigint");
 

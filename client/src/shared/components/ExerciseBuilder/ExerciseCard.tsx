@@ -22,6 +22,7 @@ import {
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
+  LuCheck,
   LuChevronDown,
   LuEllipsis,
   LuGripVertical,
@@ -97,6 +98,8 @@ export function ExerciseCard({
   const hasSetEditing = capabilities.showSetTypeDropdown || capabilities.allowSetDnd;
   const isCollapseEnabled = capabilities.allowCollapse && isMobileViewport;
   const isCollapsed = isCollapseEnabled && exercise.collapsed;
+  const isExerciseCompleted =
+    exercise.sets.length > 0 && exercise.sets.every((set) => set.isCompleted);
   const canCreateExerciseGroup =
     exercise.groupId == null || exercise.groupType === ExerciseGroupType.Straight;
 
@@ -111,7 +114,7 @@ export function ExerciseCard({
       : "Add Note";
 
   const headerGridClass = [
-    "grid min-w-0 flex-1 gap-1 sm:gap-2",
+    "grid min-w-0 flex-1 gap-2 sm:gap-4",
     thirdColumnShown ? "grid-cols-3" : "grid-cols-2",
   ].join(" ");
 
@@ -375,6 +378,7 @@ export function ExerciseCard({
     <>
       <article
         aria-hidden={isDragOverlay ? true : undefined}
+        data-exercise-id={exercise.id}
         className={[
           "liquid-panel w-full rounded-3xl transition-[border-color,box-shadow,opacity,transform] duration-200 ease-out md:w-86 md:shrink-0",
           isDragOverlay ? "liquid-drag-overlay opacity-100" : "",
@@ -397,12 +401,33 @@ export function ExerciseCard({
                 <LuGripVertical className="h-5 w-5" />
               </button>
             ) : null}
-            <span
-              className="block min-w-0 flex-1 truncate text-sm font-semibold text-foreground"
-              title={exercise.displayName}
-            >
-              {exercise.displayName}
-            </span>
+            {isExerciseCompleted ? (
+              <span
+                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
+                aria-hidden="true"
+              >
+                <LuCheck className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+            {isCollapseEnabled ? (
+              <button
+                type="button"
+                onClick={handleCollapseClick}
+                className={`block min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                title={exercise.displayName}
+                aria-expanded={!isCollapsed}
+                aria-label={isCollapsed ? `Expand ${exercise.displayName}` : `Collapse ${exercise.displayName}`}
+              >
+                {exercise.displayName}
+              </button>
+            ) : (
+              <span
+                className={`block min-w-0 flex-1 truncate text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                title={exercise.displayName}
+              >
+                {exercise.displayName}
+              </span>
+            )}
             <div className="flex shrink-0 items-center gap-0.5">
               {hasSetEditing ? (
                 <button
@@ -453,17 +478,22 @@ export function ExerciseCard({
               />
             ) : null}
 
-            {!isSetEditMode ? (
-              <div className="flex items-center justify-between gap-2 px-1 pt-1 text-2xs font-semibold uppercase tracking-widest text-muted sm:px-2">
+            <div
+              className={[
+                "-mb-2 flex items-center justify-between gap-2 px-1 pt-1 text-2xs font-semibold uppercase tracking-widest text-muted sm:px-2",
+                isSetEditMode ? "invisible" : "",
+              ].join(" ")}
+              aria-hidden={isSetEditMode ? true : undefined}
+            >
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   {capabilities.allowSetDnd ? (
-                    <span className="w-8 shrink-0" />
+                    <span className="w-6 shrink-0" />
                   ) : (
                     <span className="mono w-7 shrink-0 whitespace-nowrap text-center text-2xs font-semibold" />
                   )}
                   <div className={headerGridClass}>
                     <span className="block w-full text-center text-secondary">Weight</span>
-                    <div className="flex w-full items-center justify-center gap-1 text-center">
+                    <div className="flex w-full items-center justify-center text-center">
                       <button
                         type="button"
                         onClick={handleRepsMetricClick}
@@ -495,9 +525,7 @@ export function ExerciseCard({
                   </div>
                 </div>
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center md:h-9 md:w-9" />
-              </div>
-            ) : null}
-
+            </div>
             {setRows}
 
             {hasHiddenSets ? (
@@ -510,7 +538,15 @@ export function ExerciseCard({
                 <LuChevronDown className={`h-3.5 w-3.5 transition-transform ${showAllSets ? "rotate-180" : ""}`} />
                 <span>{showAllSets ? "Show fewer sets" : `Show all ${exercise.sets.length} sets`}</span>
               </button>
-            ) : null}
+            ) : (
+              <div
+                aria-hidden="true"
+                className="invisible mt-2 flex w-full items-center justify-center gap-1 px-2 py-1 text-2xs font-semibold uppercase tracking-wide"
+              >
+                <LuChevronDown className="h-3.5 w-3.5" />
+                <span>Show all sets</span>
+              </div>
+            )}
 
             <button
               type="button"

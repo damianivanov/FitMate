@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { LuArrowLeft, LuRefreshCw } from "react-icons/lu";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import {
   DeleteConfirmationModal,
   ExerciseAddModal,
@@ -27,6 +28,8 @@ const WORKOUT_CAPABILITIES: ExerciseBuilderCapabilities = {
 };
 
 export default function WorkoutBuilder() {
+  const { state, actions } = useTemplateWorkoutBuilderPage();
+  const isMobileViewport = useIsMobileViewport({ defaultValue: true });
   const {
     draft,
     summary,
@@ -44,36 +47,8 @@ export default function WorkoutBuilder() {
     quickSetPopoverAnchorElement,
     isAddExerciseModalOpen,
     collapsedExerciseIds,
-    handleBackClick,
-    handleCancelDeleteWorkout,
-    handleConfirmDeleteWorkout,
-    handleDeleteWorkoutRequest,
-    handleRetryLoad,
-    handleAddExerciseModalOpen,
-    handleAddExerciseModalClose,
-    handleAddExercise,
-    handleAddExerciseToGroup,
-    handleRemoveExercise,
-    handleExerciseGroupingChange,
-    handleTitleChange,
-    handleWorkoutNotesChange,
-    handleExerciseNotesChange,
-    handleExerciseMetricModeChange,
-    handleSetTypeChange,
-    handleSetCompletedToggle,
-    handleAddSet,
-    handleRemoveSet,
-    handleSetReorder,
-    handleExerciseReorder,
-    handleToggleExerciseCollapse,
-    handleSetGroupCollapse,
-    handleQuickSetPopoverOpen,
-    handleQuickSetPopoverClose,
-    handleQuickSetValueChange,
-    handleQuickSetApplyToAll,
-    handleStartWorkout,
-    handleFinishWorkout,
-  } = useTemplateWorkoutBuilderPage();
+    scrollToExerciseId,
+  } = state;
 
   const exerciseVms = useMemo<ExerciseBuilderExerciseVM[]>(() => {
     if (!draft) {
@@ -111,39 +86,38 @@ export default function WorkoutBuilder() {
         return;
       }
 
-      handleQuickSetPopoverOpen(exerciseId, setId, field, anchorElement);
+      actions.handleQuickSetPopoverOpen(exerciseId, setId, field, anchorElement);
     },
-    onExerciseNotesChange: handleExerciseNotesChange,
-    onExerciseMetricModeChange: handleExerciseMetricModeChange,
-    onExerciseGroupingChange: handleExerciseGroupingChange,
-    onRemoveExercise: handleRemoveExercise,
-    onAddSet: handleAddSet,
-    onRemoveSet: handleRemoveSet,
-    onAddExerciseClick: handleAddExerciseModalOpen,
-    onAddExerciseToGroup: handleAddExerciseToGroup,
-    onToggleExerciseCollapse: handleToggleExerciseCollapse,
-    onSetGroupCollapse: handleSetGroupCollapse,
-    onExerciseReorder: handleExerciseReorder,
-    onSetReorder: handleSetReorder,
-    onSetCompletedToggle: handleSetCompletedToggle,
-    onSetTypeChange: handleSetTypeChange,
-  }), [
-    handleAddExerciseModalOpen,
-    handleAddExerciseToGroup,
-    handleAddSet,
-    handleExerciseGroupingChange,
-    handleExerciseMetricModeChange,
-    handleExerciseNotesChange,
-    handleExerciseReorder,
-    handleQuickSetPopoverOpen,
-    handleRemoveExercise,
-    handleRemoveSet,
-    handleSetCompletedToggle,
-    handleSetGroupCollapse,
-    handleSetReorder,
-    handleSetTypeChange,
-    handleToggleExerciseCollapse,
-  ]);
+    onExerciseNotesChange: actions.handleExerciseNotesChange,
+    onExerciseMetricModeChange: actions.handleExerciseMetricModeChange,
+    onExerciseGroupingChange: actions.handleExerciseGroupingChange,
+    onRemoveExercise: actions.handleRemoveExercise,
+    onAddSet: actions.handleAddSet,
+    onRemoveSet: actions.handleRemoveSet,
+    onAddExerciseClick: actions.handleAddExerciseModalOpen,
+    onAddExerciseToGroup: actions.handleAddExerciseToGroup,
+    onToggleExerciseCollapse: actions.handleToggleExerciseCollapse,
+    onSetGroupCollapse: actions.handleSetGroupCollapse,
+    onExerciseReorder: actions.handleExerciseReorder,
+    onSetReorder: actions.handleSetReorder,
+    onSetCompletedToggle: actions.handleSetCompletedToggle,
+    onSetTypeChange: actions.handleSetTypeChange,
+  }), [actions]);
+
+  useEffect(() => {
+    if (!scrollToExerciseId) {
+      return;
+    }
+
+    if (isMobileViewport && typeof document !== "undefined") {
+      const targetElement = document.querySelector(
+        `[data-exercise-id="${CSS.escape(scrollToExerciseId)}"]`,
+      );
+      targetElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    actions.handleExerciseScrolled();
+  }, [scrollToExerciseId, isMobileViewport, actions]);
 
   if (!draft || !summary) {
     return (
@@ -151,7 +125,7 @@ export default function WorkoutBuilder() {
         <header className="liquid-page-header flex items-center gap-3 px-4 py-3 md:px-8">
           <button
             type="button"
-            onClick={handleBackClick}
+            onClick={actions.handleBackClick}
             className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
             aria-label="Back to templates"
           >
@@ -175,7 +149,7 @@ export default function WorkoutBuilder() {
                 <p className="text-sm font-semibold text-danger">{templateError}</p>
                 <button
                   type="button"
-                  onClick={handleRetryLoad}
+                  onClick={actions.handleRetryLoad}
                   className="liquid-pill mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
                 >
                   <LuRefreshCw className="h-4 w-4" />
@@ -198,11 +172,11 @@ export default function WorkoutBuilder() {
         canDeleteWorkout={canDeleteWorkout}
         isDeletingWorkout={isDeletingWorkout}
         isSavingWorkout={isSavingWorkout}
-        onBackClick={handleBackClick}
-        onDeleteWorkout={handleDeleteWorkoutRequest}
-        onStartWorkout={handleStartWorkout}
-        onFinishWorkout={handleFinishWorkout}
-        onTitleChange={handleTitleChange}
+        onBackClick={actions.handleBackClick}
+        onDeleteWorkout={actions.handleDeleteWorkoutRequest}
+        onStartWorkout={actions.handleStartWorkout}
+        onFinishWorkout={actions.handleFinishWorkout}
+        onTitleChange={actions.handleTitleChange}
       />
 
       <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
@@ -214,7 +188,7 @@ export default function WorkoutBuilder() {
               notes={draft.notes}
               elapsedSeconds={elapsedSeconds}
               summary={summary}
-              onNotesChange={handleWorkoutNotesChange}
+              onNotesChange={actions.handleWorkoutNotesChange}
             />
 
             <ExerciseBoard
@@ -233,9 +207,9 @@ export default function WorkoutBuilder() {
             <WeightSetPickerPopover
               isOpen
               value={activeQuickSetPopoverContext.set.weightKg}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
               quickIncrements={[1.25, 5, 10, 15, 20] as const}
               anchorElement={quickSetPopoverAnchorElement}
             />
@@ -245,9 +219,9 @@ export default function WorkoutBuilder() {
             <RepsSetPickerPopover
               isOpen
               value={activeQuickSetPopoverContext.set.reps}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
               anchorElement={quickSetPopoverAnchorElement}
             />
           ) : null}
@@ -256,9 +230,9 @@ export default function WorkoutBuilder() {
             <DurationSetPickerPopover
               isOpen
               value={activeQuickSetPopoverContext.set.durationSeconds}
-              onChange={handleQuickSetValueChange}
-              onApplyToAll={handleQuickSetApplyToAll}
-              onClose={handleQuickSetPopoverClose}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
               anchorElement={quickSetPopoverAnchorElement}
             />
           ) : null}
@@ -268,8 +242,8 @@ export default function WorkoutBuilder() {
       <ExerciseAddModal
         isOpen={isAddExerciseModalOpen}
         selectedExerciseIds={draft.exercises.map((exercise) => exercise.exerciseId)}
-        onAddExercise={handleAddExercise}
-        onClose={handleAddExerciseModalClose}
+        onAddExercise={actions.handleAddExercise}
+        onClose={actions.handleAddExerciseModalClose}
       />
 
       <DeleteConfirmationModal
@@ -277,8 +251,8 @@ export default function WorkoutBuilder() {
         itemName={deleteConfirmationWorkoutTitle}
         title="Delete workout"
         isDeleting={isDeletingWorkout}
-        onCancel={handleCancelDeleteWorkout}
-        onConfirm={handleConfirmDeleteWorkout}
+        onCancel={actions.handleCancelDeleteWorkout}
+        onConfirm={actions.handleConfirmDeleteWorkout}
       />
     </>
   );

@@ -1,8 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { LuMail, LuShieldCheck, LuUserRound } from "react-icons/lu";
-import { isAdmin as hasAdminRole } from "@/lib/access";
-import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
-import { useUserStore } from "@/stores/userStore";
+import { PageBody } from "@/shared/components";
+import { useProfilePage } from "./hooks/useProfilePage";
 
 const profileNavItems = [
   {
@@ -21,13 +20,9 @@ function getProfileNavLinkClassName(isActive: boolean): string {
   return `${baseClassName} ${stateClassName}`.trim();
 }
 
-function Profile() {
-  const { user } = useUserStore();
-  const displayName = buildDisplayName(user.firstName, user.lastName) || "FitMate User";
-  const initials = buildInitials(user.firstName, user.lastName, user.email);
-  const avatarColorClassName = getAvatarColorClassName(user.id);
-  const isAdminUser = hasAdminRole(user);
-  const roleLabel = isAdminUser ? "Admin" : "Member";
+export default function Profile() {
+  const { state } = useProfilePage();
+  const { user, displayName, initials, avatarColorClassName, roleLabel } = state;
 
   return (
     <>
@@ -79,7 +74,7 @@ function Profile() {
         </div>
       </header>
 
-      <div className="liquid-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
+      <PageBody>
         <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
           <aside className="liquid-panel rounded-2xl p-5">
             <div className="flex items-center gap-3">
@@ -112,9 +107,7 @@ function Profile() {
             <Outlet />
           </section>
         </div>
-      </div>
+      </PageBody>
     </>
   );
 }
-
-export default Profile;

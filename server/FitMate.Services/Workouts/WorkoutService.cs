@@ -66,6 +66,39 @@ public class WorkoutService : IWorkoutService
         return workout.Id;
     }
 
+    public async Task<long> DuplicateAsync(long workoutId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (workoutId <= 0)
+        {
+            throw new FitMateException("Workout id is invalid.");
+        }
+
+        var source = await dbContext.Workouts
+            .AsNoTracking()
+            .Include(x => x.ExerciseGroups)
+                .ThenInclude(x => x.Exercises)
+                    .ThenInclude(x => x.Sets)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
+
+        if (source == null)
+        {
+            throw new FitMateException("Workout not found.");
+        }
+
+        var workout = BuildWorkoutCopy(source, userId, DateTime.UtcNow);
+
+        dbContext.Workouts.Add(workout);
+        await dbContext.SaveChangesAsync(userId);
+
+        return workout.Id;
+    }
+
     public async Task<WorkoutCreatedModel> CreateAsync(
         SaveWorkoutRequest request,
         long userId)
@@ -481,7 +514,7 @@ public class WorkoutService : IWorkoutService
                     workoutExercise.Sets.Add(new ExerciseSet
                     {
                         OrderIndex = templateSet.OrderIndex,
-                        SetType = ExerciseSetType.Working,
+                        SetType = templateSet.SetType,
                         WeightKg = NormalizeWeight(templateSet.WeightKg),
                         Reps = templateSet.Reps,
                         DurationSeconds = templateSet.DurationSeconds,
@@ -490,6 +523,65 @@ public class WorkoutService : IWorkoutService
                         IsCompleted = false,
                         IsPersonalRecord = false,
                         Notes = NormalizeNullable(templateSet.Notes),
+                    });
+                }
+
+                workoutGroup.Exercises.Add(workoutExercise);
+            }
+
+            if (workoutGroup.Exercises.Count > 0)
+            {
+                workout.ExerciseGroups.Add(workoutGroup);
+            }
+        }
+
+        return workout;
+    }
+
+    private static Workout BuildWorkoutCopy(
+        Workout source,
+        long userId,
+        DateTime startedAt)
+    {
+        var workout = new Workout
+        {
+            UserId = userId,
+            Title = source.Title,
+            StartedAt = startedAt,
+            Notes = source.Notes,
+        };
+
+        foreach (var sourceGroup in source.ExerciseGroups.OrderBy(x => x.SortOrder))
+        {
+            var workoutGroup = new WorkoutExerciseGroup
+            {
+                SortOrder = sourceGroup.SortOrder,
+                GroupType = sourceGroup.GroupType,
+            };
+
+            foreach (var sourceExercise in sourceGroup.Exercises.OrderBy(x => x.OrderIndex))
+            {
+                var workoutExercise = new WorkoutExercise
+                {
+                    ExerciseId = sourceExercise.ExerciseId,
+                    OrderIndex = sourceExercise.OrderIndex,
+                    Notes = sourceExercise.Notes,
+                };
+
+                foreach (var sourceSet in sourceExercise.Sets.OrderBy(x => x.OrderIndex))
+                {
+                    workoutExercise.Sets.Add(new ExerciseSet
+                    {
+                        OrderIndex = sourceSet.OrderIndex,
+                        SetType = sourceSet.SetType,
+                        WeightKg = sourceSet.WeightKg,
+                        Reps = sourceSet.Reps,
+                        DurationSeconds = sourceSet.DurationSeconds,
+                        DistanceMeters = sourceSet.DistanceMeters,
+                        Rpe = sourceSet.Rpe,
+                        IsCompleted = false,
+                        IsPersonalRecord = false,
+                        Notes = sourceSet.Notes,
                     });
                 }
 

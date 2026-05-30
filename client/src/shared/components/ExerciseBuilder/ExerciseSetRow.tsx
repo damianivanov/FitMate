@@ -109,7 +109,7 @@ export function ExerciseSetRow({
       className={
         capabilities.showCompletionCheckbox
           ? "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-(--input-border) bg-(--glass-bg-input) text-danger transition hover:bg-red-100/20 hover:text-danger md:h-9 md:w-9"
-          : "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-danger transition hover:bg-red-100/20 hover:text-danger"
+          : "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-danger transition hover:bg-red-100/20 hover:text-danger md:h-9 md:w-9"
       }
       aria-label={`Remove set ${setNumber}`}
     >
@@ -127,6 +127,11 @@ export function ExerciseSetRow({
     }
     const compactValueText = compactParts.join("  /  ");
     const compactValueTitle = `Weight / ${isDurationEnabled ? "Duration" : "Reps"}${capabilities.showRestColumn ? " / Rest" : ""}`;
+    const compactUnitParts = ["kg", isDurationEnabled ? "sec" : "reps"];
+    if (capabilities.showRestColumn) {
+      compactUnitParts.push("sec");
+    }
+    const compactUnitsText = compactUnitParts.join("  /  ");
 
     return (
       <div
@@ -147,12 +152,17 @@ export function ExerciseSetRow({
             />
           </div>
         ) : null}
-        <span
-          className="min-w-0 flex-1 truncate text-center text-sm font-semibold tabular-nums text-secondary"
+        <div
+          className="flex min-w-0 flex-1 flex-col items-center justify-center"
           title={compactValueTitle}
         >
-          {compactValueText}
-        </span>
+          <span className="w-full truncate text-center text-sm font-semibold tabular-nums text-secondary">
+            {compactValueText}
+          </span>
+          <span className="w-full truncate text-center text-2xs font-medium tracking-wide text-muted">
+            {compactUnitsText}
+          </span>
+        </div>
         {removeButton}
       </div>
     );

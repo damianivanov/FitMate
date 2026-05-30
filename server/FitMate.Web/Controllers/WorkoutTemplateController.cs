@@ -69,6 +69,19 @@ public class WorkoutTemplateController : BaseApiController
         return this.ReturnJson(created);
     }
 
+    [HttpPost("from-workout/{workoutId:long}")]
+    public async Task<ActionResult> CreateFromWorkout(long workoutId, [FromBody] CreateTemplateFromWorkoutRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var created = await workoutTemplateService.CreateFromWorkoutAsync(workoutId, request, userId.Value);
+        return this.ReturnJson(created);
+    }
+
     [HttpPut("{templateId:long}")]
     public async Task<ActionResult> Update(long templateId, [FromBody] CreateWorkoutTemplateRequest request)
     {

@@ -10,6 +10,8 @@ type AccessGateProps = {
   allowRoles?: readonly UserRole[];
   unauthenticatedRedirectTo?: string;
   unauthorizedRedirectTo?: string;
+  requireUnauthenticated?: boolean;
+  authenticatedRedirectTo?: string;
 };
 
 export default function AccessGate({
@@ -18,6 +20,8 @@ export default function AccessGate({
   allowRoles,
   unauthenticatedRedirectTo = "/login",
   unauthorizedRedirectTo = "/",
+  requireUnauthenticated = false,
+  authenticatedRedirectTo = "/",
 }: AccessGateProps) {
   const { user, isAuthenticated, userLoaded } = useUserStore();
   const location = useLocation();
@@ -28,6 +32,10 @@ export default function AccessGate({
         Loading...
       </div>
     );
+  }
+
+  if (requireUnauthenticated && isAuthenticated) {
+    return <Navigate to={authenticatedRedirectTo} replace />;
   }
 
   if (requireAuthenticated && !isAuthenticated) {
