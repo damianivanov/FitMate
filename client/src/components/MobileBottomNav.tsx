@@ -58,7 +58,7 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
                 >
                   <Icon
                     className={getBottomNavIconClassName()}
-                    strokeWidth={1.75}
+                    strokeWidth={2.25}
                   />
                 </NavLink>
               </li>

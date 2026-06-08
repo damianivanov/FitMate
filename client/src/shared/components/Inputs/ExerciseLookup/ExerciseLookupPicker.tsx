@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useExerciseLookup } from "@/hooks/useExerciseLookup";
 import { useUserStore } from "@/stores/userStore";
 import type { ExerciseLookupModel, MuscleGroup } from "@/types";
+import { MuscleGroupDropdown } from "../MuscleGroupDropdown";
 import { ExerciseLookupResults } from "./ExerciseLookupResults";
 import { ExerciseLookupSearchBar } from "./ExerciseLookupSearchBar";
 import { MuscleGroupChipSelector } from "./MuscleGroupChipSelector";
@@ -23,6 +24,7 @@ type ExerciseLookupPickerProps = {
   take?: number;
   searchLabel?: string;
   filterLabel?: string;
+  filterVariant?: "chips" | "dropdown";
   searchPlaceholder?: string;
   selectedLabelPrefix?: string;
   selectedExtra?: ReactNode;
@@ -74,6 +76,7 @@ export function ExerciseLookupPicker({
   take = 20,
   searchLabel = "Choose Exercise",
   filterLabel = "Filter by Muscle Group",
+  filterVariant = "chips",
   searchPlaceholder = "Search exercises...",
   selectedLabelPrefix = "Selected:",
   selectedExtra,
@@ -124,12 +127,25 @@ export function ExerciseLookupPicker({
         onChange={onSearchChange}
       />
 
-      <MuscleGroupChipSelector
-        label={filterLabel}
-        muscleGroups={muscleGroups}
-        selectedMuscleGroupId={muscleGroupFilterId}
-        onSelect={onMuscleGroupFilterChange}
-      />
+      {filterVariant === "dropdown" ? (
+        <MuscleGroupDropdown
+          label={filterLabel}
+          muscleGroups={muscleGroups}
+          value={muscleGroupFilterId || null}
+          onChange={(value) => onMuscleGroupFilterChange(value ?? "")}
+          placeholder="All muscle groups"
+          searchable
+          searchPlaceholder="Search muscle groups..."
+          clearable
+        />
+      ) : (
+        <MuscleGroupChipSelector
+          label={filterLabel}
+          muscleGroups={muscleGroups}
+          selectedMuscleGroupId={muscleGroupFilterId}
+          onSelect={onMuscleGroupFilterChange}
+        />
+      )}
 
       <ExerciseLookupResults
         isLoading={isLoading}

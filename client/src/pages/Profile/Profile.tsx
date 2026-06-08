@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LuMail, LuShieldCheck, LuUserRound } from "react-icons/lu";
+import { LuDumbbell, LuMail, LuShieldCheck, LuUserRound } from "react-icons/lu";
 import { PageBody } from "@/shared/components";
 import { useProfilePage } from "./hooks/useProfilePage";
 
@@ -9,6 +9,12 @@ const profileNavItems = [
     to: ".",
     icon: LuUserRound,
     end: true,
+  },
+  {
+    label: "My Exercises",
+    to: "exercises",
+    icon: LuDumbbell,
+    end: false,
   },
 ];
 

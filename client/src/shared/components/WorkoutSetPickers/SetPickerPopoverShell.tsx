@@ -1,14 +1,18 @@
 import {
-  useCallback,
   useEffect,
-  useRef,
   useState,
-  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
+import {
+  FloatingPortal,
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useFloating,
+} from "@floating-ui/react";
 import { LuX } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 
@@ -30,9 +34,24 @@ export function SetPickerPopoverShell({
   desktopWidthClassName = "w-72",
   anchorElement = null,
 }: SetPickerPopoverShellProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const isMobileViewport = useIsMobileViewport();
-  const [desktopPosition, setDesktopPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // Desktop anchored positioning via floating-ui; mobile renders a centered modal below
+  // and skips floating entirely. The panel element is tracked in state so autoUpdate can
+  // re-measure it and the desktop outside-press check can test containment.
+  const [panelElement, setPanelElement] = useState<HTMLDivElement | null>(null);
+  const { floatingStyles, isPositioned } = useFloating({
+    open: isOpen && !isMobileViewport,
+    strategy: "fixed",
+    placement: "bottom-start",
+    middleware: [
+      offset(DESKTOP_OFFSET_PX),
+      flip({ padding: DESKTOP_OFFSET_PX }),
+      shift({ padding: DESKTOP_OFFSET_PX }),
+    ],
+    whileElementsMounted: autoUpdate,
+    elements: { reference: anchorElement, floating: panelElement },
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -54,11 +73,11 @@ export function SetPickerPopoverShell({
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current) {
+      if (!panelElement) {
         return;
       }
 
-      if (!containerRef.current.contains(event.target as Node)) {
+      if (!panelElement.contains(event.target as Node)) {
         onClose();
       }
     };
@@ -69,7 +88,7 @@ export function SetPickerPopoverShell({
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isMobileViewport, isOpen, onClose]);
+  }, [isMobileViewport, isOpen, onClose, panelElement]);
 
   useEffect(() => {
     if (!isOpen || !isMobileViewport || typeof document === "undefined") {
@@ -84,56 +103,6 @@ export function SetPickerPopoverShell({
     };
   }, [isMobileViewport, isOpen]);
 
-  const updateDesktopPosition = useCallback(() => {
-    if (typeof window === "undefined" || !anchorElement || !containerRef.current) {
-      return;
-    }
-
-    const anchorRect = anchorElement.getBoundingClientRect();
-    const panelRect = containerRef.current.getBoundingClientRect();
-    const maxLeft = window.innerWidth - panelRect.width - DESKTOP_OFFSET_PX;
-    const boundedLeft = Math.max(
-      DESKTOP_OFFSET_PX,
-      Math.min(anchorRect.left, Math.max(DESKTOP_OFFSET_PX, maxLeft)),
-    );
-    const topBelowAnchor = anchorRect.bottom + DESKTOP_OFFSET_PX;
-    const topAboveAnchor = anchorRect.top - panelRect.height - DESKTOP_OFFSET_PX;
-    const fitsBelowAnchor = topBelowAnchor + panelRect.height <= window.innerHeight - DESKTOP_OFFSET_PX;
-    const nextTop = fitsBelowAnchor
-      ? topBelowAnchor
-      : Math.max(DESKTOP_OFFSET_PX, topAboveAnchor);
-    const roundedTop = Math.round(nextTop);
-    const roundedLeft = Math.round(boundedLeft);
-
-    setDesktopPosition((previous) => {
-      if (previous?.top === roundedTop && previous.left === roundedLeft) {
-        return previous;
-      }
-
-      return { top: roundedTop, left: roundedLeft };
-    });
-  }, [anchorElement]);
-
-  useEffect(() => {
-    if (!isOpen || isMobileViewport) {
-      return;
-    }
-
-    const updatePosition = () => {
-      updateDesktopPosition();
-    };
-
-    const frameId = window.requestAnimationFrame(updatePosition);
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [isOpen, isMobileViewport, updateDesktopPosition]);
-
   if (!isOpen) {
     return null;
   }
@@ -142,31 +111,13 @@ export function SetPickerPopoverShell({
     return null;
   }
 
-  const desktopPanelStyle: CSSProperties | undefined = isMobileViewport
-    ? undefined
-    : {
-        position: "fixed",
-        top: desktopPosition?.top ?? 0,
-        left: desktopPosition?.left ?? 0,
-      };
-
   const panelClassName = [
     "liquid-panel liquid-picker-panel liquid-floating-surface border border-(--glass-divider) p-4",
-    isMobileViewport
-      ? "w-full rounded-3xl"
-      : `rounded-3xl ${desktopWidthClassName}`,
-    !isMobileViewport && !desktopPosition ? "opacity-0" : "",
+    isMobileViewport ? "w-full rounded-3xl" : `rounded-3xl ${desktopWidthClassName}`,
   ].join(" ");
 
-  const panelContent = (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal={isMobileViewport ? true : undefined}
-      aria-label={title}
-      className={panelClassName}
-      style={desktopPanelStyle}
-    >
+  const innerContent = (
+    <>
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted">{title}</p>
         {isMobileViewport ? (
@@ -181,21 +132,22 @@ export function SetPickerPopoverShell({
         ) : null}
       </div>
       {children}
-    </div>
+    </>
   );
 
-  if (typeof document === "undefined") {
-    return panelContent;
-  }
-
   if (!isMobileViewport) {
-    return createPortal(
-      <div className="fixed inset-0 z-120 pointer-events-none">
-        <div className="pointer-events-auto">
-          {panelContent}
+    return (
+      <FloatingPortal>
+        <div
+          ref={setPanelElement}
+          role="dialog"
+          aria-label={title}
+          className={`${panelClassName} z-120`}
+          style={{ ...floatingStyles, visibility: isPositioned ? "visible" : "hidden" }}
+        >
+          {innerContent}
         </div>
-      </div>,
-      document.body,
+      </FloatingPortal>
     );
   }
 
@@ -210,19 +162,22 @@ export function SetPickerPopoverShell({
     onClose();
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-120 flex items-center justify-center p-4">
-      <button
-        type="button"
-        onPointerDown={handleMobileOverlayPointerDown}
-        onClick={handleMobileOverlayClick}
-        className="liquid-overlay-strong liquid-picker-mobile-overlay-in absolute inset-0 cursor-pointer"
-        aria-label={`Close ${title.toLowerCase()} editor`}
-      />
-      <div className="liquid-picker-mobile-panel-in relative w-full max-w-sm">
-        {panelContent}
+  return (
+    <FloatingPortal>
+      <div className="fixed inset-0 z-120 flex items-center justify-center p-4">
+        <button
+          type="button"
+          onPointerDown={handleMobileOverlayPointerDown}
+          onClick={handleMobileOverlayClick}
+          className="liquid-overlay-strong liquid-picker-mobile-overlay-in absolute inset-0 cursor-pointer"
+          aria-label={`Close ${title.toLowerCase()} editor`}
+        />
+        <div className="liquid-picker-mobile-panel-in relative w-full max-w-sm">
+          <div role="dialog" aria-modal aria-label={title} className={panelClassName}>
+            {innerContent}
+          </div>
+        </div>
       </div>
-    </div>,
-    document.body,
+    </FloatingPortal>
   );
 }

@@ -48,37 +48,6 @@ public class MuscleGroupService : IMuscleGroupService
         };
     }
 
-    public async Task<MuscleGroupModel?> GetByIdAsync(long id)
-    {
-        return await dbContext.MuscleGroups
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(MapToModelExpression())
-            .FirstOrDefaultAsync();
-    }
-
-    public async Task<MuscleGroupModel> CreateAsync(
-        CreateMuscleGroupRequest request)
-    {
-        var normalized = NormalizeRequest(request);
-        var validationError = await ValidateRequestAsync(normalized, null);
-        if (validationError != null)
-        {
-            throw new FitMateException(validationError);
-        }
-
-        var muscleGroup = new MuscleGroup
-        {
-            Name = normalized.Name,
-            ImageUrl = normalized.ImageUrl,
-        };
-
-        dbContext.MuscleGroups.Add(muscleGroup);
-        await dbContext.SaveChangesAsync();
-
-        return MapToModel(muscleGroup);
-    }
-
     public async Task<MuscleGroupModel> UpdateAsync(
         long id,
         CreateMuscleGroupRequest request)

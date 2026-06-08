@@ -1,10 +1,14 @@
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using System.Threading;
 using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.Common;
 using FitMate.Core.JsonModels.Exercises;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Services.Storage.Blobs;
+using FitMate.Services.Storage.Imaging;
+using FitMate.Services.Storage.Urls;
 using FitMate.Services.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -19,12 +23,24 @@ public class ExerciseService : IExerciseService
     private readonly AppDbContext dbContext;
     private readonly IMemoryCache memoryCache;
     private readonly IUserService userService;
+    private readonly IBlobStorageService blobStorage;
+    private readonly IImageProcessor imageProcessor;
+    private readonly IPhotoUrlResolver photoUrlResolver;
 
-    public ExerciseService(AppDbContext dbContext, IMemoryCache memoryCache, IUserService userService)
+    public ExerciseService(
+        AppDbContext dbContext,
+        IMemoryCache memoryCache,
+        IUserService userService,
+        IBlobStorageService blobStorage,
+        IImageProcessor imageProcessor,
+        IPhotoUrlResolver photoUrlResolver)
     {
         this.dbContext = dbContext;
         this.memoryCache = memoryCache;
         this.userService = userService;
+        this.blobStorage = blobStorage;
+        this.imageProcessor = imageProcessor;
+        this.photoUrlResolver = photoUrlResolver;
     }
 
     public async Task<PagedResponse<ExerciseModel>> ListAsync(ExerciseQueryRequest request)
@@ -61,6 +77,11 @@ public class ExerciseService : IExerciseService
             .Select(MapToModelExpression())
             .ToListAsync();
 
+        foreach (var item in items)
+        {
+            await ResolveModelUrlsAsync(item);
+        }
+
         return new PagedResponse<ExerciseModel>
         {
             Items = items,
@@ -70,35 +91,20 @@ public class ExerciseService : IExerciseService
         };
     }
 
-    public async Task<ExerciseModel?> GetByIdAsync(long id)
-    {
-        return await dbContext.Exercises
-            .AsNoTracking()
-            .Where(x => x.Id == id)
-            .Select(MapToModelExpression())
-            .FirstOrDefaultAsync();
-    }
-
     public async Task<ExerciseModel> CreateAsync(CreateExerciseRequest request)
     {
-        var userId = userService.LoggedInUserId;
-        if (!userId.HasValue || userId.Value <= 0)
-        {
-            throw new FitMateException("Unauthorized.");
-        }
+        var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
 
-        return await CreateInternalAsync(request, userId);
+        return userService.LoggedInUserIsAdmin
+            ? await CreateInternalAsync(request, exerciseOwnerUserId: null, isPublic: true)
+            : await CreateInternalAsync(request, exerciseOwnerUserId: userId, isPublic: request.IsPublic);
     }
 
     public async Task<ExerciseModel> UpdateAsync(
         long id,
         CreateExerciseRequest request)
     {
-        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
-        if (exercise == null)
-        {
-            throw new FitMateException("Exercise not found.");
-        }
+        var exercise = await LoadEditableExerciseAsync(id);
 
         var normalized = NormalizeRequest(request);
         var validationError = await ValidateRequestAsync(normalized, id);
@@ -110,24 +116,58 @@ public class ExerciseService : IExerciseService
         exercise.Name = normalized.Name;
         exercise.Slug = normalized.Slug;
         exercise.Description = normalized.Description;
-        exercise.ImageUrl = normalized.ImageUrl;
         exercise.VideoUrl = normalized.VideoUrl;
         exercise.PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId;
         exercise.SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId;
 
+        // Visibility is owner-controlled only; an admin editing a global or another
+        // user's exercise must not flip its IsPublic flag.
+        if (exercise.UserId == userService.LoggedInUserId)
+        {
+            exercise.IsPublic = normalized.IsPublic;
+        }
+
         await dbContext.SaveChangesAsync();
         InvalidateLookupCache();
 
-        return MapToModel(exercise);
+        return await ResolveModelUrlsAsync(MapToModel(exercise));
     }
 
-    public async Task<bool> DeleteAsync(long id)
+    public async Task<ExerciseModel> UploadImageAsync(long id, Stream content, string fileName)
     {
         var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
         if (exercise == null)
         {
             throw new FitMateException("Exercise not found.");
         }
+
+        if (!userService.LoggedInUserIsAdmin && exercise.UserId != userService.LoggedInUserId)
+        {
+            throw new FitMateException("You can only change images for your own exercises.");
+        }
+
+        var processed = await imageProcessor.ProcessAsync(content);
+        if (processed == null)
+        {
+            throw new FitMateException("The uploaded file is not a valid image.");
+        }
+
+        if (BlobPathBuilder.IsOwnedBlobPath(exercise.ImageUrl))
+        {
+            await blobStorage.DeleteByPrefixAsync($"{StorageModule.Exercises.ToFolder()}/{id}/");
+        }
+
+        var blobPath = BlobPathBuilder.Build(StorageModule.Exercises, id, fileName, processed.Extension, DateTime.UtcNow);
+        exercise.ImageUrl = await blobStorage.UploadAsync(processed.Content, blobPath, processed.ContentType);
+        await dbContext.SaveChangesAsync();
+        InvalidateLookupCache();
+
+        return await ResolveModelUrlsAsync(MapToModel(exercise));
+    }
+
+    public async Task<bool> DeleteAsync(long id)
+    {
+        var exercise = await LoadEditableExerciseAsync(id);
 
         dbContext.Exercises.Remove(exercise);
 
@@ -142,6 +182,19 @@ public class ExerciseService : IExerciseService
         }
 
         return true;
+    }
+
+    private async Task<Exercise> LoadEditableExerciseAsync(long id)
+    {
+        var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+
+        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
+        if (exercise == null || (!userService.LoggedInUserIsAdmin && exercise.UserId != userId))
+        {
+            throw new FitMateException("Exercise not found.");
+        }
+
+        return exercise;
     }
 
     public async Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request)
@@ -159,14 +212,64 @@ public class ExerciseService : IExerciseService
         var cacheVersion = GetLookupCacheVersion();
         var cacheKey = BuildLookupCacheKey(cacheVersion, userId, normalizedSearch, muscleGroupIds, skip, take);
 
-        if (memoryCache.TryGetValue<IReadOnlyList<ExerciseLookupModel>>(cacheKey, out var cachedItems) && cachedItems != null)
+        if (!memoryCache.TryGetValue<IReadOnlyList<ExerciseLookupModel>>(cacheKey, out var cachedItems) || cachedItems == null)
         {
-            return cachedItems;
+            var query = dbContext.Exercises
+                .AsNoTracking()
+                .Where(x => x.IsPublic || x.UserId == userId);
+
+            if (muscleGroupIds.Length > 0)
+            {
+                query = query.Where(x =>
+                    muscleGroupIds.Contains(x.PrimaryMuscleGroupId)
+                    || (x.SecondaryMuscleGroupId != null && muscleGroupIds.Contains(x.SecondaryMuscleGroupId.Value)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedSearch))
+            {
+                query = query.Where(x =>
+                    x.Name.Contains(normalizedSearch)
+                    || x.Slug.Contains(normalizedSearch)
+                    || x.PrimaryMuscleGroup.Name.Contains(normalizedSearch)
+                    || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
+            }
+
+            cachedItems = (await query
+                .OrderBy(x => x.UserId == userId ? 0 : 1)
+                .ThenBy(x => x.Name)
+                .ThenBy(x => x.Id)
+                .Skip(skip)
+                .Take(take)
+                .Select(MapToLookupModelExpression())
+                .ToListAsync())
+                .AsReadOnly();
+
+            memoryCache.Set(
+                cacheKey,
+                cachedItems,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(150),
+                    SlidingExpiration = TimeSpan.FromMinutes(15),
+                });
         }
+
+        return await ResolveLookupUrlsAsync(cachedItems);
+    }
+
+    public async Task<IReadOnlyList<ExerciseLookupModel>> GetMineAsync(ExerciseLookupRequest request)
+    {
+        var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+
+        var normalizedSearch = request.Search?.Trim();
+        var muscleGroupIds = (request.MuscleGroupIds ?? new List<long>())
+            .Where(id => id > 0)
+            .Distinct()
+            .ToArray();
 
         var query = dbContext.Exercises
             .AsNoTracking()
-            .AsQueryable();
+            .Where(x => x.UserId == userId);
 
         if (muscleGroupIds.Length > 0)
         {
@@ -184,114 +287,25 @@ public class ExerciseService : IExerciseService
                 || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
         }
 
-        var items = (await query
-            .OrderBy(x => x.UserId == userId ? 0 : 1)
-            .ThenBy(x => x.Name)
-            .ThenBy(x => x.Id)
-            .Skip(skip)
-            .Take(take)
-            .Select(x => new ExerciseLookupModel
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Slug = x.Slug,
-                Description = x.Description,
-                ImageUrl = x.ImageUrl,
-                VideoUrl = x.VideoUrl,
-                UserId = x.UserId,
-                IsGlobal = x.UserId == null,
-                PrimaryMuscleGroupId = x.PrimaryMuscleGroupId,
-                PrimaryMuscleGroupName = x.PrimaryMuscleGroup.Name,
-                SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
-                SecondaryMuscleGroupName = x.SecondaryMuscleGroup != null ? x.SecondaryMuscleGroup.Name : null,
-                CreatorUserId = x.UserId,
-                CreatorDisplayName =
-                    x.User == null
-                        ? null
-                        : x.User.FirstName != null && x.User.FirstName != ""
-                            ? x.User.LastName != null && x.User.LastName != ""
-                                ? x.User.FirstName + " " + x.User.LastName
-                                : x.User.FirstName
-                            : x.User.LastName != null && x.User.LastName != ""
-                                ? x.User.LastName
-                                : x.User.Email != null && x.User.Email != ""
-                                    ? x.User.Email
-                                    : null,
-                DateCreated = x.DateCreated,
-            })
-            .ToListAsync())
-            .AsReadOnly();
+        var items = await query
+            .OrderByDescending(x => x.DateCreated)
+            .ThenByDescending(x => x.Id)
+            .Select(MapToLookupModelExpression())
+            .ToListAsync();
 
-        memoryCache.Set(
-            cacheKey,
-            items,
-            new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(150),
-                SlidingExpiration = TimeSpan.FromMinutes(15),
-            });
-
-        return items;
-    }
-
-    public async Task<IReadOnlyList<ExerciseLookupModel>> GetByIdsAsync(IReadOnlyList<long> exerciseIds)
-    {
-        var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
-        var normalizedIds = exerciseIds
-            .Where(id => id > 0)
-            .Distinct()
-            .Take(300)
-            .ToArray();
-
-        if (normalizedIds.Length == 0)
-        {
-            return Array.Empty<ExerciseLookupModel>();
-        }
-
-        var items = (await dbContext.Exercises
-            .AsNoTracking()
-            .Where(x => normalizedIds.Contains(x.Id))
-            .Where(x => x.UserId == null || x.UserId == userId)
-            .Select(x => new ExerciseLookupModel
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Slug = x.Slug,
-                Description = x.Description,
-                ImageUrl = x.ImageUrl,
-                VideoUrl = x.VideoUrl,
-                UserId = x.UserId,
-                IsGlobal = x.UserId == null,
-                PrimaryMuscleGroupId = x.PrimaryMuscleGroupId,
-                PrimaryMuscleGroupName = x.PrimaryMuscleGroup.Name,
-                SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
-                SecondaryMuscleGroupName = x.SecondaryMuscleGroup != null ? x.SecondaryMuscleGroup.Name : null,
-                CreatorUserId = x.UserId,
-                CreatorDisplayName =
-                    x.User == null
-                        ? null
-                        : x.User.FirstName != null && x.User.FirstName != ""
-                            ? x.User.LastName != null && x.User.LastName != ""
-                                ? x.User.FirstName + " " + x.User.LastName
-                                : x.User.FirstName
-                            : x.User.LastName != null && x.User.LastName != ""
-                                ? x.User.LastName
-                                : x.User.Email != null && x.User.Email != ""
-                                    ? x.User.Email
-                                    : null,
-                DateCreated = x.DateCreated,
-            })
-            .ToListAsync())
-            .AsReadOnly();
-
-        return items;
+        return await ResolveLookupUrlsAsync(items);
     }
 
     private async Task<ExerciseModel> CreateInternalAsync(
         CreateExerciseRequest request,
-        long? exerciseOwnerUserId)
+        long? exerciseOwnerUserId,
+        bool isPublic)
     {
         var normalized = NormalizeRequest(request);
+
+        // Slugs are derived from the name for new exercises; the client never supplies one.
+        normalized.Slug = await GenerateUniqueSlugAsync(normalized.Name);
+
         var validationError = await ValidateRequestAsync(normalized, null);
         if (validationError != null)
         {
@@ -301,10 +315,10 @@ public class ExerciseService : IExerciseService
         var exercise = new Exercise
         {
             UserId = exerciseOwnerUserId,
+            IsPublic = isPublic,
             Name = normalized.Name,
             Slug = normalized.Slug,
             Description = normalized.Description,
-            ImageUrl = normalized.ImageUrl,
             VideoUrl = normalized.VideoUrl,
             PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId,
@@ -314,7 +328,37 @@ public class ExerciseService : IExerciseService
         await dbContext.SaveChangesAsync();
         InvalidateLookupCache();
 
-        return MapToModel(exercise);
+        return await ResolveModelUrlsAsync(MapToModel(exercise));
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(string name)
+    {
+        var baseSlug = Slugify(name);
+        if (string.IsNullOrEmpty(baseSlug))
+        {
+            baseSlug = "exercise";
+        }
+
+        var slug = baseSlug;
+        var suffix = 2;
+        while (await dbContext.Exercises.AnyAsync(x => x.Slug == slug))
+        {
+            slug = $"{baseSlug}-{suffix}";
+            suffix++;
+        }
+
+        return slug;
+    }
+
+    private static string Slugify(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var lower = value.Trim().ToLowerInvariant();
+        return Regex.Replace(lower, "[^a-z0-9]+", "-").Trim('-');
     }
 
     private static string BuildLookupCacheKey(
@@ -346,6 +390,42 @@ public class ExerciseService : IExerciseService
         Interlocked.Increment(ref lookupCacheVersion);
     }
 
+    private async Task<ExerciseModel> ResolveModelUrlsAsync(ExerciseModel model)
+    {
+        model.ImageUrl = await photoUrlResolver.ResolveAsync(model.ImageUrl);
+        model.VideoUrl = await photoUrlResolver.ResolveAsync(model.VideoUrl);
+        return model;
+    }
+
+    private async Task<IReadOnlyList<ExerciseLookupModel>> ResolveLookupUrlsAsync(IReadOnlyList<ExerciseLookupModel> items)
+    {
+        var resolved = new List<ExerciseLookupModel>(items.Count);
+        foreach (var item in items)
+        {
+            resolved.Add(new ExerciseLookupModel
+            {
+                Id = item.Id,
+                UserId = item.UserId,
+                IsGlobal = item.IsGlobal,
+                IsPublic = item.IsPublic,
+                Name = item.Name,
+                Slug = item.Slug,
+                Description = item.Description,
+                ImageUrl = await photoUrlResolver.ResolveAsync(item.ImageUrl),
+                VideoUrl = await photoUrlResolver.ResolveAsync(item.VideoUrl),
+                PrimaryMuscleGroupId = item.PrimaryMuscleGroupId,
+                PrimaryMuscleGroupName = item.PrimaryMuscleGroupName,
+                SecondaryMuscleGroupId = item.SecondaryMuscleGroupId,
+                SecondaryMuscleGroupName = item.SecondaryMuscleGroupName,
+                CreatorUserId = item.CreatorUserId,
+                CreatorDisplayName = item.CreatorDisplayName,
+                DateCreated = item.DateCreated,
+            });
+        }
+
+        return resolved.AsReadOnly();
+    }
+
     private static CreateExerciseRequest NormalizeRequest(CreateExerciseRequest request)
     {
         return new CreateExerciseRequest
@@ -357,6 +437,7 @@ public class ExerciseService : IExerciseService
             VideoUrl = string.IsNullOrWhiteSpace(request.VideoUrl) ? null : request.VideoUrl.Trim(),
             PrimaryMuscleGroupId = request.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = request.SecondaryMuscleGroupId,
+            IsPublic = request.IsPublic,
         };
     }
 
@@ -427,6 +508,7 @@ public class ExerciseService : IExerciseService
         {
             Id = entity.Id,
             UserId = entity.UserId,
+            IsPublic = entity.IsPublic,
             Name = entity.Name,
             Slug = entity.Slug,
             Description = entity.Description,
@@ -445,6 +527,7 @@ public class ExerciseService : IExerciseService
         {
             Id = entity.Id,
             UserId = entity.UserId,
+            IsPublic = entity.IsPublic,
             Name = entity.Name,
             Slug = entity.Slug,
             Description = entity.Description,
@@ -457,4 +540,37 @@ public class ExerciseService : IExerciseService
         };
     }
 
+    private static Expression<Func<Exercise, ExerciseLookupModel>> MapToLookupModelExpression()
+    {
+        return x => new ExerciseLookupModel
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Slug = x.Slug,
+            Description = x.Description,
+            ImageUrl = x.ImageUrl,
+            VideoUrl = x.VideoUrl,
+            UserId = x.UserId,
+            IsGlobal = x.UserId == null,
+            IsPublic = x.IsPublic,
+            PrimaryMuscleGroupId = x.PrimaryMuscleGroupId,
+            PrimaryMuscleGroupName = x.PrimaryMuscleGroup.Name,
+            SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
+            SecondaryMuscleGroupName = x.SecondaryMuscleGroup != null ? x.SecondaryMuscleGroup.Name : null,
+            CreatorUserId = x.UserId,
+            CreatorDisplayName =
+                x.User == null
+                    ? null
+                    : x.User.FirstName != null && x.User.FirstName != ""
+                        ? x.User.LastName != null && x.User.LastName != ""
+                            ? x.User.FirstName + " " + x.User.LastName
+                            : x.User.FirstName
+                        : x.User.LastName != null && x.User.LastName != ""
+                            ? x.User.LastName
+                            : x.User.Email != null && x.User.Email != ""
+                                ? x.User.Email
+                                : null,
+            DateCreated = x.DateCreated,
+        };
+    }
 }

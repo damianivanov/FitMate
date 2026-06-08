@@ -32,24 +32,6 @@ public class AdminMuscleGroupController : BaseApiController
         return this.ReturnJson(response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult> GetById(long id)
-    {
-        var item = await muscleGroupService.GetByIdAsync(id);
-        if (item == null)
-        {
-            return this.ReturnJsonError("Muscle group not found.");
-        }
-
-        return this.ReturnJson(item);
-    }
-
-    [HttpPost]
-    public ActionResult Create([FromBody] CreateMuscleGroupRequest request)
-    {
-        return this.ReturnJsonError("Creating new muscle groups is disabled.");
-    }
-
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(long id, [FromBody] CreateMuscleGroupRequest request)
     {

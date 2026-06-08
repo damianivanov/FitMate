@@ -1,5 +1,11 @@
 import { LuPlus } from "react-icons/lu";
-import { AsyncSection, DeleteConfirmationModal, PageBody, PageHeader } from "@/shared/components";
+import {
+  AsyncSection,
+  DeleteConfirmationModal,
+  PageBody,
+  PageHeader,
+  SaveAsTemplateModal,
+} from "@/shared/components";
 import { WorkoutListItem } from "./components/WorkoutListItem";
 import { useWorkoutsPage } from "./hooks/useWorkoutsPage";
 
@@ -52,6 +58,8 @@ export default function Workouts() {
                 isDeleting={state.deletingWorkoutId === workout.id}
                 onDelete={actions.requestDelete}
                 onOpen={actions.open}
+                onRepeat={actions.repeat}
+                onSaveAsTemplate={actions.requestSaveAsTemplate}
               />
             ))}
           </section>
@@ -65,6 +73,14 @@ export default function Workouts() {
         isDeleting={state.deletingWorkoutId !== null}
         onCancel={actions.cancelDelete}
         onConfirm={actions.confirmDelete}
+      />
+
+      <SaveAsTemplateModal
+        isOpen={state.isSaveAsTemplateOpen}
+        defaultName={state.saveAsTemplateDefaultName}
+        isSaving={state.isSavingTemplate}
+        onCancel={actions.cancelSaveAsTemplate}
+        onConfirm={actions.confirmSaveAsTemplate}
       />
     </>
   );

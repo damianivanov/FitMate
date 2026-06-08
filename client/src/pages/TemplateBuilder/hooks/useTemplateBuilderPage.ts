@@ -8,7 +8,7 @@ import {
   loadTemplateBuilderDraft,
   saveTemplateBuilderDraft,
 } from "@/services/templateBuilderDraftStorage";
-import type { QuickSetFieldKey } from "@/shared/components";
+import type { ExerciseMetricMode, QuickSetFieldKey } from "@/shared/components";
 import { ExerciseGroupType, type ExerciseLookupModel, type ExerciseSetType } from "@/types";
 import {
   areTemplateDraftsEquivalent,
@@ -21,7 +21,7 @@ import {
   getNextTemplateClientGroupId,
   hasTemplateDraftContent,
   reorderTemplateExercisesForDrag,
-  setTemplateExerciseDurationMode,
+  setTemplateExerciseMetricMode,
   type TemplateDraft,
   type TemplateExerciseDraft,
   type TemplateSetDraft,
@@ -398,18 +398,28 @@ export function useTemplateBuilderPage() {
       current ? updateDraftExercise(current, exerciseId, (exercise) => ({ ...exercise, notes: value })) : current);
   }, []);
 
-  const handleExerciseMetricModeChange = useCallback((exerciseId: string, isDurationEnabled: boolean) => {
+  const handleExerciseMetricModeChange = useCallback((exerciseId: string, metricMode: ExerciseMetricMode) => {
     setDraft((current) =>
       current
         ? updateDraftExercise(current, exerciseId, (exercise) =>
-            setTemplateExerciseDurationMode(exercise, isDurationEnabled))
+            setTemplateExerciseMetricMode(exercise, metricMode))
         : current);
+
+    const nextMetricField = metricMode === "duration"
+      ? "durationSeconds"
+      : metricMode === "distance"
+        ? "distanceMeters"
+        : "reps";
     setQuickSetPopover((current) => {
-      if (
-        current?.exerciseId !== exerciseId
-        || (isDurationEnabled && current.field !== "reps")
-        || (!isDurationEnabled && current.field !== "durationSeconds")
-      ) {
+      if (!current || current.exerciseId !== exerciseId) {
+        return current;
+      }
+
+      const isMetricField =
+        current.field === "reps"
+        || current.field === "durationSeconds"
+        || current.field === "distanceMeters";
+      if (!isMetricField || current.field === nextMetricField) {
         return current;
       }
 

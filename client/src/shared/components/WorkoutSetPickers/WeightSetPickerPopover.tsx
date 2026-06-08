@@ -10,6 +10,8 @@ type WeightSetPickerPopoverProps = {
   onClose: () => void;
   anchorElement?: HTMLElement | null;
   onApplyToAll?: (value: number) => void;
+  title?: string;
+  unitLabel?: string;
   min?: number;
   max?: number;
   step?: number;
@@ -38,12 +40,15 @@ export function WeightSetPickerPopover({
   onClose,
   anchorElement = null,
   onApplyToAll,
+  title = "Weight",
+  unitLabel = "kg",
   min = 0,
   max = 300,
   step = 0.5,
   precision = 2,
   quickIncrements = [1.25, 5, 10],
 }: WeightSetPickerPopoverProps) {
+  const lowerCaseTitle = title.toLowerCase();
   const minValue = Math.min(min, max);
   const maxValue = Math.max(min, max);
   const normalizedStep = step > 0 ? step : 0.5;
@@ -180,7 +185,7 @@ export function WeightSetPickerPopover({
   return (
     <SetPickerPopoverShell
       isOpen={isOpen}
-      title="Weight"
+      title={title}
       onClose={onClose}
       anchorElement={anchorElement}
       desktopWidthClassName="w-72"
@@ -192,7 +197,7 @@ export function WeightSetPickerPopover({
             onClick={handleDecreaseClick}
             disabled={boundedValue <= minValue}
             className={buttonClassName}
-            aria-label="Decrease weight"
+            aria-label={`Decrease ${lowerCaseTitle}`}
           >
             <LuMinus className="h-5 w-5" />
           </button>
@@ -211,7 +216,7 @@ export function WeightSetPickerPopover({
                   "mono h-14 w-24 bg-transparent text-center font-bold leading-none text-foreground tabular-nums outline-none",
                   draftValueSizeClassName,
                 ].join(" ")}
-                aria-label="Edit weight value"
+                aria-label={`Edit ${lowerCaseTitle} value`}
               />
             ) : (
               <button
@@ -221,7 +226,7 @@ export function WeightSetPickerPopover({
                   "mono h-14 min-w-20 cursor-text text-center font-bold leading-none text-foreground tabular-nums",
                   displayValueSizeClassName,
                 ].join(" ")}
-                aria-label="Edit weight value"
+                aria-label={`Edit ${lowerCaseTitle} value`}
               >
                 {formattedBoundedValue}
               </button>
@@ -233,13 +238,13 @@ export function WeightSetPickerPopover({
             onClick={handleIncreaseClick}
             disabled={boundedValue >= maxValue}
             className={buttonClassName}
-            aria-label="Increase weight"
+            aria-label={`Increase ${lowerCaseTitle}`}
           >
             <LuPlus className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mt-2 text-sm text-secondary">kg</p>
+        {unitLabel ? <p className="mt-2 text-sm text-secondary">{unitLabel}</p> : null}
 
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {validQuickIncrements.map((increment) => (

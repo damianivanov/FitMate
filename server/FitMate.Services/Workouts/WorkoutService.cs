@@ -32,6 +32,41 @@ public class WorkoutService : IWorkoutService
         return workouts.Select(MapWorkout).ToList();
     }
 
+    public async Task<IReadOnlyList<WorkoutCalendarDayModel>> GetCalendarMonthAsync(long userId, int year, int month)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (month < 1 || month > 12 || year < 1)
+        {
+            throw new FitMateException("Invalid month.");
+        }
+
+        var from = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = from.AddMonths(1);
+
+        return await dbContext.Workouts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId
+                && x.FinishedAt != null
+                && x.FinishedAt >= from
+                && x.FinishedAt < to)
+            .OrderBy(x => x.FinishedAt)
+            .Select(x => new WorkoutCalendarDayModel
+            {
+                WorkoutId = x.Id,
+                Title = x.Title,
+                Date = x.FinishedAt!.Value,
+                DurationSeconds = x.DurationSeconds,
+                TotalVolumeKg = x.TotalVolumeKg,
+                ExerciseCount = x.ExerciseGroups.SelectMany(g => g.Exercises).Count(),
+                SetCount = x.ExerciseGroups.SelectMany(g => g.Exercises).SelectMany(e => e.Sets).Count(),
+            })
+            .ToListAsync();
+    }
+
     public async Task<WorkoutModel?> GetByIdAsync(long workoutId, long userId)
     {
         if (userId <= 0)

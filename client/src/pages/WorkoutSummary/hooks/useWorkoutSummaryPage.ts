@@ -50,11 +50,11 @@ export function useWorkoutSummaryPage() {
   const [isDuplicating, setIsDuplicating] = useState(false);
 
   const saveAsTemplate = useSaveWorkoutAsTemplate({
-    onSaved: () => navigate("/templates"),
+    onSaved: (template) => navigate(`/templates/view/${template.id}`),
   });
 
   const back = useCallback(() => {
-    navigate("/workouts/history");
+    navigate("/workouts");
   }, [navigate]);
 
   const repeat = useCallback(async () => {

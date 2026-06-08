@@ -8,7 +8,7 @@ import {
   LuRepeat2,
   LuWeight,
 } from "react-icons/lu";
-import { AsyncSection, PageBody, SaveAsTemplateModal } from "@/shared/components";
+import { ActionMenu, AsyncSection, PageBody, SaveAsTemplateModal } from "@/shared/components";
 import { ExerciseGroupType } from "@/types";
 import { formatMetricValue } from "../WorkoutBuilder/utils/workoutDraft";
 import { SummaryStat } from "./components/SummaryStat";
@@ -33,7 +33,7 @@ export default function WorkoutSummary() {
           type="button"
           onClick={actions.back}
           className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          aria-label="Back to history"
+          aria-label="Back to workouts"
         >
           <LuArrowLeft className="h-4 w-4" />
         </button>
@@ -41,26 +41,24 @@ export default function WorkoutSummary() {
           {workout ? workout.title : "Workout summary"}
         </h1>
         {workout ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={actions.repeat}
-              className="liquid-pill inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-semibold"
-              title="Repeat workout"
-            >
-              <LuRepeat2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Repeat</span>
-            </button>
-            <button
-              type="button"
-              onClick={actions.saveAsTemplateOpen}
-              className="liquid-primary-btn inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-semibold"
-              title="Save as template"
-            >
-              <LuLayoutTemplate className="h-4 w-4" />
-              <span className="hidden sm:inline">Save as template</span>
-            </button>
-          </div>
+          <ActionMenu
+            triggerAriaLabel={`${workout.title} actions`}
+            items={[
+              {
+                key: "repeat",
+                label: "Repeat workout",
+                icon: <LuRepeat2 className="h-4 w-4 shrink-0" />,
+                onSelect: actions.repeat,
+                variant: "primary",
+              },
+              {
+                key: "save-as-template",
+                label: "Save as template",
+                icon: <LuLayoutTemplate className="h-4 w-4 shrink-0" />,
+                onSelect: actions.saveAsTemplateOpen,
+              },
+            ]}
+          />
         ) : null}
       </header>
 

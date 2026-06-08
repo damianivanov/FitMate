@@ -36,7 +36,7 @@ public class AnalyticsService : IAnalyticsService
             TotalReps = entries.Sum(x => x.Reps ?? 0),
             VolumeTrend = BuildVolumeTrend(workouts),
             MuscleGroupVolumes = BuildMuscleGroupVolumes(entries, muscleGroupNames),
-            PersonalRecords = BuildPersonalRecords(entries),
+            PersonalRecords = BuildPersonalRecords(entries, muscleGroupNames),
         };
     }
 
@@ -211,7 +211,9 @@ public class AnalyticsService : IAnalyticsService
             .ToList();
     }
 
-    private static List<PersonalRecordSummaryModel> BuildPersonalRecords(IEnumerable<SetEntry> entries)
+    private static List<PersonalRecordSummaryModel> BuildPersonalRecords(
+        IEnumerable<SetEntry> entries,
+        IReadOnlyDictionary<long, string> muscleGroupNames)
     {
         return entries
             .GroupBy(x => new { x.ExerciseId, x.ExerciseName })
@@ -219,6 +221,12 @@ public class AnalyticsService : IAnalyticsService
             {
                 ExerciseId = group.Key.ExerciseId,
                 ExerciseName = group.Key.ExerciseName,
+                PrimaryMuscleGroupId = group.Select(x => x.MuscleGroupId).FirstOrDefault(id => id > 0),
+                PrimaryMuscleGroupName = muscleGroupNames.TryGetValue(
+                    group.Select(x => x.MuscleGroupId).FirstOrDefault(id => id > 0),
+                    out var name)
+                    ? name
+                    : string.Empty,
                 BestWeightKg = group.Where(x => x.WeightKg.HasValue).Max(x => x.WeightKg),
                 BestReps = group.Where(x => x.Reps.HasValue).Max(x => x.Reps),
                 BestEstimatedOneRepMax = MaxOrNull(group.Select(EstimateOneRepMax)),

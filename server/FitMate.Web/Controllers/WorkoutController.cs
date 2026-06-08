@@ -54,6 +54,19 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(response);
     }
 
+    [HttpGet("calendar")]
+    public async Task<ActionResult> GetCalendar([FromQuery] WorkoutCalendarQueryRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var days = await workoutService.GetCalendarMonthAsync(userId.Value, request.Year, request.Month);
+        return this.ReturnJson(days);
+    }
+
     [HttpGet("{workoutId:long}")]
     public async Task<ActionResult> GetById(long workoutId)
     {

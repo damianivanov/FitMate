@@ -15,6 +15,18 @@ internal class TemplateExerciseConfiguration : BaseConfiguration<TemplateExercis
             .HasPrecision(8, 2)
             .IsRequired(false);
 
+        builder.Property(x => x.TargetReps)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        builder.Property(x => x.Tempo)
+            .HasMaxLength(20)
+            .IsRequired(false);
+
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.TemplateExerciseGroupId, x.OrderIndex })
             .IsUnique();
 

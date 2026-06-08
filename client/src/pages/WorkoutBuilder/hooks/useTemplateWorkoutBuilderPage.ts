@@ -8,7 +8,7 @@ import {
 } from "@/lib/workoutSessionStorage";
 import { workoutService } from "@/services/workoutService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
-import { getExerciseDragOrderIndexes } from "@/shared/components";
+import { getExerciseBlockDragOrderIndexes, type ExerciseMetricMode } from "@/shared/components";
 import { ExerciseGroupType, type ExerciseLookupModel, type ExerciseSetType, type PreviousExerciseSets } from "@/types";
 import {
   buildEmptyWorkoutDraft,
@@ -20,7 +20,9 @@ import {
   createWorkoutExerciseDraftFromLookup,
   createWorkoutSetDraft,
   findNextIncompleteWorkoutExercise,
+  hasMainMetric,
   normalizeWorkoutExerciseOrderIndexes,
+  setWorkoutExerciseMetricMode,
   validateWorkoutDraft,
   type WorkoutDraft,
   type WorkoutExerciseDraft,
@@ -108,32 +110,13 @@ function reorderWorkoutExercisesForDrag(
   activeExerciseId: string,
   overExerciseId: string,
 ): WorkoutExerciseDraft[] {
-  const activeIndex = exercises.findIndex((exercise) => exercise.id === activeExerciseId);
-  const overIndex = exercises.findIndex((exercise) => exercise.id === overExerciseId);
-  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
-    return exercises.slice();
-  }
-
-  const groupKeys = exercises.map((exercise) => ({
+  const items = exercises.map((exercise) => ({
+    id: exercise.id,
     groupId: exercise.clientGroupId ?? null,
     groupType: exercise.groupType,
   }));
-  const nextIndexes = getExerciseDragOrderIndexes(groupKeys, activeIndex, overIndex);
+  const nextIndexes = getExerciseBlockDragOrderIndexes(items, activeExerciseId, overExerciseId);
   return normalizeWorkoutExerciseOrderIndexes(nextIndexes.map((index) => exercises[index]));
-}
-
-function setExerciseDurationMode(
-  exercise: WorkoutExerciseDraft,
-  isDurationEnabled: boolean,
-): WorkoutExerciseDraft {
-  return {
-    ...exercise,
-    sets: exercise.sets.map((set) => ({
-      ...set,
-      reps: isDurationEnabled ? undefined : set.reps ?? 1,
-      durationSeconds: isDurationEnabled ? set.durationSeconds ?? 30 : undefined,
-    })),
-  };
 }
 
 function getNextWorkoutClientGroupId(exercises: readonly WorkoutExerciseDraft[]): number {
@@ -504,20 +487,29 @@ export function useTemplateWorkoutBuilderPage() {
     );
   }, []);
 
-  const handleExerciseMetricModeChange = useCallback((exerciseDraftId: string, isDurationEnabled: boolean) => {
+  const handleExerciseMetricModeChange = useCallback((exerciseDraftId: string, metricMode: ExerciseMetricMode) => {
     setDraft((current) =>
       current
         ? updateDraftExercise(current, exerciseDraftId, (exercise) =>
-            setExerciseDurationMode(exercise, isDurationEnabled))
+            setWorkoutExerciseMetricMode(exercise, metricMode))
         : current,
     );
 
+    const nextMetricField = metricMode === "duration"
+      ? "durationSeconds"
+      : metricMode === "distance"
+        ? "distanceMeters"
+        : "reps";
     setQuickSetPopover((current) => {
-      if (
-        current?.exerciseId !== exerciseDraftId
-        || (isDurationEnabled && current.field !== "reps")
-        || (!isDurationEnabled && current.field !== "durationSeconds")
-      ) {
+      if (!current || current.exerciseId !== exerciseDraftId) {
+        return current;
+      }
+
+      const isMetricField =
+        current.field === "reps"
+        || current.field === "durationSeconds"
+        || current.field === "distanceMeters";
+      if (!isMetricField || current.field === nextMetricField) {
         return current;
       }
 
@@ -570,6 +562,11 @@ export function useTemplateWorkoutBuilderPage() {
     const currentDraft = draftRef.current;
     const targetExercise = currentDraft?.exercises.find((exercise) => exercise.id === exerciseDraftId);
     const targetSet = targetExercise?.sets.find((set) => set.id === setDraftId);
+
+    if (targetSet && !targetSet.isCompleted && !hasMainMetric(targetSet)) {
+      toast.error("Add a weight, reps, duration, or distance before completing this set.");
+      return;
+    }
 
     setDraft((current) =>
       current
@@ -1040,7 +1037,7 @@ export function useTemplateWorkoutBuilderPage() {
         `Workout saved: ${savedWorkout.exerciseCount} exercises, ${savedWorkout.setCount} sets.`,
       );
       clearWorkoutSessionState(latestDraft.workoutTemplateId);
-      navigate("/workouts/history", { replace: true });
+      navigate("/workouts", { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to save workout.";
       toast.error(message);

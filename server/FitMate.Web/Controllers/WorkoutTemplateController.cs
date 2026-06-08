@@ -94,4 +94,17 @@ public class WorkoutTemplateController : BaseApiController
         var updated = await workoutTemplateService.UpdateAsync(templateId, request, userId.Value);
         return this.ReturnJson(updated);
     }
+
+    [HttpDelete("{templateId:long}")]
+    public async Task<ActionResult> Delete(long templateId)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var isDeleted = await workoutTemplateService.DeleteAsync(templateId, userId.Value);
+        return this.ReturnJson(isDeleted);
+    }
 }

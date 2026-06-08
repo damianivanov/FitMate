@@ -1,11 +1,9 @@
 import api from "@/lib/api";
 import type {
   Exercise,
-  ExerciseQueryRequest,
   ExerciseLookupModel,
   ExerciseLookupRequest,
   JsonData,
-  PagedResponse,
   CreateExerciseRequest,
 } from "@/types";
 
@@ -17,27 +15,45 @@ export const exerciseService = {
     });
   },
 
-  async getByIds(exerciseIds: number[]) {
-    return api.post<JsonData<ExerciseLookupModel[]>>("exercises/get-by-ids", exerciseIds);
+  async getMine(params: ExerciseLookupRequest) {
+    return api.get<JsonData<ExerciseLookupModel[]>>("exercises/mine", {
+      params,
+      paramsSerializer: { indexes: null },
+    });
   },
 
-  async list(params: ExerciseQueryRequest) {
-    return api.get<JsonData<PagedResponse<Exercise>>>("admin/exercises", { params });
-  },
+  async create(payload: CreateExerciseRequest, file?: File) {
+    const formData = new FormData();
+    formData.append("name", payload.name);
+    formData.append("primaryMuscleGroupId", String(payload.primaryMuscleGroupId));
+    formData.append("isPublic", String(payload.isPublic));
 
-  async getById(id: number) {
-    return api.get<JsonData<Exercise>>(`admin/exercises/${id}`);
-  },
+    if (payload.description) {
+      formData.append("description", payload.description);
+    }
 
-  async create(payload: CreateExerciseRequest) {
-    return api.post<JsonData<Exercise>>("admin/exercises", payload);
+    if (payload.secondaryMuscleGroupId != null) {
+      formData.append("secondaryMuscleGroupId", String(payload.secondaryMuscleGroupId));
+    }
+
+    if (file) {
+      formData.append("file", file);
+    }
+
+    return api.post<JsonData<Exercise>>("exercises", formData);
   },
 
   async update(id: number, payload: CreateExerciseRequest) {
-    return api.put<JsonData<Exercise>>(`admin/exercises/${id}`, payload);
+    return api.put<JsonData<Exercise>>(`exercises/${id}`, payload);
   },
 
   async remove(id: number) {
-    return api.delete<JsonData<boolean>>(`admin/exercises/${id}`);
+    return api.delete<JsonData<boolean>>(`exercises/${id}`);
+  },
+
+  async uploadImage(id: number, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<JsonData<Exercise>>(`exercises/${id}/image`, formData);
   },
 };

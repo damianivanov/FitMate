@@ -1,12 +1,22 @@
 import type { ExerciseGroupType, ExerciseSetType, PreviousExerciseSet } from "@/types";
 
-export type QuickSetFieldKey = "weightKg" | "reps" | "durationSeconds" | "restSeconds";
+export type QuickSetFieldKey =
+  | "weightKg"
+  | "reps"
+  | "durationSeconds"
+  | "distanceMeters"
+  | "restSeconds"
+  | "rpe";
+
+export type ExerciseMetricMode = "reps" | "duration" | "distance";
 
 export interface ExerciseBuilderSetVM {
   id: string;
   weightKg?: number;
   reps?: number;
   durationSeconds?: number;
+  distanceMeters?: number;
+  rpe?: number;
   restSeconds?: number;
   setType?: ExerciseSetType;
   isCompleted?: boolean;
@@ -21,12 +31,13 @@ export interface ExerciseBuilderExerciseVM {
   groupType: ExerciseGroupType;
   notes: string;
   collapsed: boolean;
-  isDurationEnabled: boolean;
+  metricMode: ExerciseMetricMode;
   sets: ExerciseBuilderSetVM[];
 }
 
 export interface ExerciseBuilderCapabilities {
   showRestColumn: boolean;
+  showRpeColumn: boolean;
   showCompletionCheckbox: boolean;
   showSetTypeDropdown: boolean;
   showPreviousColumn: boolean;
@@ -43,7 +54,7 @@ export interface ExerciseBuilderCallbacks {
     anchorElement: HTMLElement,
   ) => void;
   onExerciseNotesChange: (exerciseId: string, value: string) => void;
-  onExerciseMetricModeChange: (exerciseId: string, isDurationEnabled: boolean) => void;
+  onExerciseMetricModeChange: (exerciseId: string, metricMode: ExerciseMetricMode) => void;
   onExerciseGroupingChange: (exerciseId: string, groupType: ExerciseGroupType) => void;
   onRemoveExercise: (exerciseId: string) => void;
   onAddSet: (exerciseId: string) => void;

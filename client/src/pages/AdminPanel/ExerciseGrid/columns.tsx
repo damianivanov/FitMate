@@ -7,12 +7,14 @@ type ExerciseGridColumnsOptions = {
   resolveMuscleGroupName: (id?: number) => string;
   onEdit: (exercise: Exercise) => void;
   onDelete: (exercise: Exercise) => void;
+  onImage: (exercise: Exercise) => void;
 };
 
 export function createExerciseGridColumns({
   resolveMuscleGroupName,
   onEdit,
   onDelete,
+  onImage,
 }: ExerciseGridColumnsOptions): GridColDef<Exercise>[] {
   return [
     {
@@ -60,7 +62,6 @@ export function createExerciseGridColumns({
                 <span
                   className="liquid-pill inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary"
                   aria-label={`Preview ${params.row.name} image`}
-                  title="Preview image"
                 >
                   <LuImage className="h-4 w-4" />
                 </span>
@@ -93,10 +94,14 @@ export function createExerciseGridColumns({
       headerName: "Actions",
       sortable: false,
       filterable: false,
-      width: 120,
+      width: 160,
       renderCell: (params) => {
         const handleEditClick = () => {
           onEdit(params.row);
+        };
+
+        const handleImageClick = () => {
+          onImage(params.row);
         };
 
         const handleDeleteClick = () => {
@@ -113,6 +118,15 @@ export function createExerciseGridColumns({
               title="Edit"
             >
               <LuPencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="liquid-pill rounded-full p-2 text-secondary"
+              onClick={handleImageClick}
+              aria-label="Change exercise image"
+              title="Change image"
+            >
+              <LuImage className="h-4 w-4" />
             </button>
             <button
               type="button"

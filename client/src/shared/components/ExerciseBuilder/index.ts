@@ -7,8 +7,8 @@ export type { ExerciseAddFeedback } from "./ExerciseAddModal";
 export type { ExerciseRenderBlock } from "./dnd";
 export {
   buildExerciseRenderBlocks,
-  createExerciseSortingStrategy,
-  getExerciseDragOrderIndexes,
+  getExerciseBlockDragOrderIndexes,
+  getGroupBlockId,
 } from "./dnd";
 export {
   formatMetricValue,
@@ -20,5 +20,6 @@ export type {
   ExerciseBuilderCapabilities,
   ExerciseBuilderExerciseVM,
   ExerciseBuilderSetVM,
+  ExerciseMetricMode,
   QuickSetFieldKey,
 } from "./types";

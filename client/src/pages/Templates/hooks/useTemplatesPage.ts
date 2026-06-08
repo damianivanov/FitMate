@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { unwrap } from "@/lib/unwrap";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
+import { useStartWorkoutFromTemplate } from "@/shared/hooks/useStartWorkoutFromTemplate";
 import { useUserStore } from "@/stores/userStore";
 import type { WorkoutTemplate } from "@/types";
 
@@ -54,6 +56,10 @@ export function useTemplatesPage() {
     return ownTemplates.find((template) => template.id === selectedTemplateId) ?? ownTemplates[0];
   }, [ownTemplates, selectedTemplateId]);
 
+  const [deletingTemplateId, setDeletingTemplateId] = useState<number | null>(null);
+  const [templatePendingDelete, setTemplatePendingDelete] = useState<WorkoutTemplate | null>(null);
+  const { startingTemplateId, startWorkoutFromTemplate } = useStartWorkoutFromTemplate();
+
   const select = useCallback(
     (templateId: number) => {
       setSelectedTemplateId(templateId);
@@ -70,23 +76,95 @@ export function useTemplatesPage() {
     navigate("/templates/new");
   }, [navigate]);
 
+  const edit = useCallback(
+    (templateId: number) => {
+      navigate(`/templates/${templateId}`);
+    },
+    [navigate],
+  );
+
+  const start = useCallback(
+    (templateId: number) => {
+      void startWorkoutFromTemplate(templateId);
+    },
+    [startWorkoutFromTemplate],
+  );
+
+  const requestDelete = useCallback(
+    (template: WorkoutTemplate) => {
+      if (deletingTemplateId !== null) {
+        return;
+      }
+
+      setTemplatePendingDelete(template);
+    },
+    [deletingTemplateId],
+  );
+
+  const cancelDelete = useCallback(() => {
+    if (deletingTemplateId !== null) {
+      return;
+    }
+
+    setTemplatePendingDelete(null);
+  }, [deletingTemplateId]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!templatePendingDelete || deletingTemplateId !== null) {
+      return;
+    }
+
+    const template = templatePendingDelete;
+    setDeletingTemplateId(template.id);
+
+    try {
+      const response = await workoutTemplateService.remove(template.id);
+      unwrap(response.data, "Unable to delete template.");
+
+      setTemplates((current) => (current ?? []).filter((item) => item.id !== template.id));
+      setTemplatePendingDelete(null);
+      toast.success("Template deleted.");
+    } catch (deleteError) {
+      toast.error(deleteError instanceof Error ? deleteError.message : "Unable to delete template.");
+    } finally {
+      setDeletingTemplateId(null);
+    }
+  }, [deletingTemplateId, templatePendingDelete]);
+
   const state = useMemo(
     () => ({
       templates: ownTemplates,
       selectedTemplate,
       isLoading,
       error,
+      startingTemplateId,
+      deletingTemplateId,
+      isDeleteConfirmationOpen: Boolean(templatePendingDelete),
+      templatePendingDeleteName: templatePendingDelete?.name ?? "",
     }),
-    [ownTemplates, selectedTemplate, isLoading, error],
+    [
+      ownTemplates,
+      selectedTemplate,
+      isLoading,
+      error,
+      startingTemplateId,
+      deletingTemplateId,
+      templatePendingDelete,
+    ],
   );
 
   const actions = useMemo(
     () => ({
       select,
       create,
+      edit,
+      start,
+      requestDelete,
+      cancelDelete,
+      confirmDelete,
       reload: () => setReloadIndex((index) => index + 1),
     }),
-    [select, create],
+    [select, create, edit, start, requestDelete, cancelDelete, confirmDelete],
   );
 
   return { state, actions };

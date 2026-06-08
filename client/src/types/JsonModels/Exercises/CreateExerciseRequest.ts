@@ -7,4 +7,5 @@ export interface CreateExerciseRequest
 	videoUrl?: string;
 	primaryMuscleGroupId: number;
 	secondaryMuscleGroupId?: number;
+	isPublic: boolean;
 }

@@ -6,11 +6,18 @@ import type {
   UIEvent as ReactUIEvent,
 } from "react";
 import { LuCheck, LuLoader, LuPlus, LuSearch, LuX } from "react-icons/lu";
-import { useExerciseLookup } from "@/hooks/useExerciseLookup";
+import { invalidateExerciseLookupCache, useExerciseLookup } from "@/hooks/useExerciseLookup";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
+import { unwrap } from "@/lib/unwrap";
+import { exerciseService } from "@/services/exerciseService";
 import { Modal } from "@/shared/components/Modal";
 import { Dropdown } from "@/shared/components/Inputs";
-import type { ExerciseLookupModel } from "@/types";
+import { AddExerciseModal } from "@/shared/components/AddExerciseModal";
+import {
+  emptyExerciseFormValues,
+  type ExerciseFormValues,
+} from "@/shared/components/exerciseFormValues";
+import type { CreateExerciseRequest, ExerciseLookupModel } from "@/types";
 
 const MODAL_EXIT_DURATION_MS = 220;
 const LIBRARY_LOOKUP_DEBOUNCE_MS = 140;
@@ -44,6 +51,9 @@ export function ExerciseAddModal({
   const [libraryLookupSkip, setLibraryLookupSkip] = useState(0);
   const [libraryExercises, setLibraryExercises] = useState<ExerciseLookupModel[]>([]);
   const [isAddAnimatingByExerciseId, setIsAddAnimatingByExerciseId] = useState<Record<number, boolean>>({});
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreatingExercise, setIsCreatingExercise] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const lastLoadTriggerHeightRef = useRef<number | null>(null);
   const closeResetTimeoutRef = useRef<number | null>(null);
   const addHighlightTimeoutsRef = useRef<Map<number, number>>(new Map());
@@ -101,6 +111,7 @@ export function ExerciseAddModal({
     isLoading: isLoadingLibraryExercises,
     error: libraryLookupError,
     isDebouncing: isDebouncingLibrarySearch,
+    reload: reloadLibraryExercises,
   } = useExerciseLookup({
     enabled: isOpen,
     includeWhenSearchEmpty: true,
@@ -284,12 +295,67 @@ export function ExerciseAddModal({
     }, MODAL_EXIT_DURATION_MS);
   };
 
+  const openCreateExercise = useCallback(() => {
+    setCreateError(null);
+    setIsCreateOpen(true);
+  }, []);
+
+  const closeCreateExercise = useCallback(() => {
+    if (isCreatingExercise) {
+      return;
+    }
+
+    setIsCreateOpen(false);
+    setCreateError(null);
+  }, [isCreatingExercise]);
+
+  const handleCreateExercise = useCallback(
+    async (values: ExerciseFormValues, file?: File) => {
+      const payload: CreateExerciseRequest = {
+        name: values.name.trim(),
+        slug: values.slug.trim(),
+        description: values.description.trim() || undefined,
+        primaryMuscleGroupId: Number(values.primaryMuscleGroupId),
+        secondaryMuscleGroupId: values.secondaryMuscleGroupId
+          ? Number(values.secondaryMuscleGroupId)
+          : undefined,
+        isPublic: values.isPublic,
+      };
+
+      if (!payload.name || !payload.primaryMuscleGroupId) {
+        setCreateError("Name and primary muscle group are required.");
+        return;
+      }
+
+      setIsCreatingExercise(true);
+      setCreateError(null);
+
+      try {
+        const response = await exerciseService.create(payload, file);
+        unwrap(response.data, "Unable to create exercise.");
+
+        invalidateExerciseLookupCache();
+        setIsCreateOpen(false);
+        setLibraryLookupSkip(0);
+        setLibraryExercises([]);
+        lastLoadTriggerHeightRef.current = null;
+        void reloadLibraryExercises();
+      } catch (error) {
+        setCreateError(error instanceof Error ? error.message : "Unable to create exercise.");
+      } finally {
+        setIsCreatingExercise(false);
+      }
+    },
+    [reloadLibraryExercises],
+  );
+
   return (
+    <>
     <Modal isOpen={isOpen} onClose={handleModalClose} title="Add Exercise" maxWidth="2xl">
       <div className="flex max-h-[80vh] min-h-104 cursor-default flex-col md:min-h-120">
         <div className="relative z-50 px-5 pb-3 pt-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="liquid-input flex w-full flex-1 items-center gap-2 rounded-full px-4 py-3">
+          <div className="flex flex-col gap-2">
+            <div className="liquid-input flex w-full items-center gap-2 rounded-full px-4 py-3">
               <LuSearch className="h-4 w-4 shrink-0 text-primary" />
               <input
                 value={librarySearchTerm}
@@ -299,25 +365,36 @@ export function ExerciseAddModal({
               />
             </div>
 
-            <div className="w-full sm:w-64 sm:shrink-0">
-              <Dropdown<number>
-                id="exercise-builder-muscle-filter"
-                multiple
-                value={selectedMuscleGroupIds}
-                onChange={handleMuscleFilterSelectionChange}
-                options={muscleGroupOptions}
-                placeholder="Muscles"
-                searchable
-                searchPlaceholder="Search muscle groups..."
-                clearable
-                selectedCheckIconClassName="text-emerald-300"
-                optionsContainerClassName="space-y-1"
-                emptyText="No muscle groups found."
-                disabled={!isOpen}
-                error={muscleGroupsError ?? undefined}
-                hideScrollbar={false}
-                containerClassName="space-y-0"
-              />
+            <div className="flex gap-2">
+              <div className="flex-[3]">
+                <Dropdown<number>
+                  id="exercise-builder-muscle-filter"
+                  multiple
+                  value={selectedMuscleGroupIds}
+                  onChange={handleMuscleFilterSelectionChange}
+                  options={muscleGroupOptions}
+                  placeholder="Muscles"
+                  searchable
+                  searchPlaceholder="Search muscle groups..."
+                  clearable
+                  selectedCheckIconClassName="text-emerald-300"
+                  optionsContainerClassName="space-y-1"
+                  emptyText="No muscle groups found."
+                  disabled={!isOpen}
+                  error={muscleGroupsError ?? undefined}
+                  hideScrollbar={false}
+                  containerClassName="space-y-0"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={openCreateExercise}
+                className="liquid-pill inline-flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-primary"
+              >
+                <LuPlus className="h-4 w-4" />
+                <span className="whitespace-nowrap">New exercise</span>
+              </button>
             </div>
           </div>
           {isFeedbackEnabled ? (
@@ -439,11 +516,33 @@ export function ExerciseAddModal({
           {!libraryExercises.length && !isWaitingForLibraryResults ? (
             <div className="mt-4 rounded-2xl px-4 py-6 text-center">
               <p className="text-sm font-semibold text-red-400">No exercises found</p>
-              <p className="mt-1 text-xs text-red-200">You can create a new exercise.</p>
+              <button
+                type="button"
+                onClick={openCreateExercise}
+                className="liquid-pill mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-primary"
+              >
+                <LuPlus className="h-4 w-4" />
+                <span>Create a new exercise</span>
+              </button>
             </div>
           ) : null}
         </div>
       </div>
     </Modal>
+
+    <AddExerciseModal
+      key={isCreateOpen ? "create-open" : "create-closed"}
+      isOpen={isCreateOpen}
+      isSaving={isCreatingExercise}
+      mode="create"
+      maxWidth="lg"
+      showVisibilityToggle
+      values={emptyExerciseFormValues}
+      muscleGroups={muscleGroups}
+      error={createError}
+      onClose={closeCreateExercise}
+      onSubmit={handleCreateExercise}
+    />
+    </>
   );
 }

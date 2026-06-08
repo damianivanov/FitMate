@@ -11,6 +11,18 @@ internal class WorkoutConfiguration : BaseConfiguration<Workout>
     {
         base.Configure(builder);
 
+        builder.Property(x => x.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(x => x.Mood)
+            .HasMaxLength(50)
+            .IsRequired(false);
+
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.Property(x => x.TotalVolumeKg)
             .HasPrecision(12, 2)
             .IsRequired(false);

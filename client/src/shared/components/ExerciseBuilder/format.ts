@@ -1,4 +1,49 @@
 import type { PreviousExerciseSet } from "@/types";
+import type { ExerciseBuilderCapabilities, ExerciseMetricMode } from "./types";
+
+const GRID_COLUMN_CLASS: Record<number, string> = {
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+  5: "grid-cols-5",
+};
+
+export function getMetricColumnCount(capabilities: ExerciseBuilderCapabilities): number {
+  return (
+    2
+    + (capabilities.showRestColumn ? 1 : 0)
+    + (capabilities.showPreviousColumn ? 1 : 0)
+    + (capabilities.showRpeColumn ? 1 : 0)
+  );
+}
+
+export function getMetricGridColumnsClass(capabilities: ExerciseBuilderCapabilities): string {
+  return GRID_COLUMN_CLASS[getMetricColumnCount(capabilities)] ?? "grid-cols-2";
+}
+
+export function getMetricModeLabel(metricMode: ExerciseMetricMode): string {
+  if (metricMode === "duration") {
+    return "Duration";
+  }
+
+  if (metricMode === "distance") {
+    return "Distance";
+  }
+
+  return "Reps";
+}
+
+export function getMetricModeUnit(metricMode: ExerciseMetricMode): string {
+  if (metricMode === "duration") {
+    return "sec";
+  }
+
+  if (metricMode === "distance") {
+    return "m";
+  }
+
+  return "reps";
+}
 
 export function getCompactSetValueText(value: number | null | undefined): string {
   if (value == null) {

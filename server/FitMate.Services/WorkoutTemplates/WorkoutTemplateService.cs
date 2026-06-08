@@ -173,6 +173,40 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             preparedTemplate.ExerciseImageUrlsById);
     }
 
+    public async Task<bool> DeleteAsync(long templateId, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        if (templateId <= 0)
+        {
+            throw new FitMateException("Template id is invalid.");
+        }
+
+        var template = await dbContext.WorkoutTemplates
+            .FirstOrDefaultAsync(x => x.Id == templateId && x.UserId == userId);
+
+        if (template == null)
+        {
+            throw new FitMateException("Template not found.");
+        }
+
+        dbContext.WorkoutTemplates.Remove(template);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(userId);
+        }
+        catch (DbUpdateException)
+        {
+            throw new FitMateException("Unable to delete template.");
+        }
+
+        return true;
+    }
+
     private IQueryable<WorkoutTemplate> BuildTemplateDetailsQuery(bool asNoTracking)
     {
         var query = dbContext.WorkoutTemplates.AsQueryable();

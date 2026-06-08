@@ -32,6 +32,10 @@ public class ApplicationSettings
     public string AdminEmail => GetSetting("AdminUser:Email") ?? string.Empty;
     public string AdminPassword => GetSetting("AdminUser:Password") ?? string.Empty;
 
+    public string AzureStorageConnectionString => GetSetting("AzureStorage:ConnectionString") ?? string.Empty;
+    public string AzureStorageContainerName => GetSetting("AzureStorage:ContainerName") ?? "media";
+    public int AzureStorageSasMinutes => ParseOrDefault(GetSetting("AzureStorage:SasMinutes"), 15);
+
     public string? HostingEnvironment => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
     public bool IsDevelopment => "Development".Equals(HostingEnvironment, StringComparison.OrdinalIgnoreCase);
     public bool IsProduction => "Production".Equals(HostingEnvironment, StringComparison.OrdinalIgnoreCase);

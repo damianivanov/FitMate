@@ -11,6 +11,7 @@ import type {
 import { toProgressionPoints, toVolumePoints } from "../utils/analyticsFormat";
 
 export type AnalyticsRangePreset = "all" | "4w" | "12w" | "1y";
+export type AnalyticsTab = "overview" | "progression" | "muscleGroups" | "records";
 
 const RANGE_DAYS: Record<AnalyticsRangePreset, number | null> = {
   all: null,
@@ -34,9 +35,13 @@ export function useAnalyticsPage() {
   const [rangePreset, setRangePreset] = useState<AnalyticsRangePreset>("12w");
   const range = useMemo(() => buildRange(rangePreset), [rangePreset]);
 
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
+
   const [searchValue, setSearchValue] = useState("");
   const [muscleGroupFilterId, setMuscleGroupFilterId] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<ExerciseLookupModel | null>(null);
+
+  const [recordsMuscleGroupId, setRecordsMuscleGroupId] = useState("");
 
   const { muscleGroups } = useMuscleGroups();
 
@@ -115,11 +120,49 @@ export function useAnalyticsPage() {
     setSearchValue("");
   }, []);
 
+  const selectTab = useCallback((tab: AnalyticsTab) => {
+    setActiveTab(tab);
+  }, []);
+
+  const filterRecordsByMuscleGroup = useCallback((value: string) => {
+    setRecordsMuscleGroupId(value);
+  }, []);
+
   const volumePoints = useMemo(() => toVolumePoints(overview), [overview]);
   const progressionPoints = useMemo(() => toProgressionPoints(progression), [progression]);
 
+  const personalRecords = useMemo(() => overview?.personalRecords ?? [], [overview]);
+
+  const recordsMuscleGroups = useMemo(() => {
+    const presentIds = new Set(
+      personalRecords.map((record) => record.primaryMuscleGroupId).filter((id) => id > 0),
+    );
+    return muscleGroups.filter((group) => presentIds.has(group.id));
+  }, [muscleGroups, personalRecords]);
+
+  useEffect(() => {
+    if (!recordsMuscleGroupId) {
+      return;
+    }
+
+    const id = Number(recordsMuscleGroupId);
+    if (!personalRecords.some((record) => record.primaryMuscleGroupId === id)) {
+      setRecordsMuscleGroupId("");
+    }
+  }, [personalRecords, recordsMuscleGroupId]);
+
+  const filteredPersonalRecords = useMemo(() => {
+    if (!recordsMuscleGroupId) {
+      return personalRecords;
+    }
+
+    const id = Number(recordsMuscleGroupId);
+    return personalRecords.filter((record) => record.primaryMuscleGroupId === id);
+  }, [personalRecords, recordsMuscleGroupId]);
+
   const state = useMemo(
     () => ({
+      activeTab,
       rangePreset,
       overview,
       isLoadingOverview,
@@ -133,8 +176,12 @@ export function useAnalyticsPage() {
       isLoadingProgression,
       progressionError,
       progressionPoints,
+      personalRecords: filteredPersonalRecords,
+      recordsMuscleGroups,
+      recordsMuscleGroupId,
     }),
     [
+      activeTab,
       rangePreset,
       overview,
       isLoadingOverview,
@@ -148,6 +195,9 @@ export function useAnalyticsPage() {
       isLoadingProgression,
       progressionError,
       progressionPoints,
+      filteredPersonalRecords,
+      recordsMuscleGroups,
+      recordsMuscleGroupId,
     ],
   );
 
@@ -155,12 +205,22 @@ export function useAnalyticsPage() {
     () => ({
       setRange,
       reloadOverview: () => setReloadIndex((index) => index + 1),
+      selectTab,
       search,
       filterByMuscleGroup,
       selectExercise,
       clearExercise,
+      filterRecordsByMuscleGroup,
     }),
-    [setRange, search, filterByMuscleGroup, selectExercise, clearExercise],
+    [
+      setRange,
+      selectTab,
+      search,
+      filterByMuscleGroup,
+      selectExercise,
+      clearExercise,
+      filterRecordsByMuscleGroup,
+    ],
   );
 
   return { state, actions };

@@ -2,6 +2,7 @@ export interface ExerciseModel
 {
 	id: number;
 	userId?: number;
+	isPublic: boolean;
 	name: string;
 	slug: string;
 	description?: string;

@@ -2,18 +2,26 @@ import type { HTMLAttributes, MouseEvent as ReactMouseEvent } from "react";
 import { LuCheck, LuGripVertical, LuTrash2 } from "react-icons/lu";
 import { ExerciseSetType } from "@/types";
 import { ExerciseSetTypeDropdown } from "./ExerciseSetTypeDropdown";
-import { formatPreviousSetLabel, getCompactSetValueText } from "./format";
+import {
+  formatPreviousSetLabel,
+  getCompactSetValueText,
+  getMetricGridColumnsClass,
+  getMetricModeLabel,
+  getMetricModeUnit,
+} from "./format";
 import type {
   ExerciseBuilderCallbacks,
   ExerciseBuilderCapabilities,
   ExerciseBuilderSetVM,
+  ExerciseMetricMode,
+  QuickSetFieldKey,
 } from "./types";
 
 type ExerciseSetRowProps = {
   exerciseId: string;
   set: ExerciseBuilderSetVM;
   setNumber: number;
-  isDurationEnabled: boolean;
+  metricMode: ExerciseMetricMode;
   capabilities: ExerciseBuilderCapabilities;
   callbacks: ExerciseBuilderCallbacks;
   isSetEditMode: boolean;
@@ -21,6 +29,12 @@ type ExerciseSetRowProps = {
   setDragHandleRef?: (element: HTMLElement | null) => void;
   isDragging?: boolean;
   isSetDragDisabled?: boolean;
+};
+
+const METRIC_FIELD_BY_MODE: Record<ExerciseMetricMode, QuickSetFieldKey> = {
+  reps: "reps",
+  duration: "durationSeconds",
+  distance: "distanceMeters",
 };
 
 function getSetIndexScaleClassName(setNumber: number): string {
@@ -35,11 +49,23 @@ function getSetIndexScaleClassName(setNumber: number): string {
   return "scale-100";
 }
 
+function getMetricValue(set: ExerciseBuilderSetVM, metricMode: ExerciseMetricMode): number | undefined {
+  if (metricMode === "duration") {
+    return set.durationSeconds;
+  }
+
+  if (metricMode === "distance") {
+    return set.distanceMeters;
+  }
+
+  return set.reps;
+}
+
 export function ExerciseSetRow({
   exerciseId,
   set,
   setNumber,
-  isDurationEnabled,
+  metricMode,
   capabilities,
   callbacks,
   isSetEditMode,
@@ -48,8 +74,9 @@ export function ExerciseSetRow({
   isDragging = false,
   isSetDragDisabled = false,
 }: ExerciseSetRowProps) {
-  const activeMetricField = isDurationEnabled ? "durationSeconds" : "reps";
-  const activeMetricValue = isDurationEnabled ? set.durationSeconds : set.reps;
+  const activeMetricField = METRIC_FIELD_BY_MODE[metricMode];
+  const activeMetricValue = getMetricValue(set, metricMode);
+  const metricModeLabel = getMetricModeLabel(metricMode);
 
   const handleWeightClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     callbacks.onOpenQuickSetPopover(exerciseId, set.id, "weightKg", event.currentTarget);
@@ -61,6 +88,10 @@ export function ExerciseSetRow({
 
   const handleRestClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
     callbacks.onOpenQuickSetPopover(exerciseId, set.id, "restSeconds", event.currentTarget);
+  };
+
+  const handleRpeClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    callbacks.onOpenQuickSetPopover(exerciseId, set.id, "rpe", event.currentTarget);
   };
 
   const handleCompletedClick = () => {
@@ -122,15 +153,20 @@ export function ExerciseSetRow({
       getCompactSetValueText(set.weightKg),
       getCompactSetValueText(activeMetricValue),
     ];
+    const compactTitleParts = ["Weight", metricModeLabel];
+    const compactUnitParts = ["kg", getMetricModeUnit(metricMode)];
     if (capabilities.showRestColumn) {
       compactParts.push(getCompactSetValueText(set.restSeconds));
-    }
-    const compactValueText = compactParts.join("  /  ");
-    const compactValueTitle = `Weight / ${isDurationEnabled ? "Duration" : "Reps"}${capabilities.showRestColumn ? " / Rest" : ""}`;
-    const compactUnitParts = ["kg", isDurationEnabled ? "sec" : "reps"];
-    if (capabilities.showRestColumn) {
+      compactTitleParts.push("Rest");
       compactUnitParts.push("sec");
     }
+    if (capabilities.showRpeColumn) {
+      compactParts.push(getCompactSetValueText(set.rpe));
+      compactTitleParts.push("RPE");
+      compactUnitParts.push("rpe");
+    }
+    const compactValueText = compactParts.join("  /  ");
+    const compactValueTitle = compactTitleParts.join(" / ");
     const compactUnitsText = compactUnitParts.join("  /  ");
 
     return (
@@ -170,7 +206,7 @@ export function ExerciseSetRow({
 
   const showRest = capabilities.showRestColumn;
   const showPrevious = capabilities.showPreviousColumn;
-  const thirdColumnShown = showRest || showPrevious;
+  const showRpe = capabilities.showRpeColumn;
   const showCompletion = capabilities.showCompletionCheckbox;
   const previousLabel = formatPreviousSetLabel(set.previousSet) ?? "-";
 
@@ -179,10 +215,7 @@ export function ExerciseSetRow({
     set.isCompleted ? "border-success! bg-success! text-white shadow-none hover:bg-success!" : "",
   ].join(" ");
 
-  const gridClass = [
-    "grid min-w-0 flex-1 gap-1 sm:gap-2",
-    thirdColumnShown ? "grid-cols-3" : "grid-cols-2",
-  ].join(" ");
+  const gridClass = ["grid min-w-0 flex-1 gap-1 sm:gap-2", getMetricGridColumnsClass(capabilities)].join(" ");
 
   return (
     <div
@@ -209,7 +242,7 @@ export function ExerciseSetRow({
             type="button"
             onClick={handleMetricClick}
             className={metricButtonClass}
-            aria-label={`Set ${isDurationEnabled ? "duration" : "reps"} for set ${setNumber}`}
+            aria-label={`Set ${metricModeLabel.toLowerCase()} for set ${setNumber}`}
           >
             {getCompactSetValueText(activeMetricValue)}
           </button>
@@ -235,6 +268,17 @@ export function ExerciseSetRow({
             >
               {previousLabel}
             </span>
+          ) : null}
+
+          {showRpe ? (
+            <button
+              type="button"
+              onClick={handleRpeClick}
+              className={`${metricButtonClass} text-secondary`}
+              aria-label={`Set RPE for set ${setNumber}`}
+            >
+              {getCompactSetValueText(set.rpe)}
+            </button>
           ) : null}
         </div>
       </div>

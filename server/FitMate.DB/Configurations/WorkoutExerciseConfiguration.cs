@@ -10,7 +10,11 @@ internal class WorkoutExerciseConfiguration : BaseConfiguration<WorkoutExercise>
     public override void Configure(EntityTypeBuilder<WorkoutExercise> builder)
     {
         base.Configure(builder);
-        
+
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.WorkoutExerciseGroupId, x.OrderIndex })
             .IsUnique();
 

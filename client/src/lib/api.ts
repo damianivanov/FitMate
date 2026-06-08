@@ -2,7 +2,6 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || "/api";
 axios.defaults.baseURL = apiBaseUrl;
-axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.defaults.timeout = 0;
 
 const api = axios.create({

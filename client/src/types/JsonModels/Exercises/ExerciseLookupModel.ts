@@ -3,6 +3,7 @@ export interface ExerciseLookupModel
 	id: number;
 	userId?: number;
 	isGlobal: boolean;
+	isPublic: boolean;
 	name: string;
 	slug: string;
 	description?: string;

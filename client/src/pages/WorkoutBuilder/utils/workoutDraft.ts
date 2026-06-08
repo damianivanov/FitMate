@@ -1,4 +1,5 @@
 import { createLocalId, normalizeUtcIsoString } from "@/lib/helpers";
+import type { ExerciseMetricMode } from "@/shared/components";
 import {
   ExerciseGroupType,
   ExerciseSetType,
@@ -14,7 +15,11 @@ import {
   type WorkoutTemplateExerciseSet,
 } from "@/types";
 
-export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds";
+export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds" | "distanceMeters" | "rpe";
+
+const DEFAULT_WORKOUT_SET_REPS = 1;
+const DEFAULT_WORKOUT_SET_DURATION_SECONDS = 30;
+const DEFAULT_WORKOUT_SET_DISTANCE_METERS = 1000;
 
 export type WorkoutSetDraft = CreateWorkoutSetRequest & {
   id: string;
@@ -68,7 +73,7 @@ function normalizeOptionalText(value: string): string | undefined {
   return trimmedValue ? trimmedValue : undefined;
 }
 
-function hasMainMetric(set: WorkoutSetDraft): boolean {
+export function hasMainMetric(set: WorkoutSetDraft): boolean {
   return (
     set.weightKg !== undefined
     || set.reps !== undefined
@@ -434,8 +439,37 @@ export function formatMetricValue(value: number | null | undefined): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
-export function isWorkoutExerciseDurationEnabled(exercise: WorkoutExerciseDraft): boolean {
-  return exercise.sets.some((set) => set.durationSeconds !== undefined && set.reps === undefined);
+export function getWorkoutExerciseMetricMode(exercise: WorkoutExerciseDraft): ExerciseMetricMode {
+  if (exercise.sets.some((set) => set.reps !== undefined)) {
+    return "reps";
+  }
+
+  if (exercise.sets.some((set) => set.durationSeconds !== undefined)) {
+    return "duration";
+  }
+
+  if (exercise.sets.some((set) => set.distanceMeters !== undefined)) {
+    return "distance";
+  }
+
+  return "reps";
+}
+
+export function setWorkoutExerciseMetricMode(
+  exercise: WorkoutExerciseDraft,
+  metricMode: ExerciseMetricMode,
+): WorkoutExerciseDraft {
+  return {
+    ...exercise,
+    sets: exercise.sets.map((set) => ({
+      ...set,
+      reps: metricMode === "reps" ? set.reps ?? DEFAULT_WORKOUT_SET_REPS : undefined,
+      durationSeconds:
+        metricMode === "duration" ? set.durationSeconds ?? DEFAULT_WORKOUT_SET_DURATION_SECONDS : undefined,
+      distanceMeters:
+        metricMode === "distance" ? set.distanceMeters ?? DEFAULT_WORKOUT_SET_DISTANCE_METERS : undefined,
+    })),
+  };
 }
 
 export function isWorkoutExerciseCompleted(exercise: WorkoutExerciseDraft): boolean {

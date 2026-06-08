@@ -12,10 +12,11 @@ import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/We
 import { TemplateBuilderHeader } from "./components/TemplateBuilderHeader";
 import { TemplateBuilderMetadataPanel } from "./components/TemplateBuilderMetadataPanel";
 import { useTemplateBuilderPage } from "./hooks/useTemplateBuilderPage";
-import { isTemplateExerciseDurationEnabled } from "./utils/templateDraft";
+import { getTemplateExerciseMetricMode } from "./utils/templateDraft";
 
 const TEMPLATE_CAPABILITIES: ExerciseBuilderCapabilities = {
   showRestColumn: true,
+  showRpeColumn: true,
   showCompletionCheckbox: false,
   showSetTypeDropdown: true,
   showPreviousColumn: false,
@@ -38,12 +39,14 @@ export default function TemplateBuilder() {
         groupType: exercise.groupType,
         notes: exercise.notes,
         collapsed: collapsedExerciseIds.has(exercise.id),
-        isDurationEnabled: isTemplateExerciseDurationEnabled(exercise),
+        metricMode: getTemplateExerciseMetricMode(exercise),
         sets: exercise.sets.map((set) => ({
           id: set.id,
           weightKg: set.weightKg,
           reps: set.reps,
           durationSeconds: set.durationSeconds,
+          distanceMeters: set.distanceMeters,
+          rpe: set.rpe,
           restSeconds: set.restSeconds,
           setType: set.setType,
         })),
@@ -152,6 +155,42 @@ export default function TemplateBuilder() {
               onChange={actions.handleQuickSetValueChange}
               onApplyToAll={actions.handleQuickSetApplyToAll}
               onClose={actions.handleQuickSetPopoverClose}
+              anchorElement={state.quickSetPopoverAnchorElement}
+            />
+          ) : null}
+
+          {state.activeQuickSetPopoverContext.field === "distanceMeters" ? (
+            <WeightSetPickerPopover
+              isOpen
+              title="Distance"
+              unitLabel="m"
+              value={state.activeQuickSetPopoverContext.set.distanceMeters}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
+              min={0}
+              max={100000}
+              step={10}
+              precision={0}
+              quickIncrements={[50, 100, 500, 1000] as const}
+              anchorElement={state.quickSetPopoverAnchorElement}
+            />
+          ) : null}
+
+          {state.activeQuickSetPopoverContext.field === "rpe" ? (
+            <WeightSetPickerPopover
+              isOpen
+              title="RPE"
+              unitLabel=""
+              value={state.activeQuickSetPopoverContext.set.rpe}
+              onChange={actions.handleQuickSetValueChange}
+              onApplyToAll={actions.handleQuickSetApplyToAll}
+              onClose={actions.handleQuickSetPopoverClose}
+              min={0}
+              max={10}
+              step={0.5}
+              precision={1}
+              quickIncrements={[0.5, 1, 2] as const}
               anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}

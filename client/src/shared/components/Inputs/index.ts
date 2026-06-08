@@ -7,6 +7,7 @@ export type {
 export { Dropdown } from "./Dropdown";
 export type { TextInputFieldProps } from "./TextInputField";
 export { TextInputField } from "./TextInputField";
+export { ImageFileInput } from "./ImageFileInput";
 export type { TextareaFieldProps } from "./TextareaField";
 export { TextareaField } from "./TextareaField";
 export { DurationSlider } from "./DurationSlider";
@@ -16,3 +17,4 @@ export { SegmentControlSize } from "./SegmentControlSize";
 export { RepsStepper } from "./RepsStepper";
 export { WeightStepper } from "./WeightStepper";
 export { ExerciseLookupPicker } from "./ExerciseLookup";
+export { MuscleGroupDropdown } from "./MuscleGroupDropdown";

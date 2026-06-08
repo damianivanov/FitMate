@@ -1,5 +1,5 @@
 import { EntityGrid } from "@/shared/components/tables";
-import { ExerciseEditorModal } from "./components/ExerciseEditorModal";
+import { AddExerciseModal, ExerciseImageModal } from "@/shared/components";
 import { useExerciseGridPage } from "./hooks/useExerciseGridPage";
 
 export default function ExerciseGrid() {
@@ -45,15 +45,25 @@ export default function ExerciseGrid() {
         </section>
       </div>
 
-      <ExerciseEditorModal
+      <AddExerciseModal
+        key={String(state.isEditorOpen)}
         isOpen={state.isEditorOpen}
         isSaving={state.isSaving}
-        isEditing={state.isEditing}
+        mode={state.isEditing ? "edit" : "create"}
         values={state.formValues}
         muscleGroups={state.muscleGroups}
         error={state.editorError}
         onClose={actions.closeEditor}
         onSubmit={actions.save}
+      />
+
+      <ExerciseImageModal
+        isOpen={state.imageTarget !== null}
+        exerciseId={state.imageTarget?.id ?? null}
+        exerciseName={state.imageTarget?.name}
+        currentImageUrl={state.imageTarget?.imageUrl}
+        onClose={actions.closeImageModal}
+        onUploaded={actions.onImageUploaded}
       />
     </div>
   );

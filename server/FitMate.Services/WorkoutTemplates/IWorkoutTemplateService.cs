@@ -9,4 +9,5 @@ public interface IWorkoutTemplateService
     Task<WorkoutTemplateModel> CreateAsync(CreateWorkoutTemplateRequest request, long userId);
     Task<WorkoutTemplateModel> CreateFromWorkoutAsync(long workoutId, CreateTemplateFromWorkoutRequest request, long userId);
     Task<WorkoutTemplateModel> UpdateAsync(long templateId, CreateWorkoutTemplateRequest request, long userId);
+    Task<bool> DeleteAsync(long templateId, long userId);
 }

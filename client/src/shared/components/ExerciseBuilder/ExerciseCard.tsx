@@ -1,8 +1,6 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
   type ChangeEvent,
   type HTMLAttributes,
@@ -11,7 +9,16 @@ import {
   type ReactNode,
   type TouchEvent as ReactTouchEvent,
 } from "react";
-import { createPortal } from "react-dom";
+import {
+  FloatingPortal,
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useInteractions,
+} from "@floating-ui/react";
 import {
   DndContext,
   closestCenter,
@@ -34,19 +41,16 @@ import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { SortableHandleItem, useDndSensors } from "@/shared/components/Dnd";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
+import { getMetricGridColumnsClass } from "./format";
 import type {
   ExerciseBuilderCallbacks,
   ExerciseBuilderCapabilities,
   ExerciseBuilderExerciseVM,
 } from "./types";
 
-const EXERCISE_MENU_WIDTH_PX = 208;
-const EXERCISE_MENU_ESTIMATED_HEIGHT_PX = 260;
 const EXERCISE_MENU_OFFSET_PX = 8;
 const VIEWPORT_PADDING_PX = 8;
 const SET_DISPLAY_LIMIT = 3;
-
-type ExerciseMenuPosition = { top: number; left: number };
 
 type ExerciseCardProps = {
   exercise: ExerciseBuilderExerciseVM;
@@ -76,9 +80,6 @@ export function ExerciseCard({
   const dndSensors = useDndSensors();
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
 
-  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const menuPanelRef = useRef<HTMLDivElement | null>(null);
-  const [menuPosition, setMenuPosition] = useState<ExerciseMenuPosition | null>(null);
   const [isExerciseMenuOpen, setIsExerciseMenuOpen] = useState(false);
   const [isNotesVisible, setIsNotesVisible] = useState(() => exercise.notes.trim().length > 0);
   const [isSetEditMode, setIsSetEditMode] = useState(false);
@@ -94,7 +95,7 @@ export function ExerciseCard({
   const setIds = useMemo(() => visibleSets.map((set) => set.id), [visibleSets]);
   const isSetDragDisabled = visibleSets.length < 2;
 
-  const isDurationEnabled = exercise.isDurationEnabled;
+  const metricMode = exercise.metricMode;
   const hasSetEditing = capabilities.showSetTypeDropdown || capabilities.allowSetDnd;
   const isCollapseEnabled = capabilities.allowCollapse && isMobileViewport;
   const isCollapsed = isCollapseEnabled && exercise.collapsed;
@@ -105,7 +106,7 @@ export function ExerciseCard({
 
   const showRest = capabilities.showRestColumn;
   const showPrevious = capabilities.showPreviousColumn;
-  const thirdColumnShown = showRest || showPrevious;
+  const showRpe = capabilities.showRpeColumn;
 
   const noteButtonText = isNotesVisible
     ? "Hide Note"
@@ -113,10 +114,28 @@ export function ExerciseCard({
       ? "Edit Note"
       : "Add Note";
 
-  const headerGridClass = [
-    "grid min-w-0 flex-1 gap-2 sm:gap-4",
-    thirdColumnShown ? "grid-cols-3" : "grid-cols-2",
-  ].join(" ");
+  const headerGridClass = ["grid min-w-0 flex-1 gap-2 sm:gap-4", getMetricGridColumnsClass(capabilities)].join(" ");
+
+  // Controlled-elements floating menu: trigger and panel are tracked via state setters so
+  // autoUpdate re-measures against the live trigger rect. Deleting a sibling exercise reflows
+  // the list, autoUpdate fires, and the menu stays anchored instead of flashing at a stale spot.
+  const [menuTriggerElement, setMenuTriggerElement] = useState<HTMLButtonElement | null>(null);
+  const [menuPanelElement, setMenuPanelElement] = useState<HTMLDivElement | null>(null);
+  const { floatingStyles, context, isPositioned } = useFloating({
+    open: isExerciseMenuOpen,
+    onOpenChange: setIsExerciseMenuOpen,
+    strategy: "fixed",
+    placement: "bottom-end",
+    middleware: [
+      offset(EXERCISE_MENU_OFFSET_PX),
+      flip({ padding: VIEWPORT_PADDING_PX }),
+      shift({ padding: VIEWPORT_PADDING_PX }),
+    ],
+    whileElementsMounted: autoUpdate,
+    elements: { reference: menuTriggerElement, floating: menuPanelElement },
+  });
+  const exerciseMenuDismiss = useDismiss(context);
+  const { getReferenceProps, getFloatingProps } = useInteractions([exerciseMenuDismiss]);
 
   const handleExerciseMenuClose = useCallback(() => {
     setIsExerciseMenuOpen(false);
@@ -176,11 +195,15 @@ export function ExerciseCard({
   };
 
   const handleRepsMetricClick = () => {
-    callbacks.onExerciseMetricModeChange(exercise.id, false);
+    callbacks.onExerciseMetricModeChange(exercise.id, "reps");
   };
 
   const handleDurationMetricClick = () => {
-    callbacks.onExerciseMetricModeChange(exercise.id, true);
+    callbacks.onExerciseMetricModeChange(exercise.id, "duration");
+  };
+
+  const handleDistanceMetricClick = () => {
+    callbacks.onExerciseMetricModeChange(exercise.id, "distance");
   };
 
   const handleDragHandleMouseDown = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -219,106 +242,46 @@ export function ExerciseCard({
   const menuActionClassName =
     "flex w-full cursor-pointer items-center justify-start gap-2 rounded-full bg-transparent px-3 py-2 text-left text-sm font-semibold transition-colors";
 
-  const updateMenuPosition = useCallback(() => {
-    if (!menuTriggerRef.current) {
-      return;
-    }
-
-    const triggerRect = menuTriggerRef.current.getBoundingClientRect();
-    const maxLeft = Math.max(
-      VIEWPORT_PADDING_PX,
-      window.innerWidth - EXERCISE_MENU_WIDTH_PX - VIEWPORT_PADDING_PX,
-    );
-    const resolvedLeft = Math.min(
-      maxLeft,
-      Math.max(VIEWPORT_PADDING_PX, triggerRect.right - EXERCISE_MENU_WIDTH_PX),
-    );
-    const shouldOpenUp =
-      triggerRect.bottom + EXERCISE_MENU_OFFSET_PX + EXERCISE_MENU_ESTIMATED_HEIGHT_PX
-        > window.innerHeight - VIEWPORT_PADDING_PX
-      && triggerRect.top - EXERCISE_MENU_OFFSET_PX - EXERCISE_MENU_ESTIMATED_HEIGHT_PX
-        >= VIEWPORT_PADDING_PX;
-
-    setMenuPosition({
-      top: shouldOpenUp
-        ? triggerRect.top - EXERCISE_MENU_OFFSET_PX - EXERCISE_MENU_ESTIMATED_HEIGHT_PX
-        : triggerRect.bottom + EXERCISE_MENU_OFFSET_PX,
-      left: resolvedLeft,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isExerciseMenuOpen) {
-      return;
-    }
-
-    updateMenuPosition();
-    window.addEventListener("resize", updateMenuPosition);
-    window.addEventListener("scroll", updateMenuPosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updateMenuPosition);
-      window.removeEventListener("scroll", updateMenuPosition, true);
-    };
-  }, [isExerciseMenuOpen, updateMenuPosition]);
-
-  useEffect(() => {
-    if (!isExerciseMenuOpen) {
-      return;
-    }
-
-    const handleDocumentMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!menuTriggerRef.current?.contains(target) && !menuPanelRef.current?.contains(target)) {
-        setIsExerciseMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleDocumentMouseDown);
-    return () => document.removeEventListener("mousedown", handleDocumentMouseDown);
-  }, [isExerciseMenuOpen]);
-
-  const exerciseMenu =
-    isExerciseMenuOpen && menuPosition && typeof document !== "undefined"
-      ? createPortal(
-          <div
-            ref={menuPanelRef}
-            className="liquid-user-menu fixed z-420 w-52 rounded-2xl p-2"
-            style={{ top: menuPosition.top, left: menuPosition.left }}
+  const exerciseMenu = isExerciseMenuOpen ? (
+    <FloatingPortal>
+      <div
+        ref={setMenuPanelElement}
+        className="liquid-user-menu z-420 w-52 rounded-2xl p-2"
+        style={{ ...floatingStyles, visibility: isPositioned ? "visible" : "hidden" }}
+        {...getFloatingProps()}
+      >
+        <button
+          type="button"
+          onClick={handleNotesMenuClick}
+          className={[
+            menuActionClassName,
+            isNotesVisible
+              ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
+              : "text-secondary hover:bg-white/8",
+          ].join(" ")}
+        >
+          <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
+        </button>
+        {canCreateExerciseGroup ? (
+          <button
+            type="button"
+            onClick={handleCreateSupersetClick}
+            className={["mt-1", menuActionClassName, "text-secondary hover:bg-white/8"].join(" ")}
           >
-            <button
-              type="button"
-              onClick={handleNotesMenuClick}
-              className={[
-                menuActionClassName,
-                isNotesVisible
-                  ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
-                  : "text-secondary hover:bg-white/8",
-              ].join(" ")}
-            >
-              <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
-            </button>
-            {canCreateExerciseGroup ? (
-              <button
-                type="button"
-                onClick={handleCreateSupersetClick}
-                className={["mt-1", menuActionClassName, "text-secondary hover:bg-white/8"].join(" ")}
-              >
-                <span>Create Superset</span>
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              className={["mt-2", menuActionClassName, "text-danger hover:bg-red-100/20"].join(" ")}
-            >
-              <LuTrash2 className="h-4 w-4" />
-              <span>Delete</span>
-            </button>
-          </div>,
-          document.body,
-        )
-      : null;
+            <span>Create Superset</span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleDeleteClick}
+          className={["mt-2", menuActionClassName, "text-danger hover:bg-red-100/20"].join(" ")}
+        >
+          <LuTrash2 className="h-4 w-4" />
+          <span>Delete</span>
+        </button>
+      </div>
+    </FloatingPortal>
+  ) : null;
 
   const setRows: ReactNode = capabilities.allowSetDnd ? (
     <DndContext
@@ -342,7 +305,7 @@ export function ExerciseCard({
                   exerciseId={exercise.id}
                   set={set}
                   setNumber={index + 1}
-                  isDurationEnabled={isDurationEnabled}
+                  metricMode={metricMode}
                   capabilities={capabilities}
                   callbacks={callbacks}
                   isSetEditMode={isSetEditMode}
@@ -365,7 +328,7 @@ export function ExerciseCard({
           exerciseId={exercise.id}
           set={set}
           setNumber={index + 1}
-          isDurationEnabled={isDurationEnabled}
+          metricMode={metricMode}
           capabilities={capabilities}
           callbacks={callbacks}
           isSetEditMode={isSetEditMode}
@@ -445,11 +408,11 @@ export function ExerciseCard({
                 </button>
               ) : null}
               <button
-                ref={menuTriggerRef}
+                ref={setMenuTriggerElement}
                 type="button"
-                onClick={handleExerciseMenuToggleClick}
                 className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9"
                 aria-label={isExerciseMenuOpen ? `Close ${exercise.displayName} menu` : `Open ${exercise.displayName} menu`}
+                {...getReferenceProps({ onClick: handleExerciseMenuToggleClick })}
               >
                 <LuEllipsis className="h-5 w-5" />
               </button>
@@ -493,13 +456,13 @@ export function ExerciseCard({
                   )}
                   <div className={headerGridClass}>
                     <span className="block w-full text-center text-secondary">Weight</span>
-                    <div className="flex w-full items-center justify-center text-center">
+                    <div className="flex w-full items-center justify-center gap-0.5 text-center">
                       <button
                         type="button"
                         onClick={handleRepsMetricClick}
-                        className={getMetricButtonClass(!isDurationEnabled)}
+                        className={getMetricButtonClass(metricMode === "reps")}
                         aria-label="Use reps metric"
-                        aria-pressed={!isDurationEnabled}
+                        aria-pressed={metricMode === "reps"}
                       >
                         Reps
                       </button>
@@ -507,11 +470,21 @@ export function ExerciseCard({
                       <button
                         type="button"
                         onClick={handleDurationMetricClick}
-                        className={getMetricButtonClass(isDurationEnabled)}
+                        className={getMetricButtonClass(metricMode === "duration")}
                         aria-label="Use duration metric"
-                        aria-pressed={isDurationEnabled}
+                        aria-pressed={metricMode === "duration"}
                       >
-                        Duration
+                        Time
+                      </button>
+                      <span className="text-muted">/</span>
+                      <button
+                        type="button"
+                        onClick={handleDistanceMetricClick}
+                        className={getMetricButtonClass(metricMode === "distance")}
+                        aria-label="Use distance metric"
+                        aria-pressed={metricMode === "distance"}
+                      >
+                        Dist
                       </button>
                     </div>
                     {showRest ? (
@@ -520,6 +493,11 @@ export function ExerciseCard({
                     {showPrevious ? (
                       <span className="block w-full text-center text-secondary" title="Previous completed set for this exercise">
                         Last
+                      </span>
+                    ) : null}
+                    {showRpe ? (
+                      <span className="block w-full text-center text-secondary" title="Rate of perceived exertion (0-10)">
+                        RPE
                       </span>
                     ) : null}
                   </div>

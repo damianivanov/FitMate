@@ -19,6 +19,10 @@ internal class UserBodyMetricConfiguration : BaseConfiguration<UserBodyMetric>
             .HasPrecision(5, 2)
             .IsRequired(false);
 
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.UserId, x.DateCreated });
 
         builder.HasOne(x => x.User)

@@ -14,7 +14,7 @@ const gridLinks = [
   {
     to: "/management/users",
     title: "User Grid",
-    description: "Manage application users. (Coming soon)",
+    description: "Search users, change roles, and activate or remove accounts.",
   },
 ] as const;
 

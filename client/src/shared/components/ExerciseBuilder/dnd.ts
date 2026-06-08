@@ -1,10 +1,19 @@
-import type { SortingStrategy } from "@dnd-kit/sortable";
 import { ExerciseGroupType } from "@/types";
 import type { ExerciseBuilderExerciseVM } from "./types";
+
+export const GROUP_BLOCK_PREFIX = "group:";
+
+export function getGroupBlockId(groupId: number): string {
+  return `${GROUP_BLOCK_PREFIX}${groupId}`;
+}
 
 type ExerciseGroupKeyLike = {
   groupId: number | null;
   groupType: ExerciseGroupType;
+};
+
+type ExerciseBlockKeyLike = ExerciseGroupKeyLike & {
+  id: string;
 };
 
 type ExerciseRenderItem = {
@@ -108,51 +117,88 @@ function moveArrayItem<T>(items: readonly T[], fromIndex: number, toIndex: numbe
   return next;
 }
 
-export function getExerciseDragOrderIndexes(
-  exercises: readonly ExerciseGroupKeyLike[],
-  activeIndex: number,
-  overIndex: number,
+type IndexBlock = {
+  id: string;
+  indexes: number[];
+};
+
+function buildIndexBlocks(items: readonly ExerciseBlockKeyLike[]): IndexBlock[] {
+  const blocks: IndexBlock[] = [];
+  let currentIndex = 0;
+
+  while (currentIndex < items.length) {
+    const group = getExerciseGroup(items[currentIndex]);
+    if (!group) {
+      blocks.push({ id: items[currentIndex].id, indexes: [currentIndex] });
+      currentIndex += 1;
+      continue;
+    }
+
+    const indexes: number[] = [];
+    while (
+      currentIndex < items.length
+      && areExerciseGroupsEqual(getExerciseGroup(items[currentIndex]), group)
+    ) {
+      indexes.push(currentIndex);
+      currentIndex += 1;
+    }
+
+    blocks.push({ id: getGroupBlockId(group.groupId), indexes });
+  }
+
+  return blocks;
+}
+
+function findBlockPosition(
+  blocks: readonly IndexBlock[],
+  id: string,
+  exerciseIndex: number,
+): number {
+  if (id.startsWith(GROUP_BLOCK_PREFIX)) {
+    return blocks.findIndex((block) => block.id === id);
+  }
+
+  if (exerciseIndex < 0) {
+    return -1;
+  }
+
+  return blocks.findIndex((block) => block.indexes.includes(exerciseIndex));
+}
+
+// Members reorder within their own group; everything else moves whole blocks (keeps group runs contiguous).
+export function getExerciseBlockDragOrderIndexes(
+  items: readonly ExerciseBlockKeyLike[],
+  activeId: string,
+  overId: string,
 ): number[] {
-  const currentIndexes = exercises.map((_, index) => index);
+  const currentIndexes = items.map((_, index) => index);
+  if (activeId === overId) {
+    return currentIndexes;
+  }
+
+  const activeExerciseIndex = items.findIndex((item) => item.id === activeId);
+  const overExerciseIndex = items.findIndex((item) => item.id === overId);
+
+  if (activeExerciseIndex >= 0 && overExerciseIndex >= 0) {
+    const activeGroup = getExerciseGroup(items[activeExerciseIndex]);
+    const overGroup = getExerciseGroup(items[overExerciseIndex]);
+    if (activeGroup && overGroup && areExerciseGroupsEqual(activeGroup, overGroup)) {
+      return moveArrayItem(currentIndexes, activeExerciseIndex, overExerciseIndex);
+    }
+  }
+
+  const blocks = buildIndexBlocks(items);
+  const activeBlockPosition = findBlockPosition(blocks, activeId, activeExerciseIndex);
+  const overBlockPosition = findBlockPosition(blocks, overId, overExerciseIndex);
   if (
-    activeIndex < 0
-    || overIndex < 0
-    || activeIndex >= exercises.length
-    || overIndex >= exercises.length
-    || activeIndex === overIndex
+    activeBlockPosition < 0
+    || overBlockPosition < 0
+    || activeBlockPosition === overBlockPosition
   ) {
     return currentIndexes;
   }
 
-  const activeGroup = getExerciseGroup(exercises[activeIndex]);
-  const overGroup = getExerciseGroup(exercises[overIndex]);
-  if (activeGroup || overGroup) {
-    if (!areExerciseGroupsEqual(activeGroup, overGroup)) {
-      return currentIndexes;
-    }
-  }
-
-  return moveArrayItem(currentIndexes, activeIndex, overIndex);
-}
-
-export function createExerciseSortingStrategy(
-  exercises: readonly ExerciseBuilderExerciseVM[],
-  shouldLockHorizontalMovement: boolean,
-): SortingStrategy {
-  return (args) => {
-    const nextIndexes = getExerciseDragOrderIndexes(exercises, args.activeIndex, args.overIndex);
-    const nextIndex = nextIndexes.indexOf(args.index);
-    const oldRect = args.rects[args.index];
-    const newRect = args.rects[nextIndex];
-    if (!oldRect || !newRect || nextIndex === args.index) {
-      return null;
-    }
-
-    return {
-      x: shouldLockHorizontalMovement ? 0 : newRect.left - oldRect.left,
-      y: newRect.top - oldRect.top,
-      scaleX: newRect.width / oldRect.width,
-      scaleY: newRect.height / oldRect.height,
-    };
-  };
+  return moveArrayItem(blocks, activeBlockPosition, overBlockPosition).flatMap(
+    (block) => block.indexes,
+  );
 }

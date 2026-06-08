@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Dropdown } from "@/shared/components";
-import type { DropdownOption, DropdownSingleControlProps } from "@/shared/components";
 import type { MuscleGroup } from "@/types";
+import { Dropdown } from "./Dropdown";
+import type { DropdownOption, DropdownSingleControlProps } from "./Dropdown";
 
 type MuscleGroupDropdownProps = DropdownSingleControlProps<string> & {
   muscleGroups: MuscleGroup[];

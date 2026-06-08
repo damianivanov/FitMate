@@ -15,4 +15,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.10" />
+  </ItemGroup>
+
 </Project>

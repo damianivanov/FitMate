@@ -23,6 +23,10 @@ internal class TemplateExerciseSetConfiguration : BaseConfiguration<TemplateExer
             .HasPrecision(3, 1)
             .IsRequired(false);
 
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.TemplateExerciseId, x.OrderIndex })
             .IsUnique();
 

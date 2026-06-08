@@ -171,6 +171,21 @@ export namespace JsonModels.Workouts {
 		notes?: string;
 		exercises: JsonModels.Workouts.CreateWorkoutExerciseRequest[];
 	}
+	export interface WorkoutCalendarDayModel
+	{
+		workoutId: number;
+		title: string;
+		date: string;
+		durationSeconds?: number;
+		totalVolumeKg?: number;
+		exerciseCount: number;
+		setCount: number;
+	}
+	export interface WorkoutCalendarQueryRequest
+	{
+		year: number;
+		month: number;
+	}
 	export interface WorkoutCreatedModel
 	{
 		workoutId: number;
@@ -227,6 +242,28 @@ export namespace JsonModels.Workouts {
 		notes?: string;
 	}
 }
+export namespace JsonModels.Users {
+	export interface AdminUserModel
+	{
+		id: number;
+		email: string;
+		firstName?: string;
+		lastName?: string;
+		isActive: boolean;
+		isAdmin: boolean;
+		dateCreated: string;
+		lastLoginAt?: string;
+	}
+	export interface UpdateUserRequest
+	{
+		isAdmin: boolean;
+		isActive: boolean;
+	}
+	export interface UserQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+	}
+}
 export namespace JsonModels.MuscleGroups {
 	export interface CreateMuscleGroupRequest
 	{
@@ -254,12 +291,14 @@ export namespace JsonModels.Exercises {
 		videoUrl?: string;
 		primaryMuscleGroupId: number;
 		secondaryMuscleGroupId?: number;
+		isPublic: boolean;
 	}
 	export interface ExerciseLookupModel
 	{
 		id: number;
 		userId?: number;
 		isGlobal: boolean;
+		isPublic: boolean;
 		name: string;
 		slug: string;
 		description?: string;
@@ -284,6 +323,7 @@ export namespace JsonModels.Exercises {
 	{
 		id: number;
 		userId?: number;
+		isPublic: boolean;
 		name: string;
 		slug: string;
 		description?: string;
@@ -389,6 +429,8 @@ export namespace JsonModels.Analytics {
 	{
 		exerciseId: number;
 		exerciseName: string;
+		primaryMuscleGroupId: number;
+		primaryMuscleGroupName: string;
 		bestWeightKg?: number;
 		bestReps?: number;
 		bestEstimatedOneRepMax?: number;

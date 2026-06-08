@@ -213,6 +213,7 @@ public static class ApplicationBuilderExtensions
             var created = new Exercise
             {
                 UserId = null,
+                IsPublic = true,
                 Name = name,
                 Slug = slug,
                 Description = description,

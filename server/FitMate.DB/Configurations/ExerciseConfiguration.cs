@@ -11,6 +11,28 @@ internal class ExerciseConfiguration : BaseConfiguration<Exercise>
     {
         base.Configure(builder);
 
+        builder.Property(x => x.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(x => x.Slug)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(x => x.Description)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
+        builder.Property(x => x.ImageUrl)
+            .HasMaxLength(2048)
+            .IsRequired(false);
+
+        builder.Property(x => x.VideoUrl)
+            .HasMaxLength(2048)
+            .IsRequired(false);
+
+        builder.Property(x => x.IsPublic).HasDefaultValue(true);
+
         builder.HasIndex(x => x.Slug).IsUnique();
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => x.DateCreated);

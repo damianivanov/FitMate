@@ -1,5 +1,5 @@
 import { createLocalId } from "@/lib/helpers";
-import { getExerciseDragOrderIndexes } from "@/shared/components";
+import { getExerciseBlockDragOrderIndexes, type ExerciseMetricMode } from "@/shared/components";
 import {
   ExerciseGroupType,
   ExerciseSetType,
@@ -8,7 +8,13 @@ import {
   type WorkoutTemplateModel,
 } from "@/types";
 
-export type TemplateSetMetricField = "weightKg" | "reps" | "durationSeconds" | "restSeconds";
+export type TemplateSetMetricField =
+  | "weightKg"
+  | "reps"
+  | "durationSeconds"
+  | "distanceMeters"
+  | "restSeconds"
+  | "rpe";
 
 export type TemplateSetDraft = {
   id: string;
@@ -45,6 +51,7 @@ const DEFAULT_TEMPLATE_DURATION_MINUTES = 60;
 const DEFAULT_SET_REPS = 8;
 const DEFAULT_SET_REST_SECONDS = 90;
 const DEFAULT_SET_DURATION_SECONDS = 30;
+const DEFAULT_SET_DISTANCE_METERS = 1000;
 
 function isGroupedExerciseType(groupType: ExerciseGroupType): boolean {
   return groupType === ExerciseGroupType.Superset || groupType === ExerciseGroupType.Circuit;
@@ -175,20 +182,33 @@ export function areTemplateDraftsEquivalent(left: TemplateDraft, right: Template
   return JSON.stringify(buildTemplatePayload(left)) === JSON.stringify(buildTemplatePayload(right));
 }
 
-export function isTemplateExerciseDurationEnabled(exercise: TemplateExerciseDraft): boolean {
-  return exercise.sets.some((set) => set.durationSeconds !== undefined && set.reps === undefined);
+export function getTemplateExerciseMetricMode(exercise: TemplateExerciseDraft): ExerciseMetricMode {
+  if (exercise.sets.some((set) => set.reps !== undefined)) {
+    return "reps";
+  }
+
+  if (exercise.sets.some((set) => set.durationSeconds !== undefined)) {
+    return "duration";
+  }
+
+  if (exercise.sets.some((set) => set.distanceMeters !== undefined)) {
+    return "distance";
+  }
+
+  return "reps";
 }
 
-export function setTemplateExerciseDurationMode(
+export function setTemplateExerciseMetricMode(
   exercise: TemplateExerciseDraft,
-  isDurationEnabled: boolean,
+  metricMode: ExerciseMetricMode,
 ): TemplateExerciseDraft {
   return {
     ...exercise,
     sets: exercise.sets.map((set) => ({
       ...set,
-      reps: isDurationEnabled ? undefined : set.reps ?? DEFAULT_SET_REPS,
-      durationSeconds: isDurationEnabled ? set.durationSeconds ?? DEFAULT_SET_DURATION_SECONDS : undefined,
+      reps: metricMode === "reps" ? set.reps ?? DEFAULT_SET_REPS : undefined,
+      durationSeconds: metricMode === "duration" ? set.durationSeconds ?? DEFAULT_SET_DURATION_SECONDS : undefined,
+      distanceMeters: metricMode === "distance" ? set.distanceMeters ?? DEFAULT_SET_DISTANCE_METERS : undefined,
     })),
   };
 }
@@ -206,17 +226,12 @@ export function reorderTemplateExercisesForDrag(
   activeExerciseId: string,
   overExerciseId: string,
 ): TemplateExerciseDraft[] {
-  const activeIndex = exercises.findIndex((exercise) => exercise.id === activeExerciseId);
-  const overIndex = exercises.findIndex((exercise) => exercise.id === overExerciseId);
-  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
-    return exercises.slice();
-  }
-
-  const groupKeys = exercises.map((exercise) => ({
+  const items = exercises.map((exercise) => ({
+    id: exercise.id,
     groupId: exercise.clientGroupId ?? null,
     groupType: exercise.groupType,
   }));
-  const nextIndexes = getExerciseDragOrderIndexes(groupKeys, activeIndex, overIndex);
+  const nextIndexes = getExerciseBlockDragOrderIndexes(items, activeExerciseId, overExerciseId);
   return nextIndexes.map((index) => exercises[index]);
 }
 

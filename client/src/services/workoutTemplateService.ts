@@ -60,4 +60,8 @@ export const workoutTemplateService = {
       payload,
     );
   },
+
+  async remove(id: number) {
+    return api.delete<JsonData<boolean>>(`workout-templates/${id}`);
+  },
 };

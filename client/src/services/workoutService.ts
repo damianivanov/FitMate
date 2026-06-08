@@ -3,6 +3,7 @@ import type {
   JsonData,
   PreviousExerciseSetsResponse,
   SaveWorkoutRequest,
+  WorkoutCalendarDayModel,
   WorkoutCreatedModel,
   WorkoutModel,
 } from "@/types";
@@ -14,6 +15,12 @@ export const workoutService = {
 
   async getById(id: number) {
     return api.get<JsonData<WorkoutModel>>(`workouts/${id}`);
+  },
+
+  async getCalendar(year: number, month: number) {
+    return api.get<JsonData<WorkoutCalendarDayModel[]>>("workouts/calendar", {
+      params: { year, month },
+    });
   },
 
   async startFromTemplate(templateId: number) {

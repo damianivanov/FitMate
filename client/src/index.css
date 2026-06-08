@@ -576,6 +576,12 @@ textarea { resize: none; }
   overflow: visible !important;
 }
 
+.liquid-panel:has([data-dropdown-open="true"]) {
+  overflow: visible !important;
+  position: relative;
+  z-index: 20;
+}
+
 .liquid-info-surface {
   border: 1px solid var(--accent-border);
   background: var(--accent-soft);

@@ -31,42 +31,4 @@ public class AdminExerciseController : BaseApiController
         var response = await exerciseService.ListAsync(request);
         return this.ReturnJson(response);
     }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult> GetById(long id)
-    {
-        var item = await exerciseService.GetByIdAsync(id);
-        if (item == null)
-        {
-            return this.ReturnJsonError("Exercise not found.");
-        }
-
-        return this.ReturnJson(item);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult> Create([FromBody] CreateExerciseRequest request)
-    {
-        var created = await exerciseService.CreateAsync(request);
-
-        return this.ReturnJson(created);
-    }
-
-    [HttpPut("{id}")]
-    public async Task<ActionResult> Update(long id, [FromBody] CreateExerciseRequest request)
-    {
-        var updated = await exerciseService.UpdateAsync(
-            id,
-            request);
-
-        return this.ReturnJson(updated);
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(long id)
-    {
-        var isDeleted = await exerciseService.DeleteAsync(id);
-
-        return this.ReturnJson(isDeleted);
-    }
 }

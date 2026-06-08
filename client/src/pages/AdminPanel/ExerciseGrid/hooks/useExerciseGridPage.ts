@@ -6,18 +6,11 @@ import { unwrap } from "@/lib/unwrap";
 import { invalidateExerciseLookupCache } from "@/hooks/useExerciseLookup";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
+import { adminService } from "@/services/adminService";
 import { exerciseService } from "@/services/exerciseService";
 import type { CreateExerciseRequest, Exercise, PagedResponse } from "@/types";
+import { emptyExerciseFormValues, type ExerciseFormValues } from "@/shared/components";
 import { createExerciseGridColumns } from "../columns";
-import type { ExerciseFormValues } from "../components/ExerciseEditorModal";
-
-const emptyFormValues: ExerciseFormValues = {
-  name: "",
-  slug: "",
-  description: "",
-  primaryMuscleGroupId: "",
-  secondaryMuscleGroupId: "",
-};
 
 function toFormValues(item: Exercise): ExerciseFormValues {
   return {
@@ -26,6 +19,7 @@ function toFormValues(item: Exercise): ExerciseFormValues {
     description: item.description ?? "",
     primaryMuscleGroupId: String(item.primaryMuscleGroupId),
     secondaryMuscleGroupId: item.secondaryMuscleGroupId ? String(item.secondaryMuscleGroupId) : "",
+    isPublic: item.isPublic,
   };
 }
 
@@ -38,6 +32,7 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
     secondaryMuscleGroupId: values.secondaryMuscleGroupId
       ? Number(values.secondaryMuscleGroupId)
       : undefined,
+    isPublic: values.isPublic,
   };
 }
 
@@ -51,7 +46,8 @@ export function useExerciseGridPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formValues, setFormValues] = useState<ExerciseFormValues>(emptyFormValues);
+  const [formValues, setFormValues] = useState<ExerciseFormValues>(emptyExerciseFormValues);
+  const [imageTarget, setImageTarget] = useState<Exercise | null>(null);
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 100,
@@ -68,7 +64,7 @@ export function useExerciseGridPage() {
       setError(null);
 
       try {
-        const response = await exerciseService.list({
+        const response = await adminService.exercises.list({
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
@@ -92,7 +88,7 @@ export function useExerciseGridPage() {
 
   const openCreateEditor = useCallback(() => {
     setEditingId(null);
-    setFormValues(emptyFormValues);
+    setFormValues(emptyExerciseFormValues);
     setEditorError(null);
     setIsEditorOpen(true);
   }, []);
@@ -119,7 +115,7 @@ export function useExerciseGridPage() {
   const closeEditor = useCallback(() => {
     setIsEditorOpen(false);
     setEditingId(null);
-    setFormValues(emptyFormValues);
+    setFormValues(emptyExerciseFormValues);
     setEditorError(null);
   }, []);
 
@@ -160,14 +156,28 @@ export function useExerciseGridPage() {
     [],
   );
 
+  const openImageModal = useCallback((exercise: Exercise) => {
+    setImageTarget(exercise);
+  }, []);
+
+  const closeImageModal = useCallback(() => {
+    setImageTarget(null);
+  }, []);
+
+  const onImageUploaded = useCallback(() => {
+    invalidateExerciseLookupCache();
+    setReloadIndex((index) => index + 1);
+  }, []);
+
   const columns: GridColDef<Exercise>[] = useMemo(
     () =>
       createExerciseGridColumns({
         resolveMuscleGroupName,
         onEdit: openEditEditor,
         onDelete,
+        onImage: openImageModal,
       }),
-    [onDelete, openEditEditor, resolveMuscleGroupName],
+    [onDelete, openEditEditor, openImageModal, resolveMuscleGroupName],
   );
 
   const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
@@ -183,10 +193,10 @@ export function useExerciseGridPage() {
   }, []);
 
   const save = useCallback(
-    async (values: ExerciseFormValues) => {
+    async (values: ExerciseFormValues, file?: File) => {
       const payload = toRequest(values);
-      if (!payload.name || !payload.slug || !payload.primaryMuscleGroupId) {
-        setEditorError("Name, slug and primary muscle group id are required.");
+      if (!payload.name || !payload.primaryMuscleGroupId) {
+        setEditorError("Name and primary muscle group id are required.");
         return;
       }
 
@@ -196,7 +206,7 @@ export function useExerciseGridPage() {
       try {
         const response = editingId
           ? await exerciseService.update(editingId, payload)
-          : await exerciseService.create(payload);
+          : await exerciseService.create(payload, file);
 
         unwrap(response.data, "Save failed.");
 
@@ -227,6 +237,7 @@ export function useExerciseGridPage() {
       muscleGroups,
       paginationModel,
       columns,
+      imageTarget,
     }),
     [
       exercises,
@@ -243,6 +254,7 @@ export function useExerciseGridPage() {
       muscleGroups,
       paginationModel,
       columns,
+      imageTarget,
     ],
   );
 
@@ -253,8 +265,20 @@ export function useExerciseGridPage() {
       onSearchInputChange,
       changePagination,
       save,
+      openImageModal,
+      closeImageModal,
+      onImageUploaded,
     }),
-    [openCreateEditor, closeEditor, onSearchInputChange, changePagination, save],
+    [
+      openCreateEditor,
+      closeEditor,
+      onSearchInputChange,
+      changePagination,
+      save,
+      openImageModal,
+      closeImageModal,
+      onImageUploaded,
+    ],
   );
 
   return { state, actions };

@@ -30,17 +30,4 @@ public class MuscleGroupController : BaseApiController
         var items = await muscleGroupService.GetAllForLookupAsync();
         return this.ReturnJson(items);
     }
-
-    [Authorize]
-    [HttpGet("{id}")]
-    public async Task<ActionResult> GetById(long id)
-    {
-        var item = await muscleGroupService.GetByIdAsync(id);
-        if (item == null)
-        {
-            return this.ReturnJsonError("Muscle group not found.");
-        }
-
-        return this.ReturnJson(item);
-    }
 }

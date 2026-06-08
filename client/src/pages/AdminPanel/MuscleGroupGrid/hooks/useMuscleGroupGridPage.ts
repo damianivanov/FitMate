@@ -4,7 +4,7 @@ import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { invalidateMuscleGroupsCache, useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { unwrap } from "@/lib/unwrap";
-import { muscleGroupService } from "@/services/muscleGroupService";
+import { adminService } from "@/services/adminService";
 import type { CreateMuscleGroupRequest, MuscleGroup, PagedResponse } from "@/types";
 import { createMuscleGroupGridColumns } from "../columns";
 import type { MuscleGroupFormValues, MuscleGroupImageLookupOption } from "../components/MuscleGroupEditorModal";
@@ -54,7 +54,7 @@ export function useMuscleGroupGridPage() {
       setError(null);
 
       try {
-        const response = await muscleGroupService.list({
+        const response = await adminService.muscleGroups.list({
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
@@ -114,7 +114,7 @@ export function useMuscleGroupGridPage() {
       setActionError(null);
 
       try {
-        const response = await muscleGroupService.remove(muscleGroup.id);
+        const response = await adminService.muscleGroups.remove(muscleGroup.id);
         unwrap(response.data, "Delete failed.");
 
         invalidateMuscleGroupsCache();
@@ -165,7 +165,7 @@ export function useMuscleGroupGridPage() {
       setEditorError(null);
 
       try {
-        const response = await muscleGroupService.update(editingId, payload);
+        const response = await adminService.muscleGroups.update(editingId, payload);
         unwrap(response.data, "Save failed.");
 
         invalidateMuscleGroupsCache();

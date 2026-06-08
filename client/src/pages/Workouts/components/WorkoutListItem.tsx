@@ -8,6 +8,7 @@ import {
   LuTrash2,
 } from "react-icons/lu";
 import { normalizeUtcIsoString } from "@/lib/helpers";
+import { ActionMenu, type ActionMenuItem } from "@/shared/components";
 import type { Workout, WorkoutExercise } from "@/types";
 
 type WorkoutListItemProps = {
@@ -93,17 +94,38 @@ export function WorkoutListItem({
     onOpen(workout);
   };
 
-  const handleWorkoutDelete = () => {
-    onDelete(workout);
-  };
+  const isFinished = Boolean(workout.finishedAt);
 
-  const handleWorkoutRepeat = () => {
-    onRepeat?.(workout);
-  };
-
-  const handleWorkoutSaveAsTemplate = () => {
-    onSaveAsTemplate?.(workout);
-  };
+  const menuItems: ActionMenuItem[] = [];
+  if (onRepeat && isFinished) {
+    menuItems.push({
+      key: "repeat",
+      label: "Repeat workout",
+      icon: <LuRepeat2 className="h-4 w-4 shrink-0" />,
+      onSelect: () => onRepeat(workout),
+      variant: "primary",
+    });
+  }
+  if (onSaveAsTemplate && isFinished) {
+    menuItems.push({
+      key: "save-as-template",
+      label: "Save as template",
+      icon: <LuLayoutTemplate className="h-4 w-4 shrink-0" />,
+      onSelect: () => onSaveAsTemplate(workout),
+    });
+  }
+  menuItems.push({
+    key: "delete",
+    label: "Delete",
+    icon: isDeleting ? (
+      <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+    ) : (
+      <LuTrash2 className="h-4 w-4 shrink-0" />
+    ),
+    onSelect: () => onDelete(workout),
+    variant: "danger",
+    disabled: isDeleting,
+  });
 
   return (
     <article className="liquid-panel w-full rounded-2xl p-4 transition hover:-translate-y-0.5 hover:border-primary-300/60">
@@ -121,42 +143,7 @@ export function WorkoutListItem({
           <span className="liquid-primary-chip hidden h-9 items-center rounded-full px-3 text-xs font-semibold sm:inline-flex">
             {workout.exerciseCount} exercise{workout.exerciseCount === 1 ? "" : "s"}
           </span>
-          {onRepeat ? (
-            <button
-              type="button"
-              onClick={handleWorkoutRepeat}
-              className="liquid-pill inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-foreground"
-              aria-label={`Repeat ${workoutTitle}`}
-              title="Repeat workout"
-            >
-              <LuRepeat2 className="h-4 w-4" />
-            </button>
-          ) : null}
-          {onSaveAsTemplate ? (
-            <button
-              type="button"
-              onClick={handleWorkoutSaveAsTemplate}
-              className="liquid-pill inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-foreground"
-              aria-label={`Save ${workoutTitle} as template`}
-              title="Save as template"
-            >
-              <LuLayoutTemplate className="h-4 w-4" />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleWorkoutDelete}
-            disabled={isDeleting}
-            className="liquid-pill inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-danger disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={`Delete ${workoutTitle}`}
-            title="Delete"
-          >
-            {isDeleting ? (
-              <LuLoaderCircle className="h-4 w-4 animate-spin" />
-            ) : (
-              <LuTrash2 className="h-4 w-4" />
-            )}
-          </button>
+          <ActionMenu triggerAriaLabel={`${workoutTitle} actions`} items={menuItems} />
         </div>
       </div>
 

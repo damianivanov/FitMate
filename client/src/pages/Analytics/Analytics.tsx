@@ -1,9 +1,20 @@
-import { AsyncSection, ExerciseLookupPicker, PageBody, PageHeader } from "@/shared/components";
+import {
+  AsyncSection,
+  ExerciseLookupPicker,
+  MuscleGroupDropdown,
+  PageBody,
+  PageHeader,
+  SegmentControl,
+} from "@/shared/components";
 import { LineChart } from "./components/LineChart";
 import { MuscleGroupBars } from "./components/MuscleGroupBars";
 import { PersonalRecordsList } from "./components/PersonalRecordsList";
 import { StatTile } from "./components/StatTile";
-import { useAnalyticsPage, type AnalyticsRangePreset } from "./hooks/useAnalyticsPage";
+import {
+  useAnalyticsPage,
+  type AnalyticsRangePreset,
+  type AnalyticsTab,
+} from "./hooks/useAnalyticsPage";
 import { formatVolume } from "./utils/analyticsFormat";
 
 const RANGE_OPTIONS: { key: AnalyticsRangePreset; label: string }[] = [
@@ -11,6 +22,13 @@ const RANGE_OPTIONS: { key: AnalyticsRangePreset; label: string }[] = [
   { key: "12w", label: "12W" },
   { key: "1y", label: "1Y" },
   { key: "all", label: "All" },
+];
+
+const TAB_OPTIONS: { label: string; value: AnalyticsTab }[] = [
+  { label: "Overview", value: "overview" },
+  { label: "Progression", value: "progression" },
+  { label: "Muscles", value: "muscleGroups" },
+  { label: "Records", value: "records" },
 ];
 
 export default function Analytics() {
@@ -58,65 +76,76 @@ export default function Analytics() {
                   <StatTile label="Reps" value={state.overview.totalReps.toLocaleString()} />
                 </section>
 
-                <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
-                  <h2 className="text-base font-bold text-foreground">Volume trend</h2>
-                  <p className="mt-0.5 text-xs text-secondary">Total volume per week</p>
-                  <div className="mt-4">
-                    <LineChart
-                      points={state.volumePoints}
-                      valueSuffix=" kg"
-                      emptyText="Complete workouts to see your volume trend."
-                    />
-                  </div>
-                </section>
+                <SegmentControl
+                  value={state.activeTab}
+                  options={TAB_OPTIONS}
+                  onChange={actions.selectTab}
+                />
 
-                <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
-                  <h2 className="text-base font-bold text-foreground">Exercise progression</h2>
-                  <p className="mt-0.5 text-xs text-secondary">
-                    Estimated 1RM over time for a chosen exercise
-                  </p>
-
-                  <div className="mt-4">
-                    <ExerciseLookupPicker
-                      idPrefix="analytics-progression"
-                      muscleGroups={state.muscleGroups}
-                      searchValue={state.searchValue}
-                      muscleGroupFilterId={state.muscleGroupFilterId}
-                      selectedExercise={state.selectedExercise}
-                      onSearchChange={actions.search}
-                      onMuscleGroupFilterChange={actions.filterByMuscleGroup}
-                      onSelectExercise={actions.selectExercise}
-                      onClearSelection={actions.clearExercise}
-                      searchLabel="Choose exercise"
-                    />
-                  </div>
-
-                  {state.selectedExercise ? (
+                {state.activeTab === "overview" ? (
+                  <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
+                    <h2 className="text-base font-bold text-foreground">Volume trend</h2>
+                    <p className="mt-0.5 text-xs text-secondary">Total volume per week</p>
                     <div className="mt-4">
-                      {state.isLoadingProgression ? (
-                        <div className="flex h-40 items-center justify-center rounded-xl bg-white/5 text-sm text-muted">
-                          Loading progression...
-                        </div>
-                      ) : state.progressionError ? (
-                        <div className="flex h-40 items-center justify-center rounded-xl bg-white/5 text-sm text-danger">
-                          {state.progressionError}
-                        </div>
-                      ) : (
-                        <LineChart
-                          points={state.progressionPoints}
-                          valueSuffix=" kg"
-                          emptyText={`No completed sets for ${state.selectedExercise.name} in this range.`}
-                        />
-                      )}
+                      <LineChart
+                        points={state.volumePoints}
+                        valueSuffix=" kg"
+                        emptyText="Complete workouts to see your volume trend."
+                      />
                     </div>
-                  ) : (
-                    <p className="mt-4 rounded-xl bg-white/5 px-4 py-6 text-center text-sm text-muted">
-                      Select an exercise to see its progression.
-                    </p>
-                  )}
-                </section>
+                  </section>
+                ) : null}
 
-                <div className="grid gap-5 lg:grid-cols-2">
+                {state.activeTab === "progression" ? (
+                  <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
+                    <h2 className="text-base font-bold text-foreground">Exercise progression</h2>
+                    <p className="mt-0.5 text-xs text-secondary">
+                      Estimated 1RM over time for a chosen exercise
+                    </p>
+
+                    <div className="mt-4">
+                      <ExerciseLookupPicker
+                        idPrefix="analytics-progression"
+                        muscleGroups={state.muscleGroups}
+                        searchValue={state.searchValue}
+                        muscleGroupFilterId={state.muscleGroupFilterId}
+                        selectedExercise={state.selectedExercise}
+                        onSearchChange={actions.search}
+                        onMuscleGroupFilterChange={actions.filterByMuscleGroup}
+                        onSelectExercise={actions.selectExercise}
+                        onClearSelection={actions.clearExercise}
+                        searchLabel="Choose exercise"
+                        filterVariant="dropdown"
+                      />
+                    </div>
+
+                    {state.selectedExercise ? (
+                      <div className="mt-4">
+                        {state.isLoadingProgression ? (
+                          <div className="flex h-40 items-center justify-center rounded-xl bg-white/5 text-sm text-muted">
+                            Loading progression...
+                          </div>
+                        ) : state.progressionError ? (
+                          <div className="flex h-40 items-center justify-center rounded-xl bg-white/5 text-sm text-danger">
+                            {state.progressionError}
+                          </div>
+                        ) : (
+                          <LineChart
+                            points={state.progressionPoints}
+                            valueSuffix=" kg"
+                            emptyText={`No completed sets for ${state.selectedExercise.name} in this range.`}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-4 rounded-xl bg-white/5 px-4 py-6 text-center text-sm text-muted">
+                        Select an exercise to see its progression.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+
+                {state.activeTab === "muscleGroups" ? (
                   <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
                     <h2 className="text-base font-bold text-foreground">Muscle group distribution</h2>
                     <p className="mt-0.5 text-xs text-secondary">Volume by primary muscle group</p>
@@ -124,15 +153,33 @@ export default function Analytics() {
                       <MuscleGroupBars items={state.overview.muscleGroupVolumes} />
                     </div>
                   </section>
+                ) : null}
 
+                {state.activeTab === "records" ? (
                   <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
-                    <h2 className="text-base font-bold text-foreground">Personal records</h2>
-                    <p className="mt-0.5 text-xs text-secondary">Best efforts per exercise</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <h2 className="text-base font-bold text-foreground">Personal records</h2>
+                        <p className="mt-0.5 text-xs text-secondary">Best efforts per exercise</p>
+                      </div>
+                      <div className="w-full sm:w-64">
+                        <MuscleGroupDropdown
+                          label="Filter by muscle group"
+                          muscleGroups={state.recordsMuscleGroups}
+                          value={state.recordsMuscleGroupId || null}
+                          onChange={(value) => actions.filterRecordsByMuscleGroup(value ?? "")}
+                          placeholder="All muscle groups"
+                          searchable
+                          searchPlaceholder="Search muscle groups..."
+                          clearable
+                        />
+                      </div>
+                    </div>
                     <div className="mt-4">
-                      <PersonalRecordsList items={state.overview.personalRecords} />
+                      <PersonalRecordsList items={state.personalRecords} />
                     </div>
                   </section>
-                </div>
+                ) : null}
               </>
             ) : null}
           </AsyncSection>

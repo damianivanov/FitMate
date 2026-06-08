@@ -1,5 +1,10 @@
 import { LuPlus } from "react-icons/lu";
-import { AsyncSection, PageBody, PageHeader } from "@/shared/components";
+import {
+  AsyncSection,
+  DeleteConfirmationModal,
+  PageBody,
+  PageHeader,
+} from "@/shared/components";
 import { TemplateListItem } from "./components/TemplateListItem";
 import { TemplatePreviewPanel } from "./components/TemplatePreviewPanel";
 import { useTemplatesPage } from "./hooks/useTemplatesPage";
@@ -52,7 +57,12 @@ export default function Templates() {
                   key={template.id}
                   template={template}
                   isSelected={state.selectedTemplate?.id === template.id}
+                  isStarting={state.startingTemplateId === template.id}
+                  isDeleting={state.deletingTemplateId === template.id}
                   onSelect={actions.select}
+                  onStart={actions.start}
+                  onEdit={actions.edit}
+                  onDelete={actions.requestDelete}
                 />
               ))}
             </section>
@@ -62,6 +72,15 @@ export default function Templates() {
           </div>
         </AsyncSection>
       </PageBody>
+
+      <DeleteConfirmationModal
+        isOpen={state.isDeleteConfirmationOpen}
+        itemName={state.templatePendingDeleteName}
+        title="Delete template"
+        isDeleting={state.deletingTemplateId !== null}
+        onCancel={actions.cancelDelete}
+        onConfirm={actions.confirmDelete}
+      />
     </>
   );
 }

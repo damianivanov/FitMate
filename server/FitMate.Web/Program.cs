@@ -1,9 +1,13 @@
+using FitMate.Core.Common;
 using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.Services.Analytics;
 using FitMate.Services.Exercises;
 using FitMate.Services.MuscleGroups;
+using FitMate.Services.Storage.Blobs;
+using FitMate.Services.Storage.Imaging;
+using FitMate.Services.Storage.Urls;
 using FitMate.Services.Users;
 using FitMate.Services.WorkoutTemplates;
 using FitMate.Services.Workouts;
@@ -12,8 +16,10 @@ using FitMate.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,7 +41,24 @@ var allowedOrigins = configuredOrigins
     .ToArray();
 
 builder.Services.AddScoped<LogApiErrorAttribute>();
-builder.Services.AddControllers(options => options.Filters.AddService<LogApiErrorAttribute>());
+builder.Services
+    .AddControllers(options => options.Filters.AddService<LogApiErrorAttribute>())
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var error = context.ModelState.Values
+                .SelectMany(entry => entry.Errors)
+                .Select(modelError => modelError.ErrorMessage)
+                .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message))
+                ?? "One or more validation errors occurred.";
+
+            return new JsonResult(new CommonJsonModel<object?>(error: error, data: null))
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+            };
+        };
+    });
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -123,6 +146,25 @@ builder.Services
 
                 return Task.CompletedTask;
             },
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!long.TryParse(userIdClaim, out var userId))
+                {
+                    return;
+                }
+
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var isActive = await dbContext.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => (bool?)u.IsActive)
+                    .FirstOrDefaultAsync();
+
+                if (isActive != true)
+                {
+                    context.Fail("User account is inactive.");
+                }
+            },
         };
     });
 
@@ -147,6 +189,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ApplicationSettings>();
+
+builder.Services.AddScoped<IImageProcessor, ImageSharpImageProcessor>();
+builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
+builder.Services.AddScoped<IPhotoUrlResolver, PhotoUrlResolver>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
@@ -154,9 +201,6 @@ builder.Services.AddScoped<IMuscleGroupService, MuscleGroupService>();
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IWorkoutTemplateService, WorkoutTemplateService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
@@ -171,12 +215,6 @@ app.UseAuthorization();
 
 app.MigrateDatabase();
 await app.SeedDatabase();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.MapControllers();
 app.Run();

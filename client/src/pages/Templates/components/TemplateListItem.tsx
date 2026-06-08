@@ -1,4 +1,15 @@
-import { LuCalendar, LuClock, LuDumbbell, LuEye, LuLock } from "react-icons/lu";
+import {
+  LuCalendar,
+  LuClock,
+  LuDumbbell,
+  LuEye,
+  LuLoaderCircle,
+  LuLock,
+  LuPencil,
+  LuPlay,
+  LuTrash2,
+} from "react-icons/lu";
+import { ActionMenu, type ActionMenuItem } from "@/shared/components";
 import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/types";
 import {
   formatTemplateDate,
@@ -9,7 +20,12 @@ import {
 type TemplateListItemProps = {
   template: WorkoutTemplate;
   isSelected: boolean;
+  isStarting: boolean;
+  isDeleting: boolean;
   onSelect: (templateId: number) => void;
+  onStart: (templateId: number) => void;
+  onEdit: (templateId: number) => void;
+  onDelete: (template: WorkoutTemplate) => void;
 };
 
 function getTemplateExercises(template: WorkoutTemplate): WorkoutTemplateExercise[] {
@@ -29,7 +45,12 @@ function getExerciseDisplayName(exercise: WorkoutTemplateExercise): string {
 export function TemplateListItem({
   template,
   isSelected,
+  isStarting,
+  isDeleting,
   onSelect,
+  onStart,
+  onEdit,
+  onDelete,
 }: TemplateListItemProps) {
   const createdDateLabel = formatTemplateDate(template.dateCreated);
   const visibilityLabel = getTemplateVisibilityLabel(template);
@@ -44,78 +65,125 @@ export function TemplateListItem({
     onSelect(template.id);
   };
 
+  const menuItems: ActionMenuItem[] = [
+    {
+      key: "start",
+      label: isStarting ? "Starting" : "Start workout",
+      icon: isStarting ? (
+        <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+      ) : (
+        <LuPlay className="h-4 w-4 shrink-0" />
+      ),
+      onSelect: () => onStart(template.id),
+      variant: "primary",
+      disabled: isStarting,
+    },
+    {
+      key: "edit",
+      label: "Edit",
+      icon: <LuPencil className="h-4 w-4 shrink-0" />,
+      onSelect: () => onEdit(template.id),
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon: isDeleting ? (
+        <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+      ) : (
+        <LuTrash2 className="h-4 w-4 shrink-0" />
+      ),
+      onSelect: () => onDelete(template),
+      variant: "danger",
+      disabled: isDeleting,
+    },
+  ];
+
   return (
-    <button
-      type="button"
-      onClick={handleTemplateSelect}
+    <article
       className={[
-        "liquid-panel w-full cursor-pointer rounded-2xl p-4 text-left transition",
+        "liquid-panel w-full rounded-2xl p-4 transition",
         isSelected ? "border-primary-300 bg-primary-100/15" : "hover:-translate-y-0.5 hover:border-primary-300/60",
       ].join(" ")}
-      aria-pressed={isSelected}
+      aria-current={isSelected}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={handleTemplateSelect}
+          className="min-w-0 flex-1 cursor-pointer text-left"
+          aria-label={`Open ${template.name}`}
+        >
           <h2 className="truncate text-base font-bold text-foreground">{template.name}</h2>
           {template.description ? (
             <p className="mt-1 line-clamp-2 text-sm leading-snug text-secondary">
               {template.description}
             </p>
           ) : null}
+        </button>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="liquid-primary-chip hidden h-9 items-center rounded-full px-3 text-xs font-semibold sm:inline-flex">
+            {template.exerciseCount} exercise{template.exerciseCount === 1 ? "" : "s"}
+          </span>
+          <ActionMenu triggerAriaLabel={`${template.name} actions`} items={menuItems} />
         </div>
-        <span className="liquid-primary-chip inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold">
-          {template.exerciseCount} exercise{template.exerciseCount === 1 ? "" : "s"}
-        </span>
       </div>
 
-      {templateExercises.length > 0 ? (
-        <div className="mt-4 space-y-2">
-          {visibleTemplateExercises.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-0 sm:gap-2">
-              {visibleTemplateExercises.map((exercise) => (
-                <span
-                  key={exercise.id}
-                  className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) first:ml-0"
-                >
-                  <img
-                    src={exercise.exerciseImageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                </span>
-              ))}
-              {hiddenTemplateExerciseCount > 0 ? (
-                <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) -ml-2 px-2 text-xs font-semibold text-secondary">
-                  +{hiddenTemplateExerciseCount}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          <p className="line-clamp-2 text-xs leading-snug text-secondary">
-            {exerciseNames.join(", ")}
-          </p>
-        </div>
-      ) : null}
+      <button
+        type="button"
+        onClick={handleTemplateSelect}
+        className="mt-4 block w-full cursor-pointer text-left"
+        aria-label={`Open ${template.name}`}
+      >
+        {templateExercises.length > 0 ? (
+          <div className="space-y-2">
+            {visibleTemplateExercises.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-0 sm:gap-2">
+                {visibleTemplateExercises.map((exercise) => (
+                  <span
+                    key={exercise.id}
+                    className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) first:ml-0"
+                  >
+                    <img
+                      src={exercise.exerciseImageUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
+                ))}
+                {hiddenTemplateExerciseCount > 0 ? (
+                  <span className="inline-flex h-11 min-w-11 items-center justify-center rounded-xl border border-(--glass-divider) bg-(--glass-bg-soft) -ml-2 px-2 text-xs font-semibold text-secondary">
+                    +{hiddenTemplateExerciseCount}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <p className="line-clamp-2 text-xs leading-snug text-secondary">
+              {exerciseNames.join(", ")}
+            </p>
+          </div>
+        ) : null}
 
-      <div className="mt-4 flex min-w-0 items-center gap-3 overflow-hidden text-xs text-secondary sm:gap-4">
-        <span className="inline-flex shrink-0 items-center gap-1.5">
-          <LuDumbbell className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="whitespace-nowrap">{template.setCount} sets</span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5">
-          <LuClock className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="whitespace-nowrap">{getTemplateDurationLabel(template)}</span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5">
-          <VisibilityIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="whitespace-nowrap">{visibilityLabel}</span>
-        </span>
-        <span className="inline-flex shrink-0 items-center gap-1.5">
-          <LuCalendar className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="whitespace-nowrap">{createdDateLabel}</span>
-        </span>
-      </div>
-    </button>
+        <div className="mt-4 flex min-w-0 items-center gap-3 overflow-hidden text-xs text-secondary sm:gap-4">
+          <span className="inline-flex shrink-0 items-center gap-1.5">
+            <LuDumbbell className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="whitespace-nowrap">{template.setCount} sets</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5">
+            <LuClock className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="whitespace-nowrap">{getTemplateDurationLabel(template)}</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5">
+            <VisibilityIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="whitespace-nowrap">{visibilityLabel}</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5">
+            <LuCalendar className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="whitespace-nowrap">{createdDateLabel}</span>
+          </span>
+        </div>
+      </button>
+    </article>
   );
 }

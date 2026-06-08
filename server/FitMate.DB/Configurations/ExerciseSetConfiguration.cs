@@ -23,6 +23,10 @@ internal class ExerciseSetConfiguration : BaseConfiguration<ExerciseSet>
             .HasPrecision(3, 1)
             .IsRequired(false);
 
+        builder.Property(x => x.Notes)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.WorkoutExerciseId, x.OrderIndex }).IsUnique();
 
         builder.HasOne(x => x.WorkoutExercise)

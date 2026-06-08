@@ -4,16 +4,16 @@ import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
 import { Login, Register } from "./pages/Auth";
 import Home from "./pages/Home";
-import Profile, { ProfileAccount } from "./pages/Profile";
+import Profile, { ProfileAccount, MyExercises } from "./pages/Profile";
 import AdminPanel, { ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
 import WorkoutBuilder from "./pages/WorkoutBuilder";
 import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
-import WorkoutHistory from "./pages/WorkoutHistory";
 import Templates from "./pages/Templates";
 import TemplateBuilder from "./pages/TemplateBuilder";
 import TemplatePreview from "./pages/TemplatePreview";
 import Analytics from "./pages/Analytics";
+import Calendar from "./pages/Calendar";
 import PersonalRecords from "./pages/PersonalRecords";
 import ComponentTest from "./pages/ComponentTest";
 
@@ -58,6 +58,10 @@ export const router = createBrowserRouter([
             index: true,
             element: <ProfileAccount />,
           },
+          {
+            path: "exercises",
+            element: <MyExercises />,
+          },
         ],
       },
 
@@ -76,10 +80,6 @@ export const router = createBrowserRouter([
           {
             path: "new",
             element: <WorkoutBuilder />,
-          },
-          {
-            path: "history",
-            element: <WorkoutHistory />,
           },
           {
             path: ":workoutId/summary",
@@ -117,6 +117,15 @@ export const router = createBrowserRouter([
             element: <TemplateBuilder />,
           },
         ],
+      },
+
+      {
+        path: "calendar",
+        element: (
+          <AccessGate requireAuthenticated>
+            <Calendar />
+          </AccessGate>
+        ),
       },
 
       {
