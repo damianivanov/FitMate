@@ -28,15 +28,22 @@ type PrimaryNavItemsProps = {
 function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
   return (
     <div className="space-y-4 pt-8">
-      {navSections.map((section) => (
-        <section key={section.section}>
-          <p className="px-2 text-xs font-bold uppercase tracking-[0.3em] text-primary">
-            {section.section}
-          </p>
-          <div className="mt-2 space-y-1.5">
-            {section.items
-              .filter((item) => !item.requiresAdmin || (item.requiresAdmin && isAdminUser))
-              .map((item) => {
+      {navSections.map((section) => {
+        const visibleItems = section.items.filter(
+          (item) => !item.requiresAdmin || isAdminUser,
+        );
+
+        if (visibleItems.length === 0) {
+          return null;
+        }
+
+        return (
+          <section key={section.section}>
+            <p className="px-2 text-xs font-bold uppercase tracking-[0.3em] text-primary">
+              {section.section}
+            </p>
+            <div className="mt-2 space-y-1.5">
+              {visibleItems.map((item) => {
                 const Icon = item.icon;
 
                 return (
@@ -52,9 +59,10 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
                   </NavLink>
                 );
               })}
-          </div>
-        </section>
-      ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -32,7 +32,14 @@ public class WorkoutService : IWorkoutService
             .ThenByDescending(x => x.Id)
             .ToListAsync();
 
-        return workouts.Select(MapWorkout).ToList();
+        var resolvedImageUrls = new Dictionary<string, string?>();
+        var result = new List<WorkoutModel>(workouts.Count);
+        foreach (var workout in workouts)
+        {
+            result.Add(await ResolveImageUrlsAsync(MapWorkout(workout), resolvedImageUrls));
+        }
+
+        return result;
     }
 
     public async Task<IReadOnlyList<WorkoutCalendarDayModel>> GetCalendarMonthAsync(long userId, int year, int month)
@@ -85,7 +92,9 @@ public class WorkoutService : IWorkoutService
         var workout = await BuildWorkoutDetailsQuery(asNoTracking: true)
             .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
 
-        return workout == null ? null : await ResolveImageUrlsAsync(MapWorkout(workout));
+        return workout == null
+            ? null
+            : await ResolveImageUrlsAsync(MapWorkout(workout), new Dictionary<string, string?>());
     }
 
     public async Task<long> StartFromTemplateAsync(long templateId, long userId)
@@ -235,25 +244,41 @@ public class WorkoutService : IWorkoutService
             throw new FitMateException("One or more selected exercises do not exist.");
         }
 
-        var startedAt = request.StartedAt.HasValue
-            ? NormalizeUtc(request.StartedAt.Value)
-            : DateTime.UtcNow;
+        var workout = await LoadWorkoutForUpdateAsync(request.WorkoutId, userId);
+        var isNewWorkout = workout == null;
+        if (workout != null && workout.FinishedAt.HasValue)
+        {
+            throw new FitMateException("Workout has already been finished.");
+        }
+
+        DateTime? startedAt;
+        if (request.StartedAt.HasValue)
+        {
+            startedAt = NormalizeUtc(request.StartedAt.Value);
+        }
+        else if (isDraft)
+        {
+            // A draft can be created before it is started; preserve an already-set start time.
+            startedAt = workout?.StartedAt;
+        }
+        else
+        {
+            startedAt = DateTime.UtcNow;
+        }
+
         DateTime? finishedAt = isDraft
             ? null
             : request.FinishedAt.HasValue
                 ? NormalizeUtc(request.FinishedAt.Value)
                 : DateTime.UtcNow;
 
-        if (finishedAt.HasValue && finishedAt.Value < startedAt)
+        if (finishedAt.HasValue)
         {
-            throw new FitMateException("Workout finish time cannot be before start time.");
-        }
-
-        var workout = await LoadWorkoutForUpdateAsync(request.WorkoutId, userId);
-        var isNewWorkout = workout == null;
-        if (workout != null && workout.FinishedAt.HasValue)
-        {
-            throw new FitMateException("Workout has already been finished.");
+            startedAt ??= finishedAt;
+            if (finishedAt.Value < startedAt.Value)
+            {
+                throw new FitMateException("Workout finish time cannot be before start time.");
+            }
         }
 
         workout ??= new Workout { UserId = userId };
@@ -340,7 +365,8 @@ public class WorkoutService : IWorkoutService
                 ExerciseName = x.Exercise.Name,
                 WorkoutId = x.WorkoutExerciseGroup.WorkoutId,
                 WorkoutTitle = x.WorkoutExerciseGroup.Workout.Title,
-                WorkoutStartedAt = x.WorkoutExerciseGroup.Workout.StartedAt,
+                WorkoutStartedAt = x.WorkoutExerciseGroup.Workout.StartedAt
+                    ?? x.WorkoutExerciseGroup.Workout.FinishedAt!.Value,
             })
             .OrderByDescending(x => x.WorkoutStartedAt)
             .ThenByDescending(x => x.WorkoutId)
@@ -836,14 +862,14 @@ public class WorkoutService : IWorkoutService
         return null;
     }
 
-    private static int? BuildDurationSeconds(DateTime startedAt, DateTime? finishedAt)
+    private static int? BuildDurationSeconds(DateTime? startedAt, DateTime? finishedAt)
     {
-        if (!finishedAt.HasValue)
+        if (!finishedAt.HasValue || !startedAt.HasValue)
         {
             return null;
         }
 
-        var duration = finishedAt.Value - startedAt;
+        var duration = finishedAt.Value - startedAt.Value;
         if (duration <= TimeSpan.Zero)
         {
             return 0;
@@ -963,29 +989,38 @@ public class WorkoutService : IWorkoutService
         };
     }
 
-    private async Task<WorkoutModel> ResolveImageUrlsAsync(WorkoutModel model)
+    private async Task<WorkoutModel> ResolveImageUrlsAsync(
+        WorkoutModel model,
+        Dictionary<string, string?> resolvedCache)
     {
-        var resolvedCache = new Dictionary<string, string?>();
         foreach (var group in model.Groups)
         {
             foreach (var exercise in group.Exercises)
             {
-                if (string.IsNullOrWhiteSpace(exercise.ExerciseImageUrl))
-                {
-                    continue;
-                }
-
-                if (!resolvedCache.TryGetValue(exercise.ExerciseImageUrl, out var resolved))
-                {
-                    resolved = await photoUrlResolver.ResolveAsync(exercise.ExerciseImageUrl);
-                    resolvedCache[exercise.ExerciseImageUrl] = resolved;
-                }
-
-                exercise.ExerciseImageUrl = resolved;
+                exercise.ExerciseImageUrl = await ResolveImageUrlAsync(exercise.ExerciseImageUrl, resolvedCache);
             }
         }
 
         return model;
+    }
+
+    private async Task<string?> ResolveImageUrlAsync(
+        string? value,
+        Dictionary<string, string?> resolvedCache)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        if (resolvedCache.TryGetValue(value, out var cached))
+        {
+            return cached;
+        }
+
+        var resolved = await photoUrlResolver.ResolveAsync(value);
+        resolvedCache[value] = resolved;
+        return resolved;
     }
 
     private class PreviousWorkoutExerciseCandidate

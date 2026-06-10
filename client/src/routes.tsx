@@ -5,7 +5,7 @@ import { UserRole } from "@/types";
 import { Login, Register } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount, MyExercises } from "./pages/Profile";
-import AdminPanel, { ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
+import AdminPanel, { ErrorGrid, ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
 import WorkoutBuilder from "./pages/WorkoutBuilder";
 import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
@@ -14,7 +14,6 @@ import TemplateBuilder from "./pages/TemplateBuilder";
 import TemplatePreview from "./pages/TemplatePreview";
 import Analytics from "./pages/Analytics";
 import Calendar from "./pages/Calendar";
-import PersonalRecords from "./pages/PersonalRecords";
 import WeightLog from "./pages/WeightLog";
 import ComponentTest from "./pages/ComponentTest";
 
@@ -139,15 +138,6 @@ export const router = createBrowserRouter([
       },
 
       {
-        path: "records",
-        element: (
-          <AccessGate requireAuthenticated>
-            <PersonalRecords />
-          </AccessGate>
-        ),
-      },
-
-      {
         path: "weight-log",
         element: (
           <AccessGate requireAuthenticated>
@@ -179,6 +169,10 @@ export const router = createBrowserRouter([
           {
             path: "users",
             element: <UserGrid />,
+          },
+          {
+            path: "errors",
+            element: <ErrorGrid />,
           },
         ],
       },

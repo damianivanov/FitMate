@@ -6,7 +6,7 @@ export interface WorkoutModel
 	workoutTemplateId?: number;
 	templateName?: string;
 	title: string;
-	startedAt: string;
+	startedAt?: string;
 	finishedAt?: string;
 	durationSeconds?: number;
 	totalVolumeKg?: number;

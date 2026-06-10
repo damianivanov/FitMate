@@ -6,7 +6,7 @@ public class WorkoutModel
     public long? WorkoutTemplateId { get; set; }
     public string? TemplateName { get; set; }
     public string Title { get; set; } = string.Empty;
-    public DateTime StartedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
     public int? DurationSeconds { get; set; }
     public decimal? TotalVolumeKg { get; set; }

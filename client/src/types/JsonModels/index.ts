@@ -15,6 +15,8 @@ export type { CreateWorkoutSetRequest } from "./Workouts/CreateWorkoutSetRequest
 export type { CreateWorkoutTemplateExerciseRequest } from "./WorkoutTemplates/CreateWorkoutTemplateExerciseRequest";
 export type { CreateWorkoutTemplateExerciseSetRequest } from "./WorkoutTemplates/CreateWorkoutTemplateExerciseSetRequest";
 export type { CreateWorkoutTemplateRequest } from "./WorkoutTemplates/CreateWorkoutTemplateRequest";
+export type { ErrorModel } from "./Errors/ErrorModel";
+export type { ErrorQueryRequest } from "./Errors/ErrorQueryRequest";
 export type { ExerciseLookupModel } from "./Exercises/ExerciseLookupModel";
 export type { ExerciseLookupRequest } from "./Exercises/ExerciseLookupRequest";
 export type { ExerciseModel } from "./Exercises/ExerciseModel";

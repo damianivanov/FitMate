@@ -190,7 +190,7 @@ export namespace JsonModels.Workouts {
 	{
 		workoutId: number;
 		title: string;
-		startedAt: string;
+		startedAt?: string;
 		finishedAt?: string;
 		exerciseCount: number;
 		setCount: number;
@@ -219,7 +219,7 @@ export namespace JsonModels.Workouts {
 		workoutTemplateId?: number;
 		templateName?: string;
 		title: string;
-		startedAt: string;
+		startedAt?: string;
 		finishedAt?: string;
 		durationSeconds?: number;
 		totalVolumeKg?: number;
@@ -337,6 +337,25 @@ export namespace JsonModels.Exercises {
 		search?: string;
 		isGlobal?: boolean;
 		userId?: number;
+	}
+}
+export namespace JsonModels.Errors {
+	export interface ErrorModel
+	{
+		id: number;
+		source?: string;
+		action?: string;
+		requestUrl: string;
+		userAgent?: string;
+		message: string;
+		exception?: string;
+		dateCreated: string;
+		createdById?: number;
+		createdByEmail?: string;
+	}
+	export interface ErrorQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
 	}
 }
 export namespace JsonModels.Common {

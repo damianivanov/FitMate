@@ -50,7 +50,6 @@ export default function HowItWorks() {
                 <span className="liquid-primary-chip inline-flex h-11 w-11 items-center justify-center rounded-2xl">
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className="mono text-2xl font-bold text-tertiary/60">{item.step}</span>
               </div>
               <h3 className="mt-4 mb-1.5 font-extrabold text-foreground">{item.title}</h3>
               <p className="text-sm leading-snug text-secondary">{item.description}</p>

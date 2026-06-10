@@ -5,6 +5,7 @@ using FitMate.DB.Entities;
 using FitMate.Services.Analytics;
 using FitMate.Services.Auth;
 using FitMate.Services.BodyMetrics;
+using FitMate.Services.Errors;
 using FitMate.Services.Exercises;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.Storage.Blobs;
@@ -214,6 +215,7 @@ builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IWorkoutTemplateService, WorkoutTemplateService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IBodyMetricService, BodyMetricService>();
+builder.Services.AddScoped<IAdminErrorService, AdminErrorService>();
 
 var app = builder.Build();
 

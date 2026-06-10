@@ -5,6 +5,7 @@ import type { JsonModels } from "./backend";
 export type AdminUser = JsonModels.Users.AdminUserModel;
 export type AnalyticsOverview = JsonModels.Analytics.AnalyticsOverviewModel;
 export type BodyMetricEntry = JsonModels.BodyMetrics.BodyMetricEntryModel;
+export type Error = JsonModels.Errors.ErrorModel;
 export type Exercise = JsonModels.Exercises.ExerciseModel;
 export type ExerciseLookup = JsonModels.Exercises.ExerciseLookupModel;
 export type ExerciseProgression = JsonModels.Analytics.ExerciseProgressionModel;

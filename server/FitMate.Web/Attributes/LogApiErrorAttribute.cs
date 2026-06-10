@@ -17,13 +17,14 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
             return;
         }
 
-        var responseErrorMessage = "An error occurred while executing the request.";
-        var responseStatusCode = StatusCodes.Status500InternalServerError;
-
         if (context.Exception is FitMateException)
         {
-            responseErrorMessage = context.Exception.Message;
-            responseStatusCode = StatusCodes.Status400BadRequest;
+            context.ExceptionHandled = true;
+            context.Result = new JsonResult(new CommonJsonModel<object?>(error: context.Exception.Message, data: null))
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+            };
+            return;
         }
 
         try
@@ -55,9 +56,9 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
         }
 
         context.ExceptionHandled = true;
-        context.Result = new JsonResult(new CommonJsonModel<object?>(error: responseErrorMessage, data: null))
+        context.Result = new JsonResult(new CommonJsonModel<object?>(error: "An error occurred while executing the request.", data: null))
         {
-            StatusCode = responseStatusCode,
+            StatusCode = StatusCodes.Status500InternalServerError,
         };
     }
 }

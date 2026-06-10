@@ -13,6 +13,10 @@ function getWorkoutTitle(workout: Workout | null): string {
 }
 
 function getStartedTime(workout: Workout): number {
+  if (!workout.startedAt) {
+    return 0;
+  }
+
   const time = new Date(normalizeUtcIsoString(workout.startedAt)).getTime();
   return Number.isNaN(time) ? 0 : time;
 }

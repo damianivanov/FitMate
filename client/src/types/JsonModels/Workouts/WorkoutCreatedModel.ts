@@ -2,7 +2,7 @@ export interface WorkoutCreatedModel
 {
 	workoutId: number;
 	title: string;
-	startedAt: string;
+	startedAt?: string;
 	finishedAt?: string;
 	exerciseCount: number;
 	setCount: number;

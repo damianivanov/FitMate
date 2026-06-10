@@ -18,6 +18,8 @@ import {
 
 export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds" | "rpe";
 
+export const DEFAULT_NEW_WORKOUT_TITLE = "New workout";
+
 const DEFAULT_WORKOUT_SET_REPS = 1;
 const DEFAULT_WORKOUT_SET_DURATION_SECONDS = 30;
 
@@ -128,11 +130,18 @@ function buildExerciseDraft(
 
 export function buildEmptyWorkoutDraft(startedAt?: Date): WorkoutDraft {
   return {
-    title: "New workout",
+    title: DEFAULT_NEW_WORKOUT_TITLE,
     notes: "",
     startedAt: startedAt?.toISOString(),
     exercises: [],
   };
+}
+
+export function isStandaloneWorkoutDraftEdited(draft: WorkoutDraft): boolean {
+  const trimmedTitle = draft.title.trim();
+  const hasMeaningfulTitle = trimmedTitle.length > 0 && trimmedTitle !== DEFAULT_NEW_WORKOUT_TITLE;
+
+  return hasMeaningfulTitle || draft.notes.trim().length > 0 || draft.exercises.length > 0;
 }
 
 export function buildWorkoutDraftFromTemplate(
@@ -167,7 +176,7 @@ export function buildWorkoutDraftFromWorkout(workout: Workout): WorkoutDraft {
     workoutTemplateId: workout.workoutTemplateId,
     templateName: workout.templateName,
     title: workout.title,
-    startedAt: normalizeUtcIsoString(workout.startedAt),
+    startedAt: workout.startedAt ? normalizeUtcIsoString(workout.startedAt) : undefined,
     notes: workout.notes ?? "",
     exercises: workout.groups
       .slice()

@@ -2,6 +2,8 @@ import api from "@/lib/api";
 import type {
   AdminUserModel,
   CreateMuscleGroupRequest,
+  ErrorModel,
+  ErrorQueryRequest,
   Exercise,
   ExerciseQueryRequest,
   JsonData,
@@ -44,6 +46,20 @@ export const adminService = {
   exercises: {
     async list(params: ExerciseQueryRequest) {
       return api.get<JsonData<PagedResponse<Exercise>>>("admin/exercises", { params });
+    },
+  },
+
+  errors: {
+    async list(params: ErrorQueryRequest) {
+      return api.get<JsonData<PagedResponse<ErrorModel>>>("admin/errors", { params });
+    },
+
+    async remove(id: number) {
+      return api.delete<JsonData<boolean>>(`admin/errors/${id}`);
+    },
+
+    async clearAll() {
+      return api.delete<JsonData<number>>("admin/errors/all");
     },
   },
 };

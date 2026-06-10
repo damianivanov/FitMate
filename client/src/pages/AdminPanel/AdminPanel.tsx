@@ -16,6 +16,11 @@ const gridLinks = [
     title: "User Grid",
     description: "Search users, change roles, and activate or remove accounts.",
   },
+  {
+    to: "/management/errors",
+    title: "Error Grid",
+    description: "Inspect server-side errors, view stack traces, and clear the log.",
+  },
 ] as const;
 
 export default function AdminPanel() {

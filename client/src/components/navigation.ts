@@ -38,7 +38,6 @@ export const trainingNavItems: DesktopNavItem[] = [
 
 export const insightNavItems: DesktopNavItem[] = [
   { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
-  { label: "Records", to: "/records", icon: LuLayoutDashboard, end: false },
   { label: "Weight", to: "/weight-log", icon: LuScale, end: false },
 ];
 

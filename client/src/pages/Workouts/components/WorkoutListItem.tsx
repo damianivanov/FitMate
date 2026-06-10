@@ -36,7 +36,11 @@ function getWorkoutExercises(workout: Workout): WorkoutExercise[] {
         .sort((left, right) => left.orderIndex - right.orderIndex));
 }
 
-function formatWorkoutDate(value: string): string {
+function formatWorkoutDate(value: string | undefined): string {
+  if (!value) {
+    return "Not started";
+  }
+
   const date = new Date(normalizeUtcIsoString(value));
   if (Number.isNaN(date.getTime())) {
     return "Unknown date";

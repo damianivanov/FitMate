@@ -124,7 +124,7 @@ public class AnalyticsService : IAnalyticsService
 
         foreach (var workout in workouts)
         {
-            var date = workout.FinishedAt ?? workout.StartedAt;
+            var date = (workout.FinishedAt ?? workout.StartedAt)!.Value;
 
             foreach (var group in workout.ExerciseGroups)
             {
@@ -181,7 +181,7 @@ public class AnalyticsService : IAnalyticsService
     private static List<VolumeTrendPointModel> BuildVolumeTrend(IEnumerable<Workout> workouts)
     {
         return workouts
-            .GroupBy(x => GetWeekStart(x.FinishedAt ?? x.StartedAt))
+            .GroupBy(x => GetWeekStart((x.FinishedAt ?? x.StartedAt)!.Value))
             .OrderBy(group => group.Key)
             .Select(group => new VolumeTrendPointModel
             {

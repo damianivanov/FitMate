@@ -576,4 +576,129 @@ public class WorkoutServiceTests
             () => service.GetCalendarMonthAsync(SqliteTestDatabase.UserId, 2026, 13));
         Assert.Equal("Invalid month.", ex.Message);
     }
+
+    // Нова чернова без начало се запазва като незапочната
+    [Fact]
+    public async Task UpsertDraftAsync_NewDraftWithoutStartedAt_PersistsNotStarted()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+        var request = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
+
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var result = await service.UpsertDraftAsync(request, SqliteTestDatabase.UserId);
+
+        Assert.Null(result.StartedAt);
+
+        using var assertContext = db.CreateContext();
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == result.WorkoutId);
+        Assert.Null(persisted.StartedAt);
+        Assert.Null(persisted.FinishedAt);
+        Assert.Null(persisted.DurationSeconds);
+    }
+
+    // Стартиране на съществуваща чернова задава начало без нов запис
+    [Fact]
+    public async Task UpsertDraftAsync_StartingExistingDraft_SetsStartedAtWithoutCreatingNewWorkout()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+
+        var draftService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var draft = await draftService.UpsertDraftAsync(
+            BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5))),
+            SqliteTestDatabase.UserId);
+
+        var startedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var startRequest = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
+        startRequest.WorkoutId = draft.WorkoutId;
+        startRequest.StartedAt = startedAt;
+
+        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var started = await startService.UpsertDraftAsync(startRequest, SqliteTestDatabase.UserId);
+
+        Assert.Equal(draft.WorkoutId, started.WorkoutId);
+        Assert.Equal(startedAt, started.StartedAt);
+
+        using var assertContext = db.CreateContext();
+        Assert.Equal(1, await assertContext.Workouts.CountAsync(x => x.UserId == SqliteTestDatabase.UserId));
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == draft.WorkoutId);
+        Assert.Equal(startedAt, persisted.StartedAt);
+        Assert.Null(persisted.FinishedAt);
+    }
+
+    // Обновяване на стартирана чернова без начало запазва съществуващото начало
+    [Fact]
+    public async Task UpsertDraftAsync_UpdateWithoutStartedAt_PreservesExistingStartedAt()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+        var startedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        var startRequest = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
+        startRequest.StartedAt = startedAt;
+        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var started = await startService.UpsertDraftAsync(startRequest, SqliteTestDatabase.UserId);
+
+        var updateRequest = BuildRequest("Draft Updated", Exercise(exerciseId, Set(false, 120m, 6)));
+        updateRequest.WorkoutId = started.WorkoutId;
+        var updateService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var updated = await updateService.UpsertDraftAsync(updateRequest, SqliteTestDatabase.UserId);
+
+        Assert.Equal(startedAt, updated.StartedAt);
+
+        using var assertContext = db.CreateContext();
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == started.WorkoutId);
+        Assert.Equal(startedAt, persisted.StartedAt);
+    }
+
+    // Връща завършените серии от приключена тренировка (проверява COALESCE заявката)
+    [Fact]
+    public async Task GetPreviousSetsAsync_ReturnsCompletedSetsFromFinishedWorkout()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+        var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        SeedWorkout(db, SqliteTestDatabase.UserId, started, started.AddHours(1), exerciseId, setCompleted: true);
+
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var result = await service.GetPreviousSetsAsync(SqliteTestDatabase.UserId, new[] { exerciseId });
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal(exerciseId, item.ExerciseId);
+        Assert.Equal(started, item.WorkoutStartedAt);
+        var set = Assert.Single(item.Sets);
+        Assert.Equal(100m, set.WeightKg);
+        Assert.Equal(5, set.Reps);
+    }
+
+    // Завършване на незапочната чернова задава начало
+    [Fact]
+    public async Task CreateAsync_FinishingNotStartedDraft_SetsStartedAt()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+
+        var draftService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var draft = await draftService.UpsertDraftAsync(
+            BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5))),
+            SqliteTestDatabase.UserId);
+
+        Assert.Null(draft.StartedAt);
+
+        var finishRequest = BuildRequest("Finished", Exercise(exerciseId, Set(true, 100m, 5)));
+        finishRequest.WorkoutId = draft.WorkoutId;
+        var finishService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var finished = await finishService.CreateAsync(finishRequest, SqliteTestDatabase.UserId);
+
+        Assert.Equal(draft.WorkoutId, finished.WorkoutId);
+        Assert.NotNull(finished.StartedAt);
+        Assert.NotNull(finished.FinishedAt);
+
+        using var assertContext = db.CreateContext();
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == draft.WorkoutId);
+        Assert.NotNull(persisted.StartedAt);
+        Assert.NotNull(persisted.FinishedAt);
+        Assert.NotNull(persisted.DurationSeconds);
+    }
 }
