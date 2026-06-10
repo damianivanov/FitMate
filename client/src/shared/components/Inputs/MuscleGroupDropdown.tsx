@@ -11,6 +11,7 @@ type MuscleGroupDropdownProps = DropdownSingleControlProps<string> & {
 export function MuscleGroupDropdown({
   muscleGroups,
   leadingOptions = [],
+  menuClassName,
   ...dropdownProps
 }: MuscleGroupDropdownProps) {
   const options = useMemo(
@@ -25,5 +26,11 @@ export function MuscleGroupDropdown({
     [leadingOptions, muscleGroups],
   );
 
-  return <Dropdown {...dropdownProps} options={options} />;
+  return (
+    <Dropdown
+      {...dropdownProps}
+      options={options}
+      menuClassName={["muscle-group-dropdown-menu", menuClassName].filter(Boolean).join(" ")}
+    />
+  );
 }

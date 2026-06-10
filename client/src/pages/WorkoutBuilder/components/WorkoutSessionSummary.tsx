@@ -17,6 +17,7 @@ type WorkoutSessionSummaryProps = {
   elapsedSeconds: number;
   summary: WorkoutSummary;
   onNotesChange: (value: string) => void;
+  onNotesCommit: () => void;
 };
 
 const STARTED_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
@@ -44,6 +45,7 @@ export function WorkoutSessionSummary({
   elapsedSeconds,
   summary,
   onNotesChange,
+  onNotesCommit,
 }: WorkoutSessionSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const startedAtLabel = formatStartedAt(startedAt);
@@ -58,6 +60,10 @@ export function WorkoutSessionSummary({
 
   const handleNotesChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     onNotesChange(event.target.value);
+  };
+
+  const handleNotesBlur = () => {
+    onNotesCommit();
   };
 
   return (
@@ -134,6 +140,7 @@ export function WorkoutSessionSummary({
             <textarea
               value={notes}
               onChange={handleNotesChange}
+              onBlur={handleNotesBlur}
               rows={4}
               className="liquid-input w-full resize-none rounded-xl px-4 py-3 text-sm leading-relaxed text-foreground"
             />

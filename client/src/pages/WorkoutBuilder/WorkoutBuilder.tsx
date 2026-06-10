@@ -181,6 +181,7 @@ export default function WorkoutBuilder() {
         onStartWorkout={actions.handleStartWorkout}
         onFinishWorkout={actions.handleFinishWorkout}
         onTitleChange={actions.handleTitleChange}
+        onTitleCommit={actions.handleTitleCommit}
       />
 
       <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
@@ -193,6 +194,7 @@ export default function WorkoutBuilder() {
               elapsedSeconds={elapsedSeconds}
               summary={summary}
               onNotesChange={actions.handleWorkoutNotesChange}
+              onNotesCommit={actions.handleWorkoutNotesCommit}
             />
 
             <ExerciseBoard

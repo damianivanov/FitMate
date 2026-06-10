@@ -70,6 +70,10 @@ function normalizeMetricValue(value: number | null | undefined): number | undefi
   return value == null ? undefined : value;
 }
 
+function normalizePositiveMetricValue(value: number | null | undefined): number | undefined {
+  return value == null || value <= 0 ? undefined : value;
+}
+
 function normalizeOptionalText(value: string): string | undefined {
   const trimmedValue = value.trim();
   return trimmedValue ? trimmedValue : undefined;
@@ -78,8 +82,8 @@ function normalizeOptionalText(value: string): string | undefined {
 export function hasMainMetric(set: WorkoutSetDraft): boolean {
   return (
     set.weightKg !== undefined
-    || set.reps !== undefined
-    || set.durationSeconds !== undefined
+    || normalizePositiveMetricValue(set.reps) !== undefined
+    || normalizePositiveMetricValue(set.durationSeconds) !== undefined
   );
 }
 
@@ -93,8 +97,8 @@ function buildSetDraft(
     orderIndex: setIndex + 1,
     setType: set.setType,
     weightKg: normalizeMetricValue(set.weightKg),
-    reps: normalizeMetricValue(set.reps),
-    durationSeconds: normalizeMetricValue(set.durationSeconds),
+    reps: normalizePositiveMetricValue(set.reps),
+    durationSeconds: normalizePositiveMetricValue(set.durationSeconds),
     rpe: normalizeMetricValue(set.rpe),
     restSeconds: normalizeMetricValue(set.restSeconds),
     notes: set.notes ?? "",
@@ -135,13 +139,6 @@ export function buildEmptyWorkoutDraft(startedAt?: Date): WorkoutDraft {
     startedAt: startedAt?.toISOString(),
     exercises: [],
   };
-}
-
-export function isStandaloneWorkoutDraftEdited(draft: WorkoutDraft): boolean {
-  const trimmedTitle = draft.title.trim();
-  const hasMeaningfulTitle = trimmedTitle.length > 0 && trimmedTitle !== DEFAULT_NEW_WORKOUT_TITLE;
-
-  return hasMeaningfulTitle || draft.notes.trim().length > 0 || draft.exercises.length > 0;
 }
 
 export function buildWorkoutDraftFromTemplate(
@@ -202,8 +199,8 @@ export function buildWorkoutDraftFromWorkout(workout: Workout): WorkoutDraft {
                 orderIndex: set.orderIndex,
                 setType: set.setType,
                 weightKg: normalizeMetricValue(set.weightKg),
-                reps: normalizeMetricValue(set.reps),
-                durationSeconds: normalizeMetricValue(set.durationSeconds),
+                reps: normalizePositiveMetricValue(set.reps),
+                durationSeconds: normalizePositiveMetricValue(set.durationSeconds),
                 rpe: normalizeMetricValue(set.rpe),
                 notes: set.notes ?? "",
                 isCompleted: set.isCompleted,
@@ -296,8 +293,8 @@ export function createWorkoutSetDraftFromPreviousSet(
     orderIndex: index + 1,
     setType: previousSet.setType,
     weightKg: previousSet.weightKg,
-    reps: previousSet.reps,
-    durationSeconds: previousSet.durationSeconds,
+    reps: normalizePositiveMetricValue(previousSet.reps),
+    durationSeconds: normalizePositiveMetricValue(previousSet.durationSeconds),
     distanceMeters: previousSet.distanceMeters,
     rpe: previousSet.rpe,
     notes: "",
@@ -379,15 +376,18 @@ export function validateWorkoutDraft(draft: WorkoutDraft): string | null {
     }
 
     for (const set of completedSets) {
+      const reps = normalizePositiveMetricValue(set.reps);
+      const durationSeconds = normalizePositiveMetricValue(set.durationSeconds);
+
       if (set.weightKg !== undefined && set.weightKg < 0) {
         return `Exercise #${exercise.orderIndex} weight cannot be negative.`;
       }
 
-      if (set.reps !== undefined && set.reps <= 0) {
+      if (set.reps !== undefined && reps === undefined && durationSeconds === undefined) {
         return `Exercise #${exercise.orderIndex} reps must be greater than zero.`;
       }
 
-      if (set.durationSeconds !== undefined && set.durationSeconds <= 0) {
+      if (set.durationSeconds !== undefined && durationSeconds === undefined && reps === undefined) {
         return `Exercise #${exercise.orderIndex} duration must be greater than zero.`;
       }
 
@@ -409,8 +409,8 @@ function buildCreateWorkoutSetRequest(set: WorkoutSetDraft): CreateWorkoutSetReq
     setType: set.setType,
     isCompleted: set.isCompleted,
     weightKg: set.weightKg,
-    reps: set.reps,
-    durationSeconds: set.durationSeconds,
+    reps: normalizePositiveMetricValue(set.reps),
+    durationSeconds: normalizePositiveMetricValue(set.durationSeconds),
     rpe: set.rpe,
     notes: normalizeOptionalText(set.notes),
   };
@@ -460,11 +460,11 @@ export function formatMetricValue(value: number | null | undefined): string {
 }
 
 export function getWorkoutExerciseMetricMode(exercise: WorkoutExerciseDraft): ExerciseMetricMode {
-  if (exercise.sets.some((set) => set.reps !== undefined)) {
+  if (exercise.sets.some((set) => normalizePositiveMetricValue(set.reps) !== undefined)) {
     return "reps";
   }
 
-  if (exercise.sets.some((set) => set.durationSeconds !== undefined)) {
+  if (exercise.sets.some((set) => normalizePositiveMetricValue(set.durationSeconds) !== undefined)) {
     return "duration";
   }
 
@@ -479,9 +479,11 @@ export function setWorkoutExerciseMetricMode(
     ...exercise,
     sets: exercise.sets.map((set) => ({
       ...set,
-      reps: metricMode === "reps" ? set.reps ?? DEFAULT_WORKOUT_SET_REPS : undefined,
+      reps: metricMode === "reps" ? normalizePositiveMetricValue(set.reps) ?? DEFAULT_WORKOUT_SET_REPS : undefined,
       durationSeconds:
-        metricMode === "duration" ? set.durationSeconds ?? DEFAULT_WORKOUT_SET_DURATION_SECONDS : undefined,
+        metricMode === "duration"
+          ? normalizePositiveMetricValue(set.durationSeconds) ?? DEFAULT_WORKOUT_SET_DURATION_SECONDS
+          : undefined,
     })),
   };
 }

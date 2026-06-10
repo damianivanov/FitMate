@@ -124,8 +124,8 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(result);
     }
 
-    [HttpPost("draft")]
-    public async Task<ActionResult> UpsertDraft([FromBody] SaveWorkoutRequest request)
+    [HttpPut("{workoutId:long}")]
+    public async Task<ActionResult> Update(long workoutId, [FromBody] SaveWorkoutRequest request)
     {
         var userId = UserService.LoggedInUserId;
         if (!userId.HasValue)
@@ -133,7 +133,20 @@ public class WorkoutController : BaseApiController
             return this.ReturnJsonError("Unauthorized.");
         }
 
-        var result = await workoutService.UpsertDraftAsync(request, userId.Value);
+        var result = await workoutService.UpdateAsync(workoutId, request, userId.Value);
+        return this.ReturnJson(result);
+    }
+
+    [HttpPost("{workoutId:long}/finish")]
+    public async Task<ActionResult> Finish(long workoutId, [FromBody] SaveWorkoutRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var result = await workoutService.FinishAsync(workoutId, request, userId.Value);
         return this.ReturnJson(result);
     }
 

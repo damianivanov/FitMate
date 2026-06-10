@@ -69,12 +69,14 @@ public class WorkoutServiceTests
         DateTime startedAt,
         DateTime? finishedAt,
         long exerciseId,
-        bool setCompleted)
+        bool setCompleted,
+        long? workoutTemplateId = null)
     {
         using var context = db.CreateContext();
         var workout = new Workout
         {
             UserId = userId,
+            WorkoutTemplateId = workoutTemplateId,
             Title = "Seeded Workout",
             StartedAt = startedAt,
             FinishedAt = finishedAt,
@@ -173,42 +175,44 @@ public class WorkoutServiceTests
 
     // Празно заглавие хвърля грешка за задължително заглавие
     [Fact]
-    public async Task CreateAsync_EmptyTitle_Throws()
+    public async Task FinishAsync_EmptyTitle_Throws()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("   ", Exercise(exerciseId, Set(true, 100m, 5)));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
-            () => service.CreateAsync(request, SqliteTestDatabase.UserId));
+            () => service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId));
         Assert.Equal("Workout title is required.", ex.Message);
     }
 
     // Изисква поне едно упражнение при създаване
     [Fact]
-    public async Task CreateAsync_NoExercises_Throws()
+    public async Task FinishAsync_NoExercises_Throws()
     {
         using var db = new SqliteTestDatabase();
         var request = BuildRequest("Leg Day");
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
-            () => service.CreateAsync(request, SqliteTestDatabase.UserId));
+            () => service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId));
         Assert.Equal("At least one exercise is required.", ex.Message);
     }
 
     // Чернова без упражнения се запазва без край
     [Fact]
-    public async Task UpsertDraftAsync_NoExercises_Succeeds()
+    public async Task CreateAsync_NoExercises_Succeeds()
     {
         using var db = new SqliteTestDatabase();
         var request = BuildRequest("Draft Day");
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.UpsertDraftAsync(request, SqliteTestDatabase.UserId);
+        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
 
@@ -219,14 +223,14 @@ public class WorkoutServiceTests
 
     // Чернова с празно заглавие се запазва
     [Fact]
-    public async Task UpsertDraftAsync_EmptyTitle_Succeeds()
+    public async Task CreateAsync_EmptyTitle_Succeeds()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("   ", Exercise(exerciseId, Set(false, 100m, 5)));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.UpsertDraftAsync(request, SqliteTestDatabase.UserId);
+        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
 
@@ -238,14 +242,14 @@ public class WorkoutServiceTests
 
     // Чернова с упражнение без серии се запазва
     [Fact]
-    public async Task UpsertDraftAsync_ExerciseWithoutSets_Succeeds()
+    public async Task CreateAsync_ExerciseWithoutSets_Succeeds()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("Draft Day", Exercise(exerciseId));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.UpsertDraftAsync(request, SqliteTestDatabase.UserId);
+        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
 
@@ -281,7 +285,7 @@ public class WorkoutServiceTests
 
     // Краят не може да е преди началото
     [Fact]
-    public async Task CreateAsync_FinishedBeforeStarted_Throws()
+    public async Task FinishAsync_FinishedBeforeStarted_Throws()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
@@ -290,9 +294,10 @@ public class WorkoutServiceTests
         request.FinishedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
-            () => service.CreateAsync(request, SqliteTestDatabase.UserId));
+            () => service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId));
         Assert.Equal("Workout finish time cannot be before start time.", ex.Message);
     }
 
@@ -312,7 +317,7 @@ public class WorkoutServiceTests
 
     // Смята обем и продължителност от завършените серии
     [Fact]
-    public async Task CreateAsync_CompletedSets_CalculatesVolumeAndDuration()
+    public async Task FinishAsync_CompletedSets_CalculatesVolumeAndDuration()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
@@ -328,7 +333,8 @@ public class WorkoutServiceTests
         request.FinishedAt = started.AddHours(1);
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
+        var result = await service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId);
 
         Assert.Equal(500m, result.TotalVolumeKg);
         Assert.Equal(2, result.SetCount);
@@ -340,7 +346,7 @@ public class WorkoutServiceTests
 
     // Еднакво начало и край дава нулева продължителност
     [Fact]
-    public async Task CreateAsync_FinishedEqualsStarted_SucceedsWithZeroDuration()
+    public async Task FinishAsync_FinishedEqualsStarted_SucceedsWithZeroDuration()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
@@ -350,7 +356,8 @@ public class WorkoutServiceTests
         request.FinishedAt = moment;
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
+        var result = await service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId);
 
         using var assertContext = db.CreateContext();
         var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == result.WorkoutId);
@@ -359,31 +366,33 @@ public class WorkoutServiceTests
 
     // Извън чернова изисква поне една завършена серия
     [Fact]
-    public async Task CreateAsync_RequiresCompletedSet_WhenNotDraft()
+    public async Task FinishAsync_RequiresCompletedSet()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("Incomplete", Exercise(exerciseId, Set(false, 100m, 5)));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
-            () => service.CreateAsync(request, SqliteTestDatabase.UserId));
+            () => service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId));
         Assert.Equal("Exercise #1 must include at least one completed set.", ex.Message);
     }
 
     // Завършена серия без метрика хвърля грешка
     [Fact]
-    public async Task CreateAsync_CompletedSetWithoutMetric_Throws()
+    public async Task FinishAsync_CompletedSetWithoutMetric_Throws()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("No Metric", Exercise(exerciseId, Set(true)));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
-            () => service.CreateAsync(request, SqliteTestDatabase.UserId));
+            () => service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId));
         Assert.Equal(
             "Exercise #1, set #1: Set must include at least one metric (weight/reps/duration/distance).",
             ex.Message);
@@ -417,7 +426,46 @@ public class WorkoutServiceTests
         Assert.False(copySet.IsCompleted);
     }
 
-    // Чужда тренировка не може да се копира
+    [Fact]
+    public async Task DuplicateAsync_PreservesWorkoutTemplateId()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedExercise(db);
+        var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        long templateId;
+        using (var seedContext = db.CreateContext())
+        {
+            var template = new WorkoutTemplate
+            {
+                UserId = SqliteTestDatabase.UserId,
+                Name = "Template Workout",
+                IsPublic = false,
+            };
+
+            seedContext.WorkoutTemplates.Add(template);
+            seedContext.SaveChanges();
+            templateId = template.Id;
+        }
+
+        var source = SeedWorkout(
+            db,
+            SqliteTestDatabase.UserId,
+            started,
+            started.AddHours(1),
+            exerciseId,
+            setCompleted: true,
+            workoutTemplateId: templateId);
+
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var newId = await service.DuplicateAsync(source.Id, SqliteTestDatabase.UserId);
+
+        using var assertContext = db.CreateContext();
+        var copy = await assertContext.Workouts.FirstAsync(x => x.Id == newId);
+
+        Assert.Equal(templateId, copy.WorkoutTemplateId);
+    }
+
     [Fact]
     public async Task DuplicateAsync_OtherUsersWorkout_Throws()
     {
@@ -579,14 +627,14 @@ public class WorkoutServiceTests
 
     // Нова чернова без начало се запазва като незапочната
     [Fact]
-    public async Task UpsertDraftAsync_NewDraftWithoutStartedAt_PersistsNotStarted()
+    public async Task CreateAsync_NewWorkoutWithoutStartedAt_PersistsNotStarted()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
-        var request = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
+        var request = BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5)));
 
         var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var result = await service.UpsertDraftAsync(request, SqliteTestDatabase.UserId);
+        var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.Null(result.StartedAt);
 
@@ -599,51 +647,51 @@ public class WorkoutServiceTests
 
     // Стартиране на съществуваща чернова задава начало без нов запис
     [Fact]
-    public async Task UpsertDraftAsync_StartingExistingDraft_SetsStartedAtWithoutCreatingNewWorkout()
+    public async Task UpdateAsync_StartingExistingWorkout_SetsStartedAtWithoutCreatingNewWorkout()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
 
-        var draftService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var draft = await draftService.UpsertDraftAsync(
-            BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5))),
+        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var created = await createService.CreateAsync(
+            BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5))),
             SqliteTestDatabase.UserId);
 
         var startedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
-        var startRequest = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
-        startRequest.WorkoutId = draft.WorkoutId;
+        var startRequest = BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5)));
+        startRequest.WorkoutId = created.WorkoutId;
         startRequest.StartedAt = startedAt;
 
         var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var started = await startService.UpsertDraftAsync(startRequest, SqliteTestDatabase.UserId);
+        var started = await startService.UpdateAsync(created.WorkoutId, startRequest, SqliteTestDatabase.UserId);
 
-        Assert.Equal(draft.WorkoutId, started.WorkoutId);
+        Assert.Equal(created.WorkoutId, started.WorkoutId);
         Assert.Equal(startedAt, started.StartedAt);
 
         using var assertContext = db.CreateContext();
         Assert.Equal(1, await assertContext.Workouts.CountAsync(x => x.UserId == SqliteTestDatabase.UserId));
-        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == draft.WorkoutId);
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == created.WorkoutId);
         Assert.Equal(startedAt, persisted.StartedAt);
         Assert.Null(persisted.FinishedAt);
     }
 
     // Обновяване на стартирана чернова без начало запазва съществуващото начало
     [Fact]
-    public async Task UpsertDraftAsync_UpdateWithoutStartedAt_PreservesExistingStartedAt()
+    public async Task UpdateAsync_UpdateWithoutStartedAt_PreservesExistingStartedAt()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
         var startedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
 
-        var startRequest = BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5)));
+        var startRequest = BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5)));
         startRequest.StartedAt = startedAt;
         var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var started = await startService.UpsertDraftAsync(startRequest, SqliteTestDatabase.UserId);
+        var started = await startService.CreateAsync(startRequest, SqliteTestDatabase.UserId);
 
-        var updateRequest = BuildRequest("Draft Updated", Exercise(exerciseId, Set(false, 120m, 6)));
+        var updateRequest = BuildRequest("Workout Updated", Exercise(exerciseId, Set(false, 120m, 6)));
         updateRequest.WorkoutId = started.WorkoutId;
         var updateService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var updated = await updateService.UpsertDraftAsync(updateRequest, SqliteTestDatabase.UserId);
+        var updated = await updateService.UpdateAsync(started.WorkoutId, updateRequest, SqliteTestDatabase.UserId);
 
         Assert.Equal(startedAt, updated.StartedAt);
 
@@ -674,29 +722,29 @@ public class WorkoutServiceTests
 
     // Завършване на незапочната чернова задава начало
     [Fact]
-    public async Task CreateAsync_FinishingNotStartedDraft_SetsStartedAt()
+    public async Task FinishAsync_FinishingNotStartedWorkout_SetsStartedAt()
     {
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
 
-        var draftService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var draft = await draftService.UpsertDraftAsync(
-            BuildRequest("Draft", Exercise(exerciseId, Set(false, 100m, 5))),
+        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var created = await createService.CreateAsync(
+            BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5))),
             SqliteTestDatabase.UserId);
 
-        Assert.Null(draft.StartedAt);
+        Assert.Null(created.StartedAt);
 
         var finishRequest = BuildRequest("Finished", Exercise(exerciseId, Set(true, 100m, 5)));
-        finishRequest.WorkoutId = draft.WorkoutId;
+        finishRequest.WorkoutId = created.WorkoutId;
         var finishService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
-        var finished = await finishService.CreateAsync(finishRequest, SqliteTestDatabase.UserId);
+        var finished = await finishService.FinishAsync(created.WorkoutId, finishRequest, SqliteTestDatabase.UserId);
 
-        Assert.Equal(draft.WorkoutId, finished.WorkoutId);
+        Assert.Equal(created.WorkoutId, finished.WorkoutId);
         Assert.NotNull(finished.StartedAt);
         Assert.NotNull(finished.FinishedAt);
 
         using var assertContext = db.CreateContext();
-        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == draft.WorkoutId);
+        var persisted = await assertContext.Workouts.FirstAsync(x => x.Id == created.WorkoutId);
         Assert.NotNull(persisted.StartedAt);
         Assert.NotNull(persisted.FinishedAt);
         Assert.NotNull(persisted.DurationSeconds);

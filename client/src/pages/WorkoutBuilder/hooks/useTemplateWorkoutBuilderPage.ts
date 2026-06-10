@@ -22,7 +22,6 @@ import {
   createWorkoutSetDraftFromPreviousSet,
   findNextIncompleteWorkoutExercise,
   hasMainMetric,
-  isStandaloneWorkoutDraftEdited,
   normalizeWorkoutExerciseOrderIndexes,
   setWorkoutExerciseMetricMode,
   validateWorkoutDraft,
@@ -53,7 +52,7 @@ type GroupAddContext = {
   clientGroupId: number;
 };
 
-const DRAFT_AUTOSAVE_DEBOUNCE_MS = 800;
+const WORKOUT_AUTOSAVE_DEBOUNCE_MS = 800;
 
 function parseTemplateId(value: string | null | undefined): number | null {
   const parsedValue = Number(value);
@@ -166,7 +165,6 @@ export function useTemplateWorkoutBuilderPage() {
   const hasShownDraftSaveErrorRef = useRef(false);
   const draftWorkoutIdRef = useRef<number | undefined>(undefined);
   const startWorkoutPromiseRef = useRef<Promise<number | null> | null>(null);
-  const isStandaloneNewWorkoutRef = useRef(workoutId === null && templateId === null);
 
   const loadPreviousSetsForDraft = useCallback(async (nextDraft: WorkoutDraft) => {
     const exerciseIds = Array.from(
@@ -269,23 +267,15 @@ export function useTemplateWorkoutBuilderPage() {
     clearWorkoutSessionState(workoutTemplateId);
   }, [templateId]);
 
-  const canPersistDraft = useCallback((candidate: WorkoutDraft | null): boolean => {
-    if (!candidate) {
-      return false;
-    }
+  const getPersistedWorkoutId = useCallback((candidate: WorkoutDraft | null | undefined): number | undefined => (
+    candidate?.workoutId ?? draftWorkoutIdRef.current ?? workoutId ?? undefined
+  ), [workoutId]);
 
-    if (candidate.startedAt) {
-      return true;
-    }
+  const canUpdateWorkout = useCallback((candidate: WorkoutDraft | null): boolean => (
+    Boolean(candidate && getPersistedWorkoutId(candidate))
+  ), [getPersistedWorkoutId]);
 
-    if (candidate.workoutId ?? draftWorkoutIdRef.current) {
-      return true;
-    }
-
-    return isStandaloneNewWorkoutRef.current && isStandaloneWorkoutDraftEdited(candidate);
-  }, []);
-
-  const saveDraftToBackend = useCallback(() => {
+  const saveWorkoutToBackend = useCallback((draftOverride?: WorkoutDraft) => {
     if (isDeletingWorkoutRef.current) {
       return Promise.resolve();
     }
@@ -295,24 +285,24 @@ export function useTemplateWorkoutBuilderPage() {
       return draftSavePromiseRef.current ?? Promise.resolve();
     }
 
+    let preferredDraft = draftOverride;
     const savePromise = (async () => {
       isDraftSaveInFlightRef.current = true;
 
       try {
         do {
           hasPendingDraftSaveRef.current = false;
-          const currentDraft = draftRef.current;
+          const currentDraft = preferredDraft ?? draftRef.current;
+          preferredDraft = undefined;
           if (!currentDraft || isDeletingWorkoutRef.current) {
             return;
           }
 
-          if (!canPersistDraft(currentDraft)) {
+          const savedWorkoutId = getPersistedWorkoutId(currentDraft);
+          if (!savedWorkoutId) {
             return;
           }
 
-          // While START is creating/starting the workout, defer auto-save so we never issue a
-          // second create or a concurrent update. START's own setDraft re-triggers this effect
-          // afterwards, flushing any edits made during the request against the returned id.
           if (startWorkoutPromiseRef.current) {
             hasPendingDraftSaveRef.current = true;
             return;
@@ -321,24 +311,24 @@ export function useTemplateWorkoutBuilderPage() {
           try {
             const payload = buildWorkoutPayload({
               ...currentDraft,
-              workoutId: currentDraft.workoutId ?? draftWorkoutIdRef.current,
+              workoutId: savedWorkoutId,
             });
-            const response = await workoutService.upsertDraft(payload);
+            const response = await workoutService.update(savedWorkoutId, payload);
             const savedWorkout = unwrap(response.data, "Unable to auto-save workout.");
 
-            const savedWorkoutId = savedWorkout.workoutId;
-            draftWorkoutIdRef.current = savedWorkoutId;
+            const updatedWorkoutId = savedWorkout.workoutId;
+            draftWorkoutIdRef.current = updatedWorkoutId;
             hasShownDraftSaveErrorRef.current = false;
             if (currentDraft.startedAt) {
               saveWorkoutSessionState(
                 currentDraft.workoutTemplateId,
                 currentDraft.startedAt,
-                savedWorkoutId,
+                updatedWorkoutId,
               );
             }
             setDraft((latestDraft) =>
-              latestDraft && latestDraft.workoutId !== savedWorkoutId
-                ? { ...latestDraft, workoutId: savedWorkoutId }
+              latestDraft && latestDraft.workoutId !== updatedWorkoutId
+                ? { ...latestDraft, workoutId: updatedWorkoutId }
                 : latestDraft,
             );
           } catch (error) {
@@ -359,7 +349,135 @@ export function useTemplateWorkoutBuilderPage() {
 
     draftSavePromiseRef.current = savePromise;
     return savePromise;
-  }, [canPersistDraft]);
+  }, [getPersistedWorkoutId]);
+
+  const createWorkoutFromDraft = useCallback(async (
+    draftOverride?: WorkoutDraft,
+    startedAtOverride?: string,
+    errorMessage = "Unable to create workout.",
+    showSavingState = false,
+  ) => {
+    if (isDeletingWorkoutRef.current) {
+      return null;
+    }
+
+    const currentDraft = draftOverride ?? draftRef.current ?? draft;
+    if (!currentDraft) {
+      return null;
+    }
+
+    const existingWorkoutId = getPersistedWorkoutId(currentDraft);
+    if (existingWorkoutId) {
+      const nextDraft = {
+        ...currentDraft,
+        workoutId: existingWorkoutId,
+        startedAt: startedAtOverride ?? currentDraft.startedAt,
+      };
+
+      setDraft((latestDraft) =>
+        latestDraft
+          ? { ...latestDraft, workoutId: existingWorkoutId, startedAt: nextDraft.startedAt }
+          : nextDraft,
+      );
+
+      await saveWorkoutToBackend(nextDraft);
+
+      if (nextDraft.startedAt) {
+        saveWorkoutSessionState(nextDraft.workoutTemplateId, nextDraft.startedAt, existingWorkoutId);
+      }
+
+      if (!workoutId) {
+        navigate(`/workouts/${existingWorkoutId}`, { replace: true });
+      }
+
+      return existingWorkoutId;
+    }
+
+    if (startWorkoutPromiseRef.current) {
+      hasPendingDraftSaveRef.current = true;
+      const inFlightCreatePromise = startWorkoutPromiseRef.current;
+      const createdWorkoutId = await inFlightCreatePromise;
+      if (startWorkoutPromiseRef.current === inFlightCreatePromise) {
+        startWorkoutPromiseRef.current = null;
+      }
+      if (createdWorkoutId && startedAtOverride) {
+        const latestDraft = draftRef.current ?? currentDraft;
+        const nextDraft = {
+          ...latestDraft,
+          workoutId: createdWorkoutId,
+          startedAt: latestDraft.startedAt ?? startedAtOverride,
+        };
+        setDraft((current) => (current ? { ...current, workoutId: createdWorkoutId, startedAt: nextDraft.startedAt } : nextDraft));
+        await saveWorkoutToBackend(nextDraft);
+      }
+
+      return createdWorkoutId;
+    }
+
+    const createPromise = (async () => {
+      if (showSavingState) {
+        setIsSavingWorkout(true);
+      }
+
+      try {
+        if (draftSavePromiseRef.current) {
+          try {
+            await draftSavePromiseRef.current;
+          } catch {
+            // Creation below will surface any persistence error.
+          }
+        }
+
+        const baseDraft = draftOverride ?? draftRef.current ?? currentDraft;
+        const nextDraft = {
+          ...baseDraft,
+          startedAt: startedAtOverride ?? baseDraft.startedAt,
+          workoutId: undefined,
+        };
+
+        const response = await workoutService.create(buildWorkoutPayload(nextDraft));
+        const savedWorkout = unwrap(response.data, errorMessage);
+        const savedWorkoutId = savedWorkout.workoutId;
+
+        draftWorkoutIdRef.current = savedWorkoutId;
+        hasShownDraftSaveErrorRef.current = false;
+
+        if (nextDraft.startedAt) {
+          saveWorkoutSessionState(nextDraft.workoutTemplateId, nextDraft.startedAt, savedWorkoutId);
+        }
+
+        setDraft((latestDraft) =>
+          latestDraft
+            ? { ...latestDraft, workoutId: savedWorkoutId, startedAt: nextDraft.startedAt ?? latestDraft.startedAt }
+            : { ...nextDraft, workoutId: savedWorkoutId },
+        );
+
+        if (!workoutId) {
+          navigate(`/workouts/${savedWorkoutId}`, { replace: true });
+        }
+
+        return savedWorkoutId;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : errorMessage;
+        toast.error(message);
+        return null;
+      } finally {
+        if (showSavingState) {
+          setIsSavingWorkout(false);
+        }
+      }
+    })();
+
+    startWorkoutPromiseRef.current = createPromise;
+    const createdWorkoutId = await createPromise;
+    startWorkoutPromiseRef.current = null;
+
+    if (createdWorkoutId && hasPendingDraftSaveRef.current) {
+      void saveWorkoutToBackend();
+    }
+
+    return createdWorkoutId;
+  }, [draft, getPersistedWorkoutId, navigate, saveWorkoutToBackend, workoutId]);
 
   useEffect(() => {
     void loadTemplateWorkout();
@@ -372,19 +490,19 @@ export function useTemplateWorkoutBuilderPage() {
       return;
     }
 
-    if (!canPersistDraft(draft)) {
+    if (!canUpdateWorkout(draft)) {
       return;
     }
 
     // Debounce so rapid edits (typing the title/notes) don't fire a request per keystroke.
     const timerId = window.setTimeout(() => {
-      void saveDraftToBackend();
-    }, DRAFT_AUTOSAVE_DEBOUNCE_MS);
+      void saveWorkoutToBackend();
+    }, WORKOUT_AUTOSAVE_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timerId);
     };
-  }, [canPersistDraft, draft, isDeletingWorkout, isLoadingTemplate, saveDraftToBackend, templateError]);
+  }, [canUpdateWorkout, draft, isDeletingWorkout, isLoadingTemplate, saveWorkoutToBackend, templateError]);
 
   useEffect(() => {
     const startedAt = draft?.startedAt;
@@ -511,12 +629,48 @@ export function useTemplateWorkoutBuilderPage() {
   }, [clearWorkoutSessionStorage, draft, navigate, workoutId]);
 
   const handleTitleChange = useCallback((value: string) => {
-    setDraft((current) => (current ? { ...current, title: value } : current));
+    setDraft((current) => {
+      const nextDraft = current ? { ...current, title: value } : current;
+      draftRef.current = nextDraft;
+      return nextDraft;
+    });
   }, []);
 
+  const handleTitleCommit = useCallback(() => {
+    const currentDraft = draftRef.current ?? draft;
+    if (!currentDraft) {
+      return;
+    }
+
+    if (getPersistedWorkoutId(currentDraft)) {
+      void saveWorkoutToBackend(currentDraft);
+      return;
+    }
+
+    void createWorkoutFromDraft(currentDraft);
+  }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, saveWorkoutToBackend]);
+
   const handleWorkoutNotesChange = useCallback((value: string) => {
-    setDraft((current) => (current ? { ...current, notes: value } : current));
+    setDraft((current) => {
+      const nextDraft = current ? { ...current, notes: value } : current;
+      draftRef.current = nextDraft;
+      return nextDraft;
+    });
   }, []);
+
+  const handleWorkoutNotesCommit = useCallback(() => {
+    const currentDraft = draftRef.current ?? draft;
+    if (!currentDraft) {
+      return;
+    }
+
+    if (getPersistedWorkoutId(currentDraft)) {
+      void saveWorkoutToBackend(currentDraft);
+      return;
+    }
+
+    void createWorkoutFromDraft(currentDraft);
+  }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, saveWorkoutToBackend]);
 
   const handleExerciseNotesChange = useCallback((exerciseDraftId: string, value: string) => {
     setDraft((current) =>
@@ -714,60 +868,85 @@ export function useTemplateWorkoutBuilderPage() {
       return null;
     }
 
-    if (startWorkoutPromiseRef.current) {
-      return startWorkoutPromiseRef.current;
-    }
-
     const currentDraft = draftOverride ?? draftRef.current ?? draft;
     if (!currentDraft) {
       return null;
     }
 
-    if (currentDraft.startedAt && (currentDraft.workoutId ?? draftWorkoutIdRef.current ?? workoutId)) {
-      return currentDraft.workoutId ?? draftWorkoutIdRef.current ?? workoutId;
+    const savedWorkoutId = getPersistedWorkoutId(currentDraft);
+    if (currentDraft.startedAt && savedWorkoutId) {
+      return savedWorkoutId;
     }
 
     const startedAt = currentDraft.startedAt ?? new Date().toISOString();
+    const nextDraft = {
+      ...currentDraft,
+      startedAt,
+      workoutId: savedWorkoutId,
+    };
+
+    if (startWorkoutPromiseRef.current) {
+      setIsSavingWorkout(true);
+      try {
+        const inFlightCreatePromise = startWorkoutPromiseRef.current;
+        const createdWorkoutId = await inFlightCreatePromise;
+        if (startWorkoutPromiseRef.current === inFlightCreatePromise) {
+          startWorkoutPromiseRef.current = null;
+        }
+        if (!createdWorkoutId) {
+          return null;
+        }
+
+        const latestDraft = draftRef.current ?? currentDraft;
+        const startedDraft = {
+          ...latestDraft,
+          workoutId: createdWorkoutId,
+          startedAt: latestDraft.startedAt ?? startedAt,
+        };
+        setDraft((current) =>
+          current
+            ? { ...current, workoutId: createdWorkoutId, startedAt: startedDraft.startedAt }
+            : startedDraft,
+        );
+        await saveWorkoutToBackend(startedDraft);
+        return createdWorkoutId;
+      } finally {
+        setIsSavingWorkout(false);
+      }
+    }
+
+    if (!savedWorkoutId) {
+      return await createWorkoutFromDraft(nextDraft, startedAt, "Unable to start workout.", true);
+    }
 
     const startPromise = (async () => {
       setIsSavingWorkout(true);
-
       try {
-        // Let any in-flight draft save (which may be creating the workout) finish first, so we
-        // reuse the created workout id instead of inserting a second record.
         if (draftSavePromiseRef.current) {
           try {
             await draftSavePromiseRef.current;
           } catch {
-            // The upsert below will surface any persistence error.
+            // The update below will surface any persistence error.
           }
         }
 
-        const baseDraft = draftRef.current ?? currentDraft;
-        const nextDraft = {
-          ...baseDraft,
-          startedAt,
-          workoutId: baseDraft.workoutId ?? draftWorkoutIdRef.current ?? workoutId ?? undefined,
-        };
-
-        const response = await workoutService.upsertDraft(buildWorkoutPayload(nextDraft));
+        const response = await workoutService.update(savedWorkoutId, buildWorkoutPayload(nextDraft));
         const savedWorkout = unwrap(response.data, "Unable to start workout.");
-
-        const savedWorkoutId = savedWorkout.workoutId;
-        draftWorkoutIdRef.current = savedWorkoutId;
+        const updatedWorkoutId = savedWorkout.workoutId;
+        draftWorkoutIdRef.current = updatedWorkoutId;
         hasShownDraftSaveErrorRef.current = false;
-        saveWorkoutSessionState(nextDraft.workoutTemplateId, startedAt, savedWorkoutId);
+        saveWorkoutSessionState(nextDraft.workoutTemplateId, startedAt, updatedWorkoutId);
         setDraft((latestDraft) =>
           latestDraft
-            ? { ...latestDraft, startedAt, workoutId: savedWorkoutId }
-            : { ...nextDraft, workoutId: savedWorkoutId },
+            ? { ...latestDraft, startedAt, workoutId: updatedWorkoutId }
+            : { ...nextDraft, workoutId: updatedWorkoutId },
         );
 
         if (!workoutId) {
-          navigate(`/workouts/${savedWorkoutId}`, { replace: true });
+          navigate(`/workouts/${updatedWorkoutId}`, { replace: true });
         }
 
-        return savedWorkoutId;
+        return updatedWorkoutId;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to start workout.";
         toast.error(message);
@@ -781,31 +960,12 @@ export function useTemplateWorkoutBuilderPage() {
     const startedWorkoutId = await startPromise;
     startWorkoutPromiseRef.current = null;
     return startedWorkoutId;
-  }, [draft, navigate, workoutId]);
+  }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, navigate, saveWorkoutToBackend, workoutId]);
 
   const handleAddExerciseModalClose = useCallback(() => {
     setIsAddExerciseModalOpen(false);
     setGroupAddContext(null);
-
-    // A brand-new (no-template) workout is persisted as a not-started draft via auto-save,
-    // so adding an exercise must not auto-start it.
-    if (isStandaloneNewWorkoutRef.current) {
-      return;
-    }
-
-    const latestDraft = draftRef.current ?? draft;
-    if (
-      !latestDraft
-      || latestDraft.workoutId
-      || draftWorkoutIdRef.current
-      || workoutId
-      || latestDraft.exercises.length === 0
-    ) {
-      return;
-    }
-
-    void startWorkoutSession(latestDraft);
-  }, [draft, startWorkoutSession, workoutId]);
+  }, []);
 
   const handleAddExerciseToGroup = useCallback((
     insertAfterExerciseId: string,
@@ -823,6 +983,7 @@ export function useTemplateWorkoutBuilderPage() {
   const handleAddExercise = useCallback((exercise: ExerciseLookupModel) => {
     let wasAdded = false;
     let nextGroupAddContext: GroupAddContext | null = null;
+    let nextDraftToPersist: WorkoutDraft | null = null;
 
     setDraft((current) => {
       if (!current) {
@@ -862,13 +1023,20 @@ export function useTemplateWorkoutBuilderPage() {
         };
       }
 
-      return {
+      nextDraftToPersist = {
         ...current,
         exercises: normalizedExercises,
       };
+      draftRef.current = nextDraftToPersist;
+
+      return nextDraftToPersist;
     });
 
     if (wasAdded) {
+      if (nextDraftToPersist) {
+        void createWorkoutFromDraft(nextDraftToPersist);
+      }
+
       void workoutService.getPreviousSets([exercise.id]).then((response) => {
         const result = response.data;
         if (!result.success || !result.data) {
@@ -892,7 +1060,7 @@ export function useTemplateWorkoutBuilderPage() {
     }
 
     return wasAdded;
-  }, [groupAddContext]);
+  }, [createWorkoutFromDraft, groupAddContext]);
 
   const handleExerciseGroupingChange = useCallback((exerciseDraftId: string, groupType: ExerciseGroupType) => {
     setDraft((current) => {
@@ -1098,13 +1266,31 @@ export function useTemplateWorkoutBuilderPage() {
     setIsSavingWorkout(true);
 
     try {
-      await saveDraftToBackend();
-      const latestDraft = draftRef.current ?? draft;
+      let latestDraft = draftRef.current ?? draft;
+      let workoutIdToFinish = getPersistedWorkoutId(latestDraft);
+      if (!workoutIdToFinish) {
+        workoutIdToFinish = await createWorkoutFromDraft(
+          latestDraft,
+          latestDraft.startedAt ?? new Date().toISOString(),
+          "Unable to save workout.",
+        ) ?? undefined;
+      }
+
+      if (!workoutIdToFinish) {
+        throw new Error("Unable to save workout.");
+      }
+
+      await saveWorkoutToBackend({
+        ...latestDraft,
+        workoutId: workoutIdToFinish,
+      });
+
+      latestDraft = draftRef.current ?? latestDraft;
       const payload = buildWorkoutPayload({
         ...latestDraft,
-        workoutId: latestDraft.workoutId ?? draftWorkoutIdRef.current,
+        workoutId: workoutIdToFinish,
       }, new Date());
-      const response = await workoutService.create(payload);
+      const response = await workoutService.finish(workoutIdToFinish, payload);
       const savedWorkout = unwrap(response.data, "Unable to save workout.");
 
       toast.success(
@@ -1118,7 +1304,15 @@ export function useTemplateWorkoutBuilderPage() {
     } finally {
       setIsSavingWorkout(false);
     }
-  }, [draft, isDeletingWorkout, isSavingWorkout, navigate, saveDraftToBackend]);
+  }, [
+    createWorkoutFromDraft,
+    draft,
+    getPersistedWorkoutId,
+    isDeletingWorkout,
+    isSavingWorkout,
+    navigate,
+    saveWorkoutToBackend,
+  ]);
 
   const state = useMemo(
     () => ({
@@ -1175,7 +1369,9 @@ export function useTemplateWorkoutBuilderPage() {
       handleRemoveExercise,
       handleExerciseGroupingChange,
       handleTitleChange,
+      handleTitleCommit,
       handleWorkoutNotesChange,
+      handleWorkoutNotesCommit,
       handleExerciseNotesChange,
       handleExerciseMetricModeChange,
       handleSetTypeChange,
@@ -1208,7 +1404,9 @@ export function useTemplateWorkoutBuilderPage() {
       handleRemoveExercise,
       handleExerciseGroupingChange,
       handleTitleChange,
+      handleTitleCommit,
       handleWorkoutNotesChange,
+      handleWorkoutNotesCommit,
       handleExerciseNotesChange,
       handleExerciseMetricModeChange,
       handleSetTypeChange,

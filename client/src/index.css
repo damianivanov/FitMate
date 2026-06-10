@@ -582,6 +582,11 @@ textarea { resize: none; }
   z-index: 20;
 }
 
+.liquid-panel:has([data-dropdown-open="true"]) > *:has([data-dropdown-open="true"]) {
+  position: relative;
+  z-index: 40;
+}
+
 .liquid-info-surface {
   border: 1px solid var(--accent-border);
   background: var(--accent-soft);
@@ -660,6 +665,16 @@ textarea { resize: none; }
   box-shadow: var(--menu-shadow);
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
+}
+
+.liquid-panel.liquid-modal-surface.muscle-group-dropdown-menu {
+  background: #eef3fa;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dark .liquid-panel.liquid-modal-surface.muscle-group-dropdown-menu {
+  background: #1e223f;
 }
 
 .liquid-theme-switch {

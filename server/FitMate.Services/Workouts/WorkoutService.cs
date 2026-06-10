@@ -150,14 +150,23 @@ public class WorkoutService : IWorkoutService
         SaveWorkoutRequest request,
         long userId)
     {
-        return await SaveWorkoutAsync(request, userId, isDraft: false);
+        return await SaveWorkoutAsync(request, userId, WorkoutSaveMode.InProgress);
     }
 
-    public async Task<WorkoutCreatedModel> UpsertDraftAsync(
+    public async Task<WorkoutCreatedModel> UpdateAsync(
+        long workoutId,
         SaveWorkoutRequest request,
         long userId)
     {
-        return await SaveWorkoutAsync(request, userId, isDraft: true);
+        return await SaveWorkoutAsync(request, userId, WorkoutSaveMode.InProgress, workoutId);
+    }
+
+    public async Task<WorkoutCreatedModel> FinishAsync(
+        long workoutId,
+        SaveWorkoutRequest request,
+        long userId)
+    {
+        return await SaveWorkoutAsync(request, userId, WorkoutSaveMode.Finished, workoutId);
     }
 
     public async Task<bool> DeleteAsync(long workoutId, long userId)
@@ -197,21 +206,23 @@ public class WorkoutService : IWorkoutService
     private async Task<WorkoutCreatedModel> SaveWorkoutAsync(
         SaveWorkoutRequest request,
         long userId,
-        bool isDraft)
+        WorkoutSaveMode saveMode,
+        long? routeWorkoutId = null)
     {
         if (userId <= 0)
         {
             throw new FitMateException("Unauthorized.");
         }
 
+        var isFinishing = saveMode == WorkoutSaveMode.Finished;
         var title = (request.Title ?? string.Empty).Trim();
-        if (!isDraft && string.IsNullOrWhiteSpace(title))
+        if (isFinishing && string.IsNullOrWhiteSpace(title))
         {
             throw new FitMateException("Workout title is required.");
         }
 
         var exercises = request.Exercises ?? [];
-        if (!isDraft && exercises.Count == 0)
+        if (isFinishing && exercises.Count == 0)
         {
             throw new FitMateException("At least one exercise is required.");
         }
@@ -244,8 +255,29 @@ public class WorkoutService : IWorkoutService
             throw new FitMateException("One or more selected exercises do not exist.");
         }
 
-        var workout = await LoadWorkoutForUpdateAsync(request.WorkoutId, userId);
+        if (request.WorkoutId.HasValue && routeWorkoutId.HasValue && request.WorkoutId.Value != routeWorkoutId.Value)
+        {
+            throw new FitMateException("Workout id does not match the route.");
+        }
+
+        var targetWorkoutId = routeWorkoutId ?? request.WorkoutId;
+        var workout = await LoadWorkoutForUpdateAsync(targetWorkoutId, userId);
         var isNewWorkout = workout == null;
+        if (routeWorkoutId.HasValue && isNewWorkout)
+        {
+            throw new FitMateException("Workout not found.");
+        }
+
+        if (!routeWorkoutId.HasValue && request.WorkoutId.HasValue)
+        {
+            throw new FitMateException("Workout id is not allowed when creating a workout.");
+        }
+
+        if (request.FinishedAt.HasValue && !isFinishing)
+        {
+            throw new FitMateException("Use the finish endpoint to finish a workout.");
+        }
+
         if (workout != null && workout.FinishedAt.HasValue)
         {
             throw new FitMateException("Workout has already been finished.");
@@ -256,21 +288,20 @@ public class WorkoutService : IWorkoutService
         {
             startedAt = NormalizeUtc(request.StartedAt.Value);
         }
-        else if (isDraft)
+        else if (!isFinishing)
         {
-            // A draft can be created before it is started; preserve an already-set start time.
             startedAt = workout?.StartedAt;
         }
         else
         {
-            startedAt = DateTime.UtcNow;
+            startedAt = workout?.StartedAt ?? DateTime.UtcNow;
         }
 
-        DateTime? finishedAt = isDraft
-            ? null
-            : request.FinishedAt.HasValue
+        DateTime? finishedAt = isFinishing
+            ? request.FinishedAt.HasValue
                 ? NormalizeUtc(request.FinishedAt.Value)
-                : DateTime.UtcNow;
+                : DateTime.UtcNow
+            : null;
 
         if (finishedAt.HasValue)
         {
@@ -305,8 +336,8 @@ public class WorkoutService : IWorkoutService
             workout,
             exercises,
             accumulator,
-            requireSets: !isDraft,
-            requireCompletedSets: !isDraft);
+            requireSets: isFinishing,
+            requireCompletedSets: isFinishing);
 
         workout.TotalVolumeKg = accumulator.HasTotalVolume
             ? Math.Round(accumulator.TotalVolumeKg, 2, MidpointRounding.AwayFromZero)
@@ -611,6 +642,7 @@ public class WorkoutService : IWorkoutService
         var workout = new Workout
         {
             UserId = userId,
+            WorkoutTemplateId = source.WorkoutTemplateId,
             Title = source.Title,
             StartedAt = startedAt,
             Notes = source.Notes,
@@ -1021,6 +1053,12 @@ public class WorkoutService : IWorkoutService
         var resolved = await photoUrlResolver.ResolveAsync(value);
         resolvedCache[value] = resolved;
         return resolved;
+    }
+
+    private enum WorkoutSaveMode
+    {
+        InProgress,
+        Finished,
     }
 
     private class PreviousWorkoutExerciseCandidate

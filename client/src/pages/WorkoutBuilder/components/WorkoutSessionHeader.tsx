@@ -14,6 +14,7 @@ type WorkoutSessionHeaderProps = {
   onStartWorkout: () => void;
   onFinishWorkout: () => void;
   onTitleChange: (value: string) => void;
+  onTitleCommit: () => void;
 };
 
 export function WorkoutSessionHeader({
@@ -28,10 +29,16 @@ export function WorkoutSessionHeader({
   onStartWorkout,
   onFinishWorkout,
   onTitleChange,
+  onTitleCommit,
 }: WorkoutSessionHeaderProps) {
   const handleTitleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     onTitleChange(event.target.value);
   };
+
+  const handleTitleInputBlur = () => {
+    onTitleCommit();
+  };
+
   const handlePrimaryActionClick = isWorkoutStarted ? onFinishWorkout : onStartWorkout;
   const primaryActionLabel = isWorkoutStarted
     ? (isSavingWorkout ? "Saving" : "Finish")
@@ -54,6 +61,7 @@ export function WorkoutSessionHeader({
             type="text"
             value={title}
             onChange={handleTitleInputChange}
+            onBlur={handleTitleInputBlur}
             className="w-full bg-transparent text-2xl text-center font-extrabold tracking-tight text-foreground outline-none md:text-xl"
             aria-label="Workout title"
           />

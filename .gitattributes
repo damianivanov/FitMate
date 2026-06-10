@@ -1,3 +1,5 @@
 # Enforce LF line endings for TypeScript sources so generated typings stay consistent
+.gitattributes text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
+*.mjs text eol=lf

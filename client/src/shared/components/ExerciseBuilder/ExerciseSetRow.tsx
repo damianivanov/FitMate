@@ -211,7 +211,7 @@ export function ExerciseSetRow({
   return (
     <div
       className={[
-        "flex items-center justify-between gap-2 py-1 transition-[background-color,border-color,opacity] sm:py-1.5",
+        "flex items-center justify-between gap-2 p-1 transition-[background-color,border-color,opacity] sm:p-2",
         set.isCompleted ? "rounded-xl bg-success/10" : "",
         isDragging ? "opacity-30" : "opacity-100",
       ].join(" ")}

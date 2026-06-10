@@ -35,8 +35,12 @@ export const workoutService = {
     return api.post<JsonData<WorkoutCreatedModel>>("workouts", payload);
   },
 
-  async upsertDraft(payload: SaveWorkoutRequest) {
-    return api.post<JsonData<WorkoutCreatedModel>>("workouts/draft", payload);
+  async update(id: number, payload: SaveWorkoutRequest) {
+    return api.put<JsonData<WorkoutCreatedModel>>(`workouts/${id}`, payload);
+  },
+
+  async finish(id: number, payload: SaveWorkoutRequest) {
+    return api.post<JsonData<WorkoutCreatedModel>>(`workouts/${id}/finish`, payload);
   },
 
   async remove(id: number) {
