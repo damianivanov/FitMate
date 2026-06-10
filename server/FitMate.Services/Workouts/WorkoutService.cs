@@ -3,6 +3,7 @@ using FitMate.Core.Exceptions;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
+using FitMate.Services.Storage.Urls;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.Workouts;
@@ -10,10 +11,12 @@ namespace FitMate.Services.Workouts;
 public class WorkoutService : IWorkoutService
 {
     private readonly AppDbContext dbContext;
+    private readonly IPhotoUrlResolver photoUrlResolver;
 
-    public WorkoutService(AppDbContext dbContext)
+    public WorkoutService(AppDbContext dbContext, IPhotoUrlResolver photoUrlResolver)
     {
         this.dbContext = dbContext;
+        this.photoUrlResolver = photoUrlResolver;
     }
 
     public async Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId)
@@ -82,7 +85,7 @@ public class WorkoutService : IWorkoutService
         var workout = await BuildWorkoutDetailsQuery(asNoTracking: true)
             .FirstOrDefaultAsync(x => x.Id == workoutId && x.UserId == userId);
 
-        return workout == null ? null : MapWorkout(workout);
+        return workout == null ? null : await ResolveImageUrlsAsync(MapWorkout(workout));
     }
 
     public async Task<long> StartFromTemplateAsync(long templateId, long userId)
@@ -193,7 +196,7 @@ public class WorkoutService : IWorkoutService
         }
 
         var title = (request.Title ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(title))
+        if (!isDraft && string.IsNullOrWhiteSpace(title))
         {
             throw new FitMateException("Workout title is required.");
         }
@@ -277,6 +280,7 @@ public class WorkoutService : IWorkoutService
             workout,
             exercises,
             accumulator,
+            requireSets: !isDraft,
             requireCompletedSets: !isDraft);
 
         workout.TotalVolumeKg = accumulator.HasTotalVolume
@@ -636,6 +640,7 @@ public class WorkoutService : IWorkoutService
         Workout workout,
         IReadOnlyList<CreateWorkoutExerciseRequest> exercises,
         WorkoutCreateAccumulator accumulator,
+        bool requireSets,
         bool requireCompletedSets)
     {
         var groupSortOrder = 0;
@@ -659,6 +664,7 @@ public class WorkoutService : IWorkoutService
                         ++exerciseOrderIndex,
                         exerciseDisplayIndex,
                         accumulator,
+                        requireSets,
                         requireCompletedSets));
             }
 
@@ -728,10 +734,11 @@ public class WorkoutService : IWorkoutService
         int orderIndex,
         int exerciseDisplayIndex,
         WorkoutCreateAccumulator accumulator,
+        bool requireSets,
         bool requireCompletedSets)
     {
         var sets = exerciseRequest.Sets ?? [];
-        if (sets.Count == 0)
+        if (requireSets && sets.Count == 0)
         {
             throw new FitMateException($"Exercise #{exerciseDisplayIndex} must include at least one set.");
         }
@@ -954,6 +961,31 @@ public class WorkoutService : IWorkoutService
             SetCount = groups.Sum(group => group.Exercises.Sum(exercise => exercise.Sets.Count)),
             Groups = groups,
         };
+    }
+
+    private async Task<WorkoutModel> ResolveImageUrlsAsync(WorkoutModel model)
+    {
+        var resolvedCache = new Dictionary<string, string?>();
+        foreach (var group in model.Groups)
+        {
+            foreach (var exercise in group.Exercises)
+            {
+                if (string.IsNullOrWhiteSpace(exercise.ExerciseImageUrl))
+                {
+                    continue;
+                }
+
+                if (!resolvedCache.TryGetValue(exercise.ExerciseImageUrl, out var resolved))
+                {
+                    resolved = await photoUrlResolver.ResolveAsync(exercise.ExerciseImageUrl);
+                    resolvedCache[exercise.ExerciseImageUrl] = resolved;
+                }
+
+                exercise.ExerciseImageUrl = resolved;
+            }
+        }
+
+        return model;
     }
 
     private class PreviousWorkoutExerciseCandidate

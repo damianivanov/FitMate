@@ -9,11 +9,15 @@ type CalendarGridProps = {
 };
 
 const CELL_BASE_CLASS =
-  "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-1 rounded-2xl text-sm transition";
+  "relative flex aspect-square min-h-11 items-center justify-center rounded-2xl text-sm transition";
 
 function DayDots({ count, light }: { count: number; light: boolean }) {
+  if (count <= 0) {
+    return null;
+  }
+
   return (
-    <span className="flex h-[5px] items-center gap-[3px]">
+    <span className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 items-center gap-[3px]">
       {Array.from({ length: Math.min(count, 3) }).map((_, index) => (
         <span
           key={index}
@@ -40,7 +44,11 @@ export function CalendarGrid({ cells, workoutsByDay, selectedKey, onSelectDay }:
         {cells.map((cell) => {
           if (!cell.isCurrentMonth) {
             return (
-              <div key={cell.dayKey} className={`${CELL_BASE_CLASS} text-muted/30`} aria-hidden="true">
+              <div
+                key={cell.dayKey}
+                className={`${CELL_BASE_CLASS} text-(--text-disabled) opacity-50`}
+                aria-hidden="true"
+              >
                 {cell.dayOfMonth}
               </div>
             );
@@ -48,9 +56,8 @@ export function CalendarGrid({ cells, workoutsByDay, selectedKey, onSelectDay }:
 
           if (isFutureDate(cell.date)) {
             return (
-              <div key={cell.dayKey} className={`${CELL_BASE_CLASS} text-muted/40`} aria-hidden="true">
+              <div key={cell.dayKey} className={`${CELL_BASE_CLASS} text-secondary`} aria-hidden="true">
                 <span className="leading-none">{cell.dayOfMonth}</span>
-                <DayDots count={0} light={false} />
               </div>
             );
           }

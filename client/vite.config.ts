@@ -12,17 +12,15 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg'],
       workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
-            // Exercise/muscle-group images live in Azure Blob Storage under
-            // immutable, content-addressed URLs (GUID + timestamp), so serve
-            // them cache-first and skip re-downloading across sessions.
             urlPattern: ({ url, request }) =>
               url.hostname.endsWith('.blob.core.windows.net') && request.destination === 'image',
             handler: 'CacheFirst',
             options: {
               cacheName: 'azure-blob-images',
-              // Cross-origin <img> requests are no-cors, so responses are opaque (status 0).
               cacheableResponse: { statuses: [0, 200] },
               expiration: {
                 maxEntries: 300,

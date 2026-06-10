@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { unwrap } from "@/lib/unwrap";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
@@ -46,8 +46,6 @@ export function useTemplatesPage() {
     [currentUserId, templates],
   );
 
-  // Derive the effective selection during render (no effect): keep the user's choice
-  // while it is still valid, otherwise fall back to the first template.
   const selectedTemplate = useMemo(() => {
     if (!ownTemplates.length) {
       return null;

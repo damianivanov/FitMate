@@ -15,7 +15,7 @@ import {
   CHART_TOOLTIP_CONTENT_STYLE,
   CHART_TOOLTIP_ITEM_STYLE,
   CHART_TOOLTIP_LABEL_STYLE,
-} from "./chartTheme";
+} from "@/shared/components/charts/chartTheme";
 
 type MuscleGroupBarsProps = {
   items: MuscleGroupVolume[];

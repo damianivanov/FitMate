@@ -6,6 +6,7 @@ import {
   type CreateWorkoutExerciseRequest,
   type CreateWorkoutSetRequest,
   type ExerciseLookupModel,
+  type PreviousExerciseSet,
   type SaveWorkoutRequest,
   type Workout,
   type WorkoutExerciseGroup,
@@ -15,11 +16,10 @@ import {
   type WorkoutTemplateExerciseSet,
 } from "@/types";
 
-export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds" | "distanceMeters" | "rpe";
+export type WorkoutSetMetricField = "weightKg" | "reps" | "durationSeconds" | "rpe";
 
 const DEFAULT_WORKOUT_SET_REPS = 1;
 const DEFAULT_WORKOUT_SET_DURATION_SECONDS = 30;
-const DEFAULT_WORKOUT_SET_DISTANCE_METERS = 1000;
 
 export type WorkoutSetDraft = CreateWorkoutSetRequest & {
   id: string;
@@ -78,7 +78,6 @@ export function hasMainMetric(set: WorkoutSetDraft): boolean {
     set.weightKg !== undefined
     || set.reps !== undefined
     || set.durationSeconds !== undefined
-    || set.distanceMeters !== undefined
   );
 }
 
@@ -94,7 +93,6 @@ function buildSetDraft(
     weightKg: normalizeMetricValue(set.weightKg),
     reps: normalizeMetricValue(set.reps),
     durationSeconds: normalizeMetricValue(set.durationSeconds),
-    distanceMeters: normalizeMetricValue(set.distanceMeters),
     rpe: normalizeMetricValue(set.rpe),
     restSeconds: normalizeMetricValue(set.restSeconds),
     notes: set.notes ?? "",
@@ -197,7 +195,6 @@ export function buildWorkoutDraftFromWorkout(workout: Workout): WorkoutDraft {
                 weightKg: normalizeMetricValue(set.weightKg),
                 reps: normalizeMetricValue(set.reps),
                 durationSeconds: normalizeMetricValue(set.durationSeconds),
-                distanceMeters: normalizeMetricValue(set.distanceMeters),
                 rpe: normalizeMetricValue(set.rpe),
                 notes: set.notes ?? "",
                 isCompleted: set.isCompleted,
@@ -281,6 +278,27 @@ export function createWorkoutSetDraft(exercise: WorkoutExerciseDraft): WorkoutSe
   };
 }
 
+export function createWorkoutSetDraftFromPreviousSet(
+  previousSet: PreviousExerciseSet,
+  index: number,
+): WorkoutSetDraft {
+  return {
+    id: createLocalId("workout-set"),
+    orderIndex: index + 1,
+    setType: previousSet.setType,
+    weightKg: previousSet.weightKg,
+    reps: previousSet.reps,
+    durationSeconds: previousSet.durationSeconds,
+    distanceMeters: previousSet.distanceMeters,
+    rpe: previousSet.rpe,
+    notes: "",
+    isCompleted: false,
+  };
+}
+
+const DEFAULT_NEW_EXERCISE_SET_COUNT = 3;
+const DEFAULT_NEW_EXERCISE_SET_REPS = 8;
+
 export function createWorkoutExerciseDraftFromLookup(
   exercise: ExerciseLookupModel,
   orderIndex: number,
@@ -293,16 +311,14 @@ export function createWorkoutExerciseDraftFromLookup(
     exerciseName: exercise.name,
     exerciseImageUrl: exercise.imageUrl ?? undefined,
     notes: "",
-    sets: [
-      {
-        id: createLocalId("workout-set"),
-        orderIndex: 1,
-        setType: ExerciseSetType.Working,
-        reps: 8,
-        notes: "",
-        isCompleted: false,
-      },
-    ],
+    sets: Array.from({ length: DEFAULT_NEW_EXERCISE_SET_COUNT }, (_value, index) => ({
+      id: createLocalId("workout-set"),
+      orderIndex: index + 1,
+      setType: ExerciseSetType.Working,
+      reps: DEFAULT_NEW_EXERCISE_SET_REPS,
+      notes: "",
+      isCompleted: false,
+    })),
   };
 }
 
@@ -366,10 +382,6 @@ export function validateWorkoutDraft(draft: WorkoutDraft): string | null {
         return `Exercise #${exercise.orderIndex} duration must be greater than zero.`;
       }
 
-      if (set.distanceMeters !== undefined && set.distanceMeters <= 0) {
-        return `Exercise #${exercise.orderIndex} distance must be greater than zero.`;
-      }
-
       if (set.rpe !== undefined && (set.rpe < 0 || set.rpe > 10)) {
         return `Exercise #${exercise.orderIndex} RPE must be between 0 and 10.`;
       }
@@ -390,7 +402,6 @@ function buildCreateWorkoutSetRequest(set: WorkoutSetDraft): CreateWorkoutSetReq
     weightKg: set.weightKg,
     reps: set.reps,
     durationSeconds: set.durationSeconds,
-    distanceMeters: set.distanceMeters,
     rpe: set.rpe,
     notes: normalizeOptionalText(set.notes),
   };
@@ -448,10 +459,6 @@ export function getWorkoutExerciseMetricMode(exercise: WorkoutExerciseDraft): Ex
     return "duration";
   }
 
-  if (exercise.sets.some((set) => set.distanceMeters !== undefined)) {
-    return "distance";
-  }
-
   return "reps";
 }
 
@@ -466,8 +473,6 @@ export function setWorkoutExerciseMetricMode(
       reps: metricMode === "reps" ? set.reps ?? DEFAULT_WORKOUT_SET_REPS : undefined,
       durationSeconds:
         metricMode === "duration" ? set.durationSeconds ?? DEFAULT_WORKOUT_SET_DURATION_SECONDS : undefined,
-      distanceMeters:
-        metricMode === "distance" ? set.distanceMeters ?? DEFAULT_WORKOUT_SET_DISTANCE_METERS : undefined,
     })),
   };
 }

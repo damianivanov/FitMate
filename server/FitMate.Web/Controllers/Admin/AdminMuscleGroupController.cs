@@ -2,15 +2,15 @@ using FitMate.Core.JsonModels.MuscleGroups;
 using FitMate.DB;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.Users;
+using FitMate.Web.Attributes;
 using FitMate.Web.Controllers.Base;
 using FitMate.Web.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitMate.Web.Controllers.Admin;
 
+[AdminGuard]
 [Route("api/admin/musclegroups")]
-[Authorize(Policy = "Admin")]
 public class AdminMuscleGroupController : BaseApiController
 {
     private readonly IMuscleGroupService muscleGroupService;

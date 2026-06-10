@@ -1,38 +1,37 @@
-import type { ExerciseGroupType, ExerciseSetType, PreviousExerciseSet } from "@/types";
+import type { ExerciseGroupType, ExerciseSetType, PreviousExerciseSets } from "@/types";
 
 export type QuickSetFieldKey =
   | "weightKg"
   | "reps"
   | "durationSeconds"
-  | "distanceMeters"
   | "restSeconds"
   | "rpe";
 
-export type ExerciseMetricMode = "reps" | "duration" | "distance";
+export type ExerciseMetricMode = "reps" | "duration";
 
 export interface ExerciseBuilderSetVM {
   id: string;
   weightKg?: number;
   reps?: number;
   durationSeconds?: number;
-  distanceMeters?: number;
   rpe?: number;
   restSeconds?: number;
   setType?: ExerciseSetType;
   isCompleted?: boolean;
-  previousSet?: PreviousExerciseSet;
 }
 
 export interface ExerciseBuilderExerciseVM {
   id: string;
   exerciseId: number;
   displayName: string;
+  imageUrl?: string;
   groupId: number | null;
   groupType: ExerciseGroupType;
   notes: string;
   collapsed: boolean;
   metricMode: ExerciseMetricMode;
   sets: ExerciseBuilderSetVM[];
+  previousSets?: PreviousExerciseSets;
 }
 
 export interface ExerciseBuilderCapabilities {
@@ -40,7 +39,7 @@ export interface ExerciseBuilderCapabilities {
   showRpeColumn: boolean;
   showCompletionCheckbox: boolean;
   showSetTypeDropdown: boolean;
-  showPreviousColumn: boolean;
+  showPreviousSets: boolean;
   allowCollapse: boolean;
   allowExerciseDnd: boolean;
   allowSetDnd: boolean;
@@ -58,6 +57,7 @@ export interface ExerciseBuilderCallbacks {
   onExerciseGroupingChange: (exerciseId: string, groupType: ExerciseGroupType) => void;
   onRemoveExercise: (exerciseId: string) => void;
   onAddSet: (exerciseId: string) => void;
+  onApplyPreviousSets?: (exerciseId: string) => void;
   onRemoveSet: (exerciseId: string, setId: string) => void;
   onAddExerciseClick: () => void;
   onAddExerciseToGroup: (

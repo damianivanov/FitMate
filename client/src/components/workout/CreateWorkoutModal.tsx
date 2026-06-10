@@ -103,7 +103,6 @@ export default function CreateWorkoutModal({
       title="Start New workout"
       maxWidth="md"
     >
-      {/* Title */}
       <div className="mb-5">
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-tertiary">
           Workout Title
@@ -118,7 +117,6 @@ export default function CreateWorkoutModal({
         />
       </div>
 
-      {/* Template */}
       <div className="mb-5">
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-tertiary">
           Based on Template
@@ -137,7 +135,6 @@ export default function CreateWorkoutModal({
         </select>
       </div>
 
-      {/* Template preview */}
       {selectedTemplate && (
         <div className="liquid-info-surface mb-5 rounded-xl px-4 py-3">
           <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">
@@ -165,7 +162,6 @@ export default function CreateWorkoutModal({
         </div>
       )}
 
-      {/* Body weight + Mood row */}
       <div className="mb-5 grid grid-cols-2 gap-4">
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-tertiary">
@@ -198,7 +194,6 @@ export default function CreateWorkoutModal({
         </div>
       </div>
 
-      {/* Notes */}
       <div>
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-tertiary">
           Notes

@@ -4,7 +4,6 @@ namespace FitMate.Core.JsonModels.WorkoutTemplates;
 
 public class CreateTemplateFromWorkoutRequest
 {
-    // Optional: when omitted the template name is derived from the source workout.
     [StringLength(200)]
     public string? Name { get; set; }
 

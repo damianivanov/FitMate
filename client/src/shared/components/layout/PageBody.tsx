@@ -5,10 +5,6 @@ type PageBodyProps = {
   className?: string;
 };
 
-/**
- * The shared scrollable page body. Centralises the `liquid-scrollbar` scroll
- * container so pages don't repeat the overflow/padding markup.
- */
 export function PageBody({ children, className }: PageBodyProps) {
   return (
     <div

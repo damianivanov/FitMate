@@ -48,8 +48,6 @@ export function WeightStepper({
     displayValueSizeClassName = "text-[2.7rem]";
   }
 
-  // The editing input renders the whole draft (digits + dot + decimals) at one size,
-  // so scale the font down as it grows to keep it inside the fixed-width field.
   let editingValueSizeClassName = "text-4xl";
   if (draftValue.length >= 8) {
     editingValueSizeClassName = "text-lg";

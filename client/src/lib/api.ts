@@ -28,15 +28,12 @@ const processQueue = (error: Error | null = null) => {
   failedQueue = [];
 };
 
-// Response Interceptor: Handle 401 and refresh token automatically.
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Handle 401 responses.
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      // Skip refresh for auth endpoints to prevent infinite loops.
       const url = (originalRequest.url || "").toLowerCase();
       const isAuthEndpoint =
         url.includes("login") || url.includes("register") || url.includes("refresh");
@@ -45,7 +42,6 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // If already refreshing, queue this request.
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -54,7 +50,6 @@ api.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      // Check if we've exceeded max refresh attempts.
       if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
         refreshAttempts = 0;
         return Promise.reject(error);
@@ -65,7 +60,6 @@ api.interceptors.response.use(
       refreshAttempts++;
 
       try {
-        // Refresh using HttpOnly cookie (server reads refresh token from cookie).
         const response = await api.post("auth/refresh");
 
         if (response.status === 200 && response.data?.success) {

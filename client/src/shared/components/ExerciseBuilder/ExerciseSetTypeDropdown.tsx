@@ -28,7 +28,7 @@ type ExerciseSetTypeDropdownProps = {
 };
 
 const SET_TYPE_OPTIONS: ReadonlyArray<SetTypeOption> = [
-  { value: ExerciseSetType.Warmup, label: "Warm" },
+  { value: ExerciseSetType.Warmup, label: "Warmup" },
   { value: ExerciseSetType.Working, label: "Work" },
   { value: ExerciseSetType.Dropset, label: "Drop" },
   { value: ExerciseSetType.Failure, label: "Fail" },

@@ -15,7 +15,6 @@ function getStoredTheme(): Theme {
       return stored;
     }
   } catch {
-    // localStorage not available
   }
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
@@ -25,7 +24,6 @@ function applyTheme(theme: Theme) {
   try {
     localStorage.setItem("fitmate-theme", theme);
   } catch {
-    // localStorage not available
   }
 }
 

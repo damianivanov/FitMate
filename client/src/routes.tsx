@@ -1,4 +1,4 @@
-import { Outlet, createBrowserRouter } from "react-router-dom";
+import { Outlet, createBrowserRouter } from "react-router";
 import Layout from "@/components/Layout";
 import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
@@ -15,6 +15,7 @@ import TemplatePreview from "./pages/TemplatePreview";
 import Analytics from "./pages/Analytics";
 import Calendar from "./pages/Calendar";
 import PersonalRecords from "./pages/PersonalRecords";
+import WeightLog from "./pages/WeightLog";
 import ComponentTest from "./pages/ComponentTest";
 
 export const router = createBrowserRouter([
@@ -142,6 +143,15 @@ export const router = createBrowserRouter([
         element: (
           <AccessGate requireAuthenticated>
             <PersonalRecords />
+          </AccessGate>
+        ),
+      },
+
+      {
+        path: "weight-log",
+        element: (
+          <AccessGate requireAuthenticated>
+            <WeightLog />
           </AccessGate>
         ),
       },

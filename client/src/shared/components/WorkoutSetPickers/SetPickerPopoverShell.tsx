@@ -36,9 +36,6 @@ export function SetPickerPopoverShell({
 }: SetPickerPopoverShellProps) {
   const isMobileViewport = useIsMobileViewport();
 
-  // Desktop anchored positioning via floating-ui; mobile renders a centered modal below
-  // and skips floating entirely. The panel element is tracked in state so autoUpdate can
-  // re-measure it and the desktop outside-press check can test containment.
   const [panelElement, setPanelElement] = useState<HTMLDivElement | null>(null);
   const { floatingStyles, isPositioned } = useFloating({
     open: isOpen && !isMobileViewport,

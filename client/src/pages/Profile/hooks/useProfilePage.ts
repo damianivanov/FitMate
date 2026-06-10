@@ -8,10 +8,12 @@ export function useProfilePage() {
 
   const state = useMemo(() => {
     const isAdminUser = hasAdminRole(user);
+    const fullName = buildDisplayName(user.firstName, user.lastName);
 
     return {
       user,
-      displayName: buildDisplayName(user.firstName, user.lastName) || "FitMate User",
+      displayName: fullName || "FitMate User",
+      hasName: Boolean(fullName),
       initials: buildInitials(user.firstName, user.lastName, user.email),
       avatarColorClassName: getAvatarColorClassName(user.id),
       isAdminUser,

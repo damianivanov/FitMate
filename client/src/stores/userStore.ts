@@ -42,7 +42,6 @@ export const useUserStore = create<UserState>()((set) => ({
     try {
       currentUser = await tryGetCurrentUser();
     } catch {
-      // If fetching current user fails for non-auth reasons, treat as signed out.
     }
 
     if (!currentUser) {
@@ -52,7 +51,6 @@ export const useUserStore = create<UserState>()((set) => ({
           currentUser = await tryGetCurrentUser();
         }
       } catch {
-        // If fetching current user fails for non-auth reasons, treat as signed out.
       }
     }
 
@@ -76,7 +74,6 @@ export const useUserStore = create<UserState>()((set) => ({
     try {
       await authService.logout();
     } catch {
-      // Client state should still be cleared even if server logout fails.
     }
 
     set({

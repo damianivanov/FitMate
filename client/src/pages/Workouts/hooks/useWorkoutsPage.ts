@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { clearDeletedWorkoutSessionState } from "@/lib/workoutSessionStorage";
 import { normalizeUtcIsoString } from "@/lib/helpers";

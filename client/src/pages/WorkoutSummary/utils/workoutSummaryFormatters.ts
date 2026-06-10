@@ -55,7 +55,6 @@ export function getSetValueText(set: WorkoutSetModel): string {
   const weight = formatMetricValue(set.weightKg);
   const reps = formatMetricValue(set.reps);
   const duration = formatMetricValue(set.durationSeconds);
-  const distance = formatMetricValue(set.distanceMeters);
 
   if (weight && reps) {
     return `${weight} kg × ${reps}`;
@@ -67,10 +66,6 @@ export function getSetValueText(set: WorkoutSetModel): string {
 
   if (duration) {
     return `${duration}s`;
-  }
-
-  if (distance) {
-    return `${distance} m`;
   }
 
   if (weight) {

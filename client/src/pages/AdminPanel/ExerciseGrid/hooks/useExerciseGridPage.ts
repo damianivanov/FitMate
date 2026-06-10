@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { unwrap } from "@/lib/unwrap";
 import { invalidateExerciseLookupCache } from "@/hooks/useExerciseLookup";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -182,8 +182,6 @@ export function useExerciseGridPage() {
 
   const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
     setSearchInput(event.target.value);
-    // A fresh list load is about to run — drop any stale action (delete) error,
-    // matching the original single error bucket that reset on every load.
     setActionError(null);
   }, []);
 

@@ -1,6 +1,6 @@
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import type { AnalyticsOverview, ExerciseProgression } from "@/types";
-import type { LineChartPoint } from "../components/LineChart";
+import type { LineChartPoint } from "@/shared/components";
 
 const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",

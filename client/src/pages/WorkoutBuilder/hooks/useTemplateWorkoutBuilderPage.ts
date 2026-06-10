@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { unwrap } from "@/lib/unwrap";
 import {
@@ -19,6 +19,7 @@ import {
   calculateWorkoutSummary,
   createWorkoutExerciseDraftFromLookup,
   createWorkoutSetDraft,
+  createWorkoutSetDraftFromPreviousSet,
   findNextIncompleteWorkoutExercise,
   hasMainMetric,
   normalizeWorkoutExerciseOrderIndexes,
@@ -495,11 +496,7 @@ export function useTemplateWorkoutBuilderPage() {
         : current,
     );
 
-    const nextMetricField = metricMode === "duration"
-      ? "durationSeconds"
-      : metricMode === "distance"
-        ? "distanceMeters"
-        : "reps";
+    const nextMetricField = metricMode === "duration" ? "durationSeconds" : "reps";
     setQuickSetPopover((current) => {
       if (!current || current.exerciseId !== exerciseDraftId) {
         return current;
@@ -507,8 +504,7 @@ export function useTemplateWorkoutBuilderPage() {
 
       const isMetricField =
         current.field === "reps"
-        || current.field === "durationSeconds"
-        || current.field === "distanceMeters";
+        || current.field === "durationSeconds";
       if (!isMetricField || current.field === nextMetricField) {
         return current;
       }
@@ -564,7 +560,7 @@ export function useTemplateWorkoutBuilderPage() {
     const targetSet = targetExercise?.sets.find((set) => set.id === setDraftId);
 
     if (targetSet && !targetSet.isCompleted && !hasMainMetric(targetSet)) {
-      toast.error("Add a weight, reps, duration, or distance before completing this set.");
+      toast.error("Add a weight, reps, or duration before completing this set.");
       return;
     }
 
@@ -579,7 +575,6 @@ export function useTemplateWorkoutBuilderPage() {
         : current,
     );
 
-    // When checking off an exercise's final set, collapse it and advance to the next incomplete one.
     if (!currentDraft || !targetExercise || !targetSet || targetSet.isCompleted) {
       return;
     }
@@ -620,6 +615,27 @@ export function useTemplateWorkoutBuilderPage() {
         : current,
     );
   }, []);
+
+  const handleApplyPreviousSets = useCallback((exerciseDraftId: string) => {
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const exercise = current.exercises.find((item) => item.id === exerciseDraftId);
+      const previousSets = exercise ? previousSetsByExerciseId[exercise.exerciseId] : undefined;
+      if (!exercise || !previousSets || previousSets.sets.length === 0) {
+        return current;
+      }
+
+      return updateDraftExercise(current, exerciseDraftId, (item) => ({
+        ...item,
+        sets: previousSets.sets.map((previousSet, index) =>
+          createWorkoutSetDraftFromPreviousSet(previousSet, index),
+        ),
+      }));
+    });
+  }, [previousSetsByExerciseId]);
 
   const handleRemoveSet = useCallback((exerciseDraftId: string, setDraftId: string) => {
     const exercise = draft?.exercises.find((item) => item.id === exerciseDraftId);
@@ -1107,6 +1123,7 @@ export function useTemplateWorkoutBuilderPage() {
       handleSetTypeChange,
       handleSetCompletedToggle,
       handleAddSet,
+      handleApplyPreviousSets,
       handleRemoveSet,
       handleSetReorder,
       handleExerciseReorder,
@@ -1139,6 +1156,7 @@ export function useTemplateWorkoutBuilderPage() {
       handleSetTypeChange,
       handleSetCompletedToggle,
       handleAddSet,
+      handleApplyPreviousSets,
       handleRemoveSet,
       handleSetReorder,
       handleExerciseReorder,

@@ -7,7 +7,7 @@ public class SaveWorkoutRequest
     public long? WorkoutId { get; set; }
     public long? WorkoutTemplateId { get; set; }
 
-    [Required]
+    [Required(AllowEmptyStrings = true)]
     [StringLength(200)]
     public string Title { get; set; } = string.Empty;
 

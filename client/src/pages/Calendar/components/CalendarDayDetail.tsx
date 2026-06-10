@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { LuActivity, LuCalendarDays, LuDumbbell, LuRepeat2 } from "react-icons/lu";
+import { Link } from "react-router";
+import { LuDumbbell, LuRepeat2 } from "react-icons/lu";
 import type { WorkoutCalendarDayModel } from "@/types";
 import { formatMonthDuration, formatSelectedDayLabel, type CalendarCell } from "../utils/calendar";
 
@@ -23,15 +22,6 @@ function formatWorkoutMeta(workout: WorkoutCalendarDayModel): string {
   }
 
   return parts.join(" · ");
-}
-
-function EmptyState({ icon, message }: { icon: ReactNode; message: string }) {
-  return (
-    <div className="liquid-soft-surface flex flex-col items-center gap-2 rounded-2xl border border-dashed border-(--glass-divider) px-5 py-9 text-center">
-      <span className="text-muted">{icon}</span>
-      <p className="text-sm text-muted">{message}</p>
-    </div>
-  );
 }
 
 export function CalendarDayDetail({
@@ -57,14 +47,7 @@ export function CalendarDayDetail({
         ) : null}
       </div>
 
-      {!selectedCell ? (
-        <EmptyState
-          icon={<LuCalendarDays className="h-7 w-7" />}
-          message="Navigate to a month to see your logged workouts."
-        />
-      ) : count === 0 ? (
-        <EmptyState icon={<LuActivity className="h-7 w-7" />} message="No workout logged this day." />
-      ) : (
+      {count > 0 ? (
         <div className="space-y-2.5">
           {workouts.map((workout) => (
             <article
@@ -99,7 +82,7 @@ export function CalendarDayDetail({
             </article>
           ))}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

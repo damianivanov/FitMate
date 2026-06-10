@@ -1,5 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { LuDumbbell, LuMail, LuShieldCheck, LuUserRound } from "react-icons/lu";
+import { NavLink, Outlet } from "react-router";
+import { LuDumbbell, LuUserRound } from "react-icons/lu";
 import { PageBody } from "@/shared/components";
 import { useProfilePage } from "./hooks/useProfilePage";
 
@@ -20,7 +20,7 @@ const profileNavItems = [
 
 function getProfileNavLinkClassName(isActive: boolean): string {
   const baseClassName =
-    "liquid-nav-item inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold";
+    "liquid-nav-item inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold lg:flex-none";
   const stateClassName = isActive ? "liquid-nav-item-active" : "";
 
   return `${baseClassName} ${stateClassName}`.trim();
@@ -28,7 +28,7 @@ function getProfileNavLinkClassName(isActive: boolean): string {
 
 export default function Profile() {
   const { state } = useProfilePage();
-  const { user, displayName, initials, avatarColorClassName, roleLabel } = state;
+  const { user, displayName, hasName, initials, avatarColorClassName } = state;
 
   return (
     <>
@@ -38,22 +38,13 @@ export default function Profile() {
             <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-base font-extrabold shadow-lg ${avatarColorClassName}`}>
               {initials}
             </span>
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">
                 {displayName}
               </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium text-secondary">
-                {user.email ? (
-                  <span className="liquid-chip inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1">
-                    <LuMail className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span className="truncate">{user.email}</span>
-                  </span>
-                ) : null}
-                <span className="liquid-chip inline-flex items-center gap-2 rounded-full px-3 py-1">
-                  <LuShieldCheck className="h-3.5 w-3.5 text-primary" />
-                  {roleLabel}
-                </span>
-              </div>
+              {hasName && user.email ? (
+                <span className="truncate text-sm font-medium text-secondary">{user.email}</span>
+              ) : null}
             </div>
           </div>
 
@@ -81,37 +72,8 @@ export default function Profile() {
       </header>
 
       <PageBody>
-        <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
-          <aside className="liquid-panel rounded-2xl p-5">
-            <div className="flex items-center gap-3">
-              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${avatarColorClassName}`}>
-                {initials}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
-                <p className="truncate text-xs text-secondary">{roleLabel}</p>
-              </div>
-            </div>
-
-            <dl className="mt-5 space-y-4 text-sm">
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-widest text-tertiary">
-                  Email
-                </dt>
-                <dd className="mt-1 truncate font-medium text-foreground">{user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-widest text-tertiary">
-                  User ID
-                </dt>
-                <dd className="mt-1 font-medium text-foreground">{user.id}</dd>
-              </div>
-            </dl>
-          </aside>
-
-          <section className="min-w-0 lg:col-span-2">
-            <Outlet />
-          </section>
+        <div className="mx-auto min-w-0 max-w-3xl">
+          <Outlet />
         </div>
       </PageBody>
     </>

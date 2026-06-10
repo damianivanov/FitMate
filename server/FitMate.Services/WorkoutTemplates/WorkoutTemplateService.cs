@@ -3,6 +3,7 @@ using FitMate.Core.JsonModels.WorkoutTemplates;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
+using FitMate.Services.Storage.Urls;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.WorkoutTemplates;
@@ -10,11 +11,14 @@ namespace FitMate.Services.WorkoutTemplates;
 public class WorkoutTemplateService : IWorkoutTemplateService
 {
     private readonly AppDbContext dbContext;
+    private readonly IPhotoUrlResolver photoUrlResolver;
 
     public WorkoutTemplateService(
-        AppDbContext dbContext)
+        AppDbContext dbContext,
+        IPhotoUrlResolver photoUrlResolver)
     {
         this.dbContext = dbContext;
+        this.photoUrlResolver = photoUrlResolver;
     }
 
     public async Task<IReadOnlyList<WorkoutTemplateModel>> ListAsync(long userId)
@@ -30,7 +34,13 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             .ThenByDescending(x => x.Id)
             .ToListAsync();
         
-        var result = templates.Select(template => MapTemplate(template)).ToList();
+        var resolvedImageUrls = new Dictionary<string, string?>();
+        var result = new List<WorkoutTemplateModel>(templates.Count);
+        foreach (var template in templates)
+        {
+            result.Add(await ResolveImageUrlsAsync(MapTemplate(template), resolvedImageUrls));
+        }
+
         return result;
     }
 
@@ -44,7 +54,9 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         var template = await BuildTemplateDetailsQuery(asNoTracking: true)
             .FirstOrDefaultAsync(x => x.Id == templateId && (x.UserId == userId || x.IsPublic));
 
-        return template == null ? null : MapTemplate(template);
+        return template == null
+            ? null
+            : await ResolveImageUrlsAsync(MapTemplate(template), new Dictionary<string, string?>());
     }
 
     public async Task<WorkoutTemplateModel> CreateAsync(
@@ -77,10 +89,12 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw;
         }
 
-        return MapTemplate(
-            workoutTemplate,
-            preparedTemplate.ExerciseNamesById,
-            preparedTemplate.ExerciseImageUrlsById);
+        return await ResolveImageUrlsAsync(
+            MapTemplate(
+                workoutTemplate,
+                preparedTemplate.ExerciseNamesById,
+                preparedTemplate.ExerciseImageUrlsById),
+            new Dictionary<string, string?>());
     }
 
     public async Task<WorkoutTemplateModel> CreateFromWorkoutAsync(
@@ -123,7 +137,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 
         if (templateRequest.Exercises.Count == 0)
         {
-            throw new FitMateException("This workout has no completed sets to build a template from.");
+            throw new FitMateException("This workout has no sets with logged values to build a template from.");
         }
 
         return await CreateAsync(templateRequest, userId);
@@ -167,10 +181,12 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw;
         }
 
-        return MapTemplate(
-            workoutTemplate,
-            preparedTemplate.ExerciseNamesById,
-            preparedTemplate.ExerciseImageUrlsById);
+        return await ResolveImageUrlsAsync(
+            MapTemplate(
+                workoutTemplate,
+                preparedTemplate.ExerciseNamesById,
+                preparedTemplate.ExerciseImageUrlsById),
+            new Dictionary<string, string?>());
     }
 
     public async Task<bool> DeleteAsync(long templateId, long userId)
@@ -593,6 +609,40 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             DateCreated = template.DateCreated,
             Groups = groups,
         };
+    }
+
+    private async Task<WorkoutTemplateModel> ResolveImageUrlsAsync(
+        WorkoutTemplateModel model,
+        Dictionary<string, string?> resolvedCache)
+    {
+        foreach (var group in model.Groups)
+        {
+            foreach (var exercise in group.Exercises)
+            {
+                exercise.ExerciseImageUrl = await ResolveImageUrlAsync(exercise.ExerciseImageUrl, resolvedCache);
+            }
+        }
+
+        return model;
+    }
+
+    private async Task<string?> ResolveImageUrlAsync(
+        string? value,
+        Dictionary<string, string?> resolvedCache)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        if (resolvedCache.TryGetValue(value, out var cached))
+        {
+            return cached;
+        }
+
+        var resolved = await photoUrlResolver.ResolveAsync(value);
+        resolvedCache[value] = resolved;
+        return resolved;
     }
 
     private static string? ValidateSet(CreateWorkoutTemplateExerciseSetRequest request)

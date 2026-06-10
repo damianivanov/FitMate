@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router";
 import { LuMenu, LuX } from "react-icons/lu";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useUserStore } from "@/stores/userStore";
@@ -9,7 +9,7 @@ import UserMenu from "./UserMenu";
 
 function getPrimaryItemClassName(isActive: boolean): string {
   const baseClassName =
-    "liquid-nav-item flex w-full items-center gap-3 rounded-full border border-transparent px-4 py-3 text-left text-sm transition";
+    "liquid-nav-item flex w-full items-center gap-3.5 rounded-full border border-transparent px-4 py-3.5 text-left text-sm transition";
   const stateClassName = isActive
     ? "liquid-nav-item-active font-semibold"
     : "font-medium";
@@ -47,7 +47,7 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
                     onClick={onNavigate}
                     className={({ isActive }) => getPrimaryItemClassName(isActive)}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-5 w-5" />
                     <span>{item.label}</span>
                   </NavLink>
                 );
@@ -62,7 +62,7 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
 function AppLogo() {
   return (
     <Link to="/" className="flex items-center gap-3">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-700 text-lg font-extrabold text-white shadow-[0_8px_30px_rgba(255,115,55,.12)]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-700 text-xl font-extrabold text-white shadow-[0_8px_30px_rgba(255,115,55,.12)]">
         FM
       </div>
       <div>
@@ -111,7 +111,7 @@ function AuthenticatedNav() {
 
   return (
     <>
-      <aside className="hidden h-full md:block md:h-dvh">
+      <aside className="hidden h-full md:block md:h-dvh md:w-64">
         <div className="liquid-sidebar-panel h-full px-3 py-6">
           <div className="relative z-10 flex h-full flex-col">
             <AppLogo />

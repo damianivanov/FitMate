@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";

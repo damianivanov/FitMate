@@ -19,7 +19,7 @@ const TEMPLATE_CAPABILITIES: ExerciseBuilderCapabilities = {
   showRpeColumn: true,
   showCompletionCheckbox: false,
   showSetTypeDropdown: true,
-  showPreviousColumn: false,
+  showPreviousSets: false,
   allowCollapse: true,
   allowExerciseDnd: true,
   allowSetDnd: true,
@@ -35,6 +35,7 @@ export default function TemplateBuilder() {
         id: exercise.id,
         exerciseId: exercise.exerciseId,
         displayName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
+        imageUrl: exercise.exerciseImageUrl,
         groupId: exercise.clientGroupId ?? null,
         groupType: exercise.groupType,
         notes: exercise.notes,
@@ -45,7 +46,6 @@ export default function TemplateBuilder() {
           weightKg: set.weightKg,
           reps: set.reps,
           durationSeconds: set.durationSeconds,
-          distanceMeters: set.distanceMeters,
           rpe: set.rpe,
           restSeconds: set.restSeconds,
           setType: set.setType,
@@ -155,24 +155,6 @@ export default function TemplateBuilder() {
               onChange={actions.handleQuickSetValueChange}
               onApplyToAll={actions.handleQuickSetApplyToAll}
               onClose={actions.handleQuickSetPopoverClose}
-              anchorElement={state.quickSetPopoverAnchorElement}
-            />
-          ) : null}
-
-          {state.activeQuickSetPopoverContext.field === "distanceMeters" ? (
-            <WeightSetPickerPopover
-              isOpen
-              title="Distance"
-              unitLabel="m"
-              value={state.activeQuickSetPopoverContext.set.distanceMeters}
-              onChange={actions.handleQuickSetValueChange}
-              onApplyToAll={actions.handleQuickSetApplyToAll}
-              onClose={actions.handleQuickSetPopoverClose}
-              min={0}
-              max={100000}
-              step={10}
-              precision={0}
-              quickIncrements={[50, 100, 500, 1000] as const}
               anchorElement={state.quickSetPopoverAnchorElement}
             />
           ) : null}

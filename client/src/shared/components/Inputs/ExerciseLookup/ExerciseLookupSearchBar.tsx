@@ -36,11 +36,11 @@ export function ExerciseLookupSearchBar({
           value={value}
           onChange={handleSearchChange}
           placeholder={placeholder}
-          className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-tertiary"
+          className="w-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-tertiary"
         />
         {hasQuery ? (
-          <span className="liquid-primary-chip rounded-full px-2.5 py-0.5 text-xs font-semibold">
-            {resultCount} results
+          <span className="liquid-primary-chip shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold">
+            {resultCount} {resultCount === 1 ? "result" : "results"}
           </span>
         ) : null}
       </div>

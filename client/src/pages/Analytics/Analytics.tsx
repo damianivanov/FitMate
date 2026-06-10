@@ -1,15 +1,15 @@
 import {
   AsyncSection,
   ExerciseLookupPicker,
+  LineChart,
   MuscleGroupDropdown,
   PageBody,
   PageHeader,
   SegmentControl,
+  StatTile,
 } from "@/shared/components";
-import { LineChart } from "./components/LineChart";
 import { MuscleGroupBars } from "./components/MuscleGroupBars";
 import { PersonalRecordsList } from "./components/PersonalRecordsList";
-import { StatTile } from "./components/StatTile";
 import {
   useAnalyticsPage,
   type AnalyticsRangePreset,
@@ -157,14 +157,13 @@ export default function Analytics() {
 
                 {state.activeTab === "records" ? (
                   <section className="liquid-panel rounded-2xl p-4 md:rounded-lg md:p-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
                       <div>
                         <h2 className="text-base font-bold text-foreground">Personal records</h2>
                         <p className="mt-0.5 text-xs text-secondary">Best efforts per exercise</p>
                       </div>
                       <div className="w-full sm:w-64">
                         <MuscleGroupDropdown
-                          label="Filter by muscle group"
                           muscleGroups={state.recordsMuscleGroups}
                           value={state.recordsMuscleGroupId || null}
                           onChange={(value) => actions.filterRecordsByMuscleGroup(value ?? "")}

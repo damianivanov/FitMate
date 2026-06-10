@@ -4,8 +4,6 @@ import { ExerciseGroupType } from "@/types";
 type WorkoutMood = "energized" | "neutral" | "tired" | "stressed";
 type WorkoutDifficulty = "beginner" | "intermediate" | "advanced";
 
-// --- Stat Card ---
-
 type StatCardProps = {
   label: string;
   value: string | number;
@@ -46,8 +44,6 @@ export function StatCard({ label, value, color, change, changeDir }: StatCardPro
   );
 }
 
-// --- Group Type Badge ---
-
 const groupBadgeStyles: Record<ExerciseGroupType, string> = {
   [ExerciseGroupType.Straight]: "liquid-chip",
   [ExerciseGroupType.Superset]: "liquid-chip liquid-chip-info",
@@ -74,8 +70,6 @@ export function GroupTypeBadge({ type }: { type: ExerciseGroupType }) {
   );
 }
 
-// --- Mood Badge ---
-
 const moodStyles: Record<WorkoutMood, string> = {
   energized: "liquid-chip liquid-chip-success",
   neutral: "liquid-chip liquid-chip-info",
@@ -91,8 +85,6 @@ export function MoodBadge({ mood }: { mood: WorkoutMood }) {
   );
 }
 
-// --- Difficulty Badge ---
-
 const difficultyStyles: Record<WorkoutDifficulty, string> = {
   beginner: "liquid-chip",
   intermediate: "liquid-chip liquid-chip-info",
@@ -107,8 +99,6 @@ export function DifficultyBadge({ difficulty }: { difficulty: WorkoutDifficulty 
   );
 }
 
-// --- Section Header ---
-
 type SectionHeaderProps = {
   title: string;
   action?: ReactNode;
@@ -122,8 +112,6 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
     </div>
   );
 }
-
-// --- Empty State ---
 
 type EmptyStateCardProps = {
   title: string;
@@ -140,6 +128,5 @@ export function EmptyStateCard({ title, description, action }: EmptyStateCardPro
     </div>
   );
 }
-
 
 

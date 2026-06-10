@@ -23,6 +23,7 @@ public class PhotoUrlResolverTests
         }
     }
 
+    // Null стойност връща null без сигниране
     [Fact]
     public async Task ResolveAsync_ReturnsNullForNullOrWhitespace()
     {
@@ -33,6 +34,7 @@ public class PhotoUrlResolverTests
         Assert.Equal(0, storage.ReadUrlCallCount);
     }
 
+    // Външни и относителни URL-та минават непроменени
     [Theory]
     [InlineData("https://fitnessbuddy.blob.core.windows.net/fitness-buddy/exercise-templates/x.jpg")]
     [InlineData("http://example.com/video.mp4")]
@@ -48,6 +50,7 @@ public class PhotoUrlResolverTests
         Assert.Equal(0, storage.ReadUrlCallCount);
     }
 
+    // Собствен blob път се сигнира точно веднъж
     [Fact]
     public async Task ResolveAsync_SignsOwnedBlobPathExactlyOnce()
     {

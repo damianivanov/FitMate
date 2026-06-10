@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { toast } from "sonner";
 import { unwrap } from "@/lib/unwrap";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
@@ -405,11 +405,7 @@ export function useTemplateBuilderPage() {
             setTemplateExerciseMetricMode(exercise, metricMode))
         : current);
 
-    const nextMetricField = metricMode === "duration"
-      ? "durationSeconds"
-      : metricMode === "distance"
-        ? "distanceMeters"
-        : "reps";
+    const nextMetricField = metricMode === "duration" ? "durationSeconds" : "reps";
     setQuickSetPopover((current) => {
       if (!current || current.exerciseId !== exerciseId) {
         return current;
@@ -417,8 +413,7 @@ export function useTemplateBuilderPage() {
 
       const isMetricField =
         current.field === "reps"
-        || current.field === "durationSeconds"
-        || current.field === "distanceMeters";
+        || current.field === "durationSeconds";
       if (!isMetricField || current.field === nextMetricField) {
         return current;
       }

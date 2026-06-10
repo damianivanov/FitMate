@@ -6,6 +6,7 @@ public class BlobPathBuilderTests
 {
     private static readonly DateTime FixedUtc = new(2026, 5, 30, 19, 20, 11, 921, DateTimeKind.Utc);
 
+    // Гради път от модул, id, времеви печат и име
     [Fact]
     public void Build_ProducesModuleIdTimestampName()
     {
@@ -14,6 +15,7 @@ public class BlobPathBuilderTests
         Assert.Equal("exercises/42/20260530T192011921Z-bench-press.jpg", path);
     }
 
+    // Празно име дава резервно "image"
     [Fact]
     public void Build_FallsBackToImageWhenNameEmpty()
     {
@@ -22,6 +24,7 @@ public class BlobPathBuilderTests
         Assert.Equal("exercises/1/20260530T192011921Z-image.jpg", path);
     }
 
+    // Маха пътища и непозволени символи от името
     [Theory]
     [InlineData("..\\..\\evil\\hack.png", "hack.png")]
     [InlineData("My Photo!@#.JPG", "my-photo-.jpg")]
@@ -31,6 +34,7 @@ public class BlobPathBuilderTests
         Assert.Equal(expected, BlobPathBuilder.Sanitize(input));
     }
 
+    // Разпознава само относителни пътища в контейнера
     [Theory]
     [InlineData("exercises/42/20260530T192011921Z-x.jpg", true)]
     [InlineData("muscle-groups/7/x.png", true)]

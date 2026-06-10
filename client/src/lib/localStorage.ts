@@ -98,7 +98,6 @@ export function clearStoredObject(key: string): void {
   try {
     window.localStorage.removeItem(key);
   } catch {
-    // ignore storage errors
   }
 }
 

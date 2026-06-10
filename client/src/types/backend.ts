@@ -312,12 +312,10 @@ export namespace JsonModels.Exercises {
 		creatorDisplayName?: string;
 		dateCreated: string;
 	}
-	export interface ExerciseLookupRequest
+	export interface ExerciseLookupRequest extends JsonModels.Common.OffsetPagedRequest
 	{
 		search?: string;
 		muscleGroupIds?: number[];
-		skip: number;
-		take: number;
 	}
 	export interface ExerciseModel
 	{
@@ -342,6 +340,11 @@ export namespace JsonModels.Exercises {
 	}
 }
 export namespace JsonModels.Common {
+	export interface OffsetPagedRequest
+	{
+		skip: number;
+		take: number;
+	}
 	export interface PagedRequest
 	{
 		page: number;
@@ -353,6 +356,22 @@ export namespace JsonModels.Common {
 		totalCount: number;
 		page: number;
 		pageSize: number;
+	}
+}
+export namespace JsonModels.BodyMetrics {
+	export interface BodyMetricEntryModel
+	{
+		id: number;
+		bodyWeightKg?: number;
+		bodyFatPercentage?: number;
+		notes?: string;
+		loggedAt: string;
+	}
+	export interface LogBodyMetricRequest
+	{
+		bodyWeightKg: number;
+		bodyFatPercentage?: number;
+		notes?: string;
 	}
 }
 export namespace JsonModels.Auth {

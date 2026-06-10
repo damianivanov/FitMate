@@ -52,7 +52,6 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
         }
         catch
         {
-            // Do not throw from exception filter.
         }
 
         context.ExceptionHandled = true;

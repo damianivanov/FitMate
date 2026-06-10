@@ -22,7 +22,7 @@ const WORKOUT_CAPABILITIES: ExerciseBuilderCapabilities = {
   showRpeColumn: true,
   showCompletionCheckbox: true,
   showSetTypeDropdown: true,
-  showPreviousColumn: true,
+  showPreviousSets: true,
   allowCollapse: true,
   allowExerciseDnd: true,
   allowSetDnd: true,
@@ -63,22 +63,22 @@ export default function WorkoutBuilder() {
         id: exercise.id,
         exerciseId: exercise.exerciseId,
         displayName: exercise.exerciseName,
+        imageUrl: exercise.exerciseImageUrl,
         groupId: exercise.clientGroupId ?? null,
         groupType: exercise.groupType,
         notes: exercise.notes,
         collapsed: collapsedExerciseIds.has(exercise.id),
         metricMode: getWorkoutExerciseMetricMode(exercise),
-        sets: exercise.sets.map((set, index) => ({
+        sets: exercise.sets.map((set) => ({
           id: set.id,
           weightKg: set.weightKg,
           reps: set.reps,
           durationSeconds: set.durationSeconds,
-          distanceMeters: set.distanceMeters,
           rpe: set.rpe,
           setType: set.setType,
           isCompleted: set.isCompleted,
-          previousSet: previousSets?.sets[index],
         })),
+        previousSets,
       };
     });
   }, [draft, previousSetsByExerciseId, collapsedExerciseIds]);
@@ -96,6 +96,7 @@ export default function WorkoutBuilder() {
     onExerciseGroupingChange: actions.handleExerciseGroupingChange,
     onRemoveExercise: actions.handleRemoveExercise,
     onAddSet: actions.handleAddSet,
+    onApplyPreviousSets: actions.handleApplyPreviousSets,
     onRemoveSet: actions.handleRemoveSet,
     onAddExerciseClick: actions.handleAddExerciseModalOpen,
     onAddExerciseToGroup: actions.handleAddExerciseToGroup,
@@ -240,23 +241,6 @@ export default function WorkoutBuilder() {
             />
           ) : null}
 
-          {activeQuickSetPopoverContext.field === "distanceMeters" ? (
-            <WeightSetPickerPopover
-              isOpen
-              title="Distance"
-              unitLabel="m"
-              value={activeQuickSetPopoverContext.set.distanceMeters}
-              onChange={actions.handleQuickSetValueChange}
-              onApplyToAll={actions.handleQuickSetApplyToAll}
-              onClose={actions.handleQuickSetPopoverClose}
-              min={0}
-              max={100000}
-              step={10}
-              precision={0}
-              quickIncrements={[50, 100, 500, 1000] as const}
-              anchorElement={quickSetPopoverAnchorElement}
-            />
-          ) : null}
 
           {activeQuickSetPopoverContext.field === "rpe" ? (
             <WeightSetPickerPopover

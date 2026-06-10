@@ -480,12 +480,22 @@ export function ExerciseAddModal({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
                   </div>
-                  <span
-                    className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
-                  >
-                    {exercise.primaryMuscleGroupName}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span
+                      className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
+                    >
+                      {exercise.primaryMuscleGroupName}
+                    </span>
+                    {exercise.secondaryMuscleGroupName ? (
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
+                      >
+                        {exercise.secondaryMuscleGroupName}
+                      </span>
+                    ) : null}
+                  </div>
                   {isAlreadyAdded ? (
                     onRemoveExercise ? (
                       <button

@@ -138,8 +138,6 @@ export function useMuscleGroupGridPage() {
 
   const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
     setSearchInput(event.target.value);
-    // A fresh list load is about to run — drop any stale action (delete) error,
-    // matching the original single error bucket that reset on every load.
     setActionError(null);
   }, []);
 

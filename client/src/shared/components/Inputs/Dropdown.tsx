@@ -499,7 +499,7 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
         {open ? (
           <div
             className={cn(
-              "liquid-panel liquid-floating-surface absolute z-50 w-full overflow-hidden rounded-2xl p-1",
+              "liquid-panel liquid-modal-surface absolute z-50 w-full overflow-hidden rounded-2xl p-1",
               menuPositionClassName,
               menuAnimationClassName,
               menuClassName,

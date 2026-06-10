@@ -8,8 +8,6 @@ public class CreateExerciseRequest
     [StringLength(200)]
     public string Name { get; set; } = string.Empty;
 
-    // Slugs are generated server-side on create; the client never supplies one,
-    // so this is length-capped but not required.
     [StringLength(200)]
     public string Slug { get; set; } = string.Empty;
 

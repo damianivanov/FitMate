@@ -1,8 +1,8 @@
-using FitMate.Core.Common;
 using FitMate.Core.JsonModels.Auth;
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using FitMate.Services.Auth;
 using FitMate.Services.Users;
 using FitMate.Web.Controllers.Base;
 using FitMate.Web.Extensions;
@@ -10,11 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using UserRoleModel = FitMate.Core.JsonModels.Auth.UserRole;
 
 namespace FitMate.Web.Controllers
 {
@@ -23,17 +19,20 @@ namespace FitMate.Web.Controllers
     {
         private readonly UserManager<User> userManager;
         private readonly SignInManager<User> signInManager;
+        private readonly IAuthService authService;
 
         public AuthController(
             ILogger<BaseApiController> logger,
             AppDbContext dbContext,
             IUserService userService,
             UserManager<User> userManager,
-            SignInManager<User> signInManager)
+            SignInManager<User> signInManager,
+            IAuthService authService)
             : base(logger, dbContext, userService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
+            this.authService = authService;
         }
 
         [AllowAnonymous]
@@ -93,19 +92,14 @@ namespace FitMate.Web.Controllers
             user.LastLoginAt = DateTime.UtcNow;
             await userManager.UpdateAsync(user);
 
-            RevokeActiveTokensWithoutSaving(user.Id);
-
             var roles = await userManager.GetRolesAsync(user);
-            var token = GenerateJwtToken(user, roles, out var tokenExpiresAtUtc);
-            var refreshToken = GenerateRefreshToken(user, roles, out var refreshTokenExpiresAtUtc);
-
-            await SaveIssuedTokensAsync(user.Id, token, tokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc);
-            SetAuthCookies(token, refreshToken);
+            var tokens = await authService.IssueTokensAsync(user, [.. roles]);
+            SetAuthCookies(tokens);
 
             var response = new AuthResponse
             {
                 Success = true,
-                User = BuildUserModel(user, [.. roles]),
+                User = authService.BuildUserModel(user, [.. roles]),
             };
 
             return this.ReturnJson(response);
@@ -122,7 +116,7 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            return this.ReturnJson(BuildUserModel(user, [.. roles]));
+            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
         }
 
         [Authorize]
@@ -142,10 +136,6 @@ namespace FitMate.Web.Controllers
                 return this.ReturnJsonError(validationError);
             }
 
-            // Load through UserManager so the update operates on the tracked instance.
-            // UserService.LoggedInUser is read with AsNoTracking, and Identity's UpdateAsync
-            // validation (RequireUniqueEmail) re-queries and tracks the user, which would
-            // otherwise collide with the detached cached instance on Attach.
             var user = await userManager.FindByIdAsync(userId.Value.ToString());
             if (user == null)
             {
@@ -163,7 +153,7 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            return this.ReturnJson(BuildUserModel(user, [.. roles]));
+            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
         }
 
         private static (string FirstName, string? LastName) NormalizeProfileNames(UpdateProfileRequest model)
@@ -206,7 +196,7 @@ namespace FitMate.Web.Controllers
                 return this.ReturnJsonError("Refresh token is required.");
             }
 
-            var isRefreshTokenValid = ValidateRefreshToken(refreshToken, out var principal);
+            var isRefreshTokenValid = authService.TryValidateRefreshToken(refreshToken, out var principal);
             var existingRefreshToken = await DbContext.RefreshTokens
                 .Include(x => x.User)
                 .FirstOrDefaultAsync(x => x.Value == refreshToken && x.RevokedAtUtc == null);
@@ -261,19 +251,14 @@ namespace FitMate.Web.Controllers
                 return this.ReturnJsonError("User is inactive.");
             }
 
-            RevokeActiveTokensWithoutSaving(user.Id);
-
             var roles = await userManager.GetRolesAsync(user);
-            var newToken = GenerateJwtToken(user, roles, out var tokenExpiresAtUtc);
-            var newRefreshToken = GenerateRefreshToken(user, roles, out var refreshTokenExpiresAtUtc);
-
-            await SaveIssuedTokensAsync(user.Id, newToken, tokenExpiresAtUtc, newRefreshToken, refreshTokenExpiresAtUtc);
-            SetAuthCookies(newToken, newRefreshToken);
+            var tokens = await authService.IssueTokensAsync(user, [.. roles]);
+            SetAuthCookies(tokens);
 
             var response = new AuthResponse
             {
                 Success = true,
-                User = BuildUserModel(user, [.. roles]),
+                User = authService.BuildUserModel(user, [.. roles]),
             };
 
             return this.ReturnJson(response);
@@ -283,148 +268,21 @@ namespace FitMate.Web.Controllers
         [HttpPost("logout")]
         public async Task<ActionResult> Logout()
         {
-            var revokedAtUtc = DateTime.UtcNow;
             var token = Request.Cookies["Token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                token = Request.Headers.Authorization.FirstOrDefault()?.Split(' ').Last();
+            }
+
             var refreshToken = Request.Cookies["RefreshToken"];
 
-            await RevokeTokenIfActiveAsync(token, revokedAtUtc);
-            await RevokeRefreshTokenIfActiveAsync(refreshToken, revokedAtUtc);
-
-            await DbContext.SaveChangesAsync(UserService.LoggedInUserId);
+            await authService.RevokeTokensAsync(token, refreshToken, UserService.LoggedInUserId);
 
             ClearAuthCookies();
             return this.ReturnJson("Logged out successfully.");
         }
 
-        private void RevokeActiveTokensWithoutSaving(long userId)
-        {
-            var now = DateTime.UtcNow;
-
-            var activeTokens = DbContext.Tokens
-                .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ExpiresAtUtc > now)
-                .ToList();
-
-            foreach (var activeToken in activeTokens)
-            {
-                activeToken.RevokedAtUtc = now;
-            }
-
-            var activeRefreshTokens = DbContext.RefreshTokens
-                .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ExpiresAtUtc > now)
-                .ToList();
-
-            foreach (var activeRefreshToken in activeRefreshTokens)
-            {
-                activeRefreshToken.RevokedAtUtc = now;
-            }
-        }
-
-        private async Task SaveIssuedTokensAsync(long userId, string token, DateTime tokenExpiresAtUtc, string refreshToken, DateTime refreshTokenExpiresAtUtc)
-        {
-            DbContext.Tokens.Add(new Token
-            {
-                UserId = userId,
-                Value = token,
-                ExpiresAtUtc = tokenExpiresAtUtc,
-            });
-
-            DbContext.RefreshTokens.Add(new RefreshToken
-            {
-                UserId = userId,
-                Value = refreshToken,
-                ExpiresAtUtc = refreshTokenExpiresAtUtc,
-            });
-
-            await DbContext.SaveChangesAsync(userId);
-        }
-
-        private bool ValidateRefreshToken(string refreshToken, out ClaimsPrincipal principal)
-        {
-            principal = new ClaimsPrincipal();
-
-            try
-            {
-                var handler = new JwtSecurityTokenHandler();
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(UserService.ApplicationSettings.RefreshTokenSigningKey));
-
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = key,
-                    ValidateIssuer = true,
-                    ValidIssuer = UserService.ApplicationSettings.RefreshTokenIssuer,
-                    ValidateAudience = true,
-                    ValidAudience = UserService.ApplicationSettings.RefreshTokenAudience,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero,
-                };
-
-                principal = handler.ValidateToken(refreshToken, validationParameters, out var validatedToken);
-
-                return validatedToken is JwtSecurityToken jwtToken
-                    && jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private string GenerateJwtToken(User user, IEnumerable<string> roles, out DateTime expiresAtUtc)
-        {
-            expiresAtUtc = DateTime.UtcNow.AddMinutes(UserService.ApplicationSettings.JwtExpirationMinutes);
-
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
-                new(ClaimTypes.Email, user.Email ?? string.Empty),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            };
-
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(UserService.ApplicationSettings.JwtSigningKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: UserService.ApplicationSettings.JwtIssuer,
-                audience: UserService.ApplicationSettings.JwtAudience,
-                claims: claims,
-                expires: expiresAtUtc,
-                signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private string GenerateRefreshToken(User user, IEnumerable<string> roles, out DateTime expiresAtUtc)
-        {
-            expiresAtUtc = DateTime.UtcNow.AddDays(UserService.ApplicationSettings.RefreshTokenExpirationDays);
-
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
-                new(ClaimTypes.Email, user.Email ?? string.Empty),
-                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            };
-
-            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(UserService.ApplicationSettings.RefreshTokenSigningKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: UserService.ApplicationSettings.RefreshTokenIssuer,
-                audience: UserService.ApplicationSettings.RefreshTokenAudience,
-                claims: claims,
-                expires: expiresAtUtc,
-                signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private void SetAuthCookies(string token, string refreshToken)
+        private void SetAuthCookies(IssuedTokens tokens)
         {
             var isDevelopment = UserService.ApplicationSettings.IsDevelopment;
             var accessCookieOptions = new CookieOptions
@@ -432,7 +290,7 @@ namespace FitMate.Web.Controllers
                 HttpOnly = true,
                 Secure = !isDevelopment,
                 SameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddMinutes(UserService.ApplicationSettings.JwtExpirationMinutes),
+                Expires = tokens.AccessTokenExpiresAtUtc,
             };
 
             var refreshCookieOptions = new CookieOptions
@@ -440,86 +298,17 @@ namespace FitMate.Web.Controllers
                 HttpOnly = true,
                 Secure = !isDevelopment,
                 SameSite = isDevelopment ? SameSiteMode.Lax : SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddDays(UserService.ApplicationSettings.RefreshTokenExpirationDays),
+                Expires = tokens.RefreshTokenExpiresAtUtc,
             };
 
-            Response.Cookies.Append("Token", token, accessCookieOptions);
-            Response.Cookies.Append("RefreshToken", refreshToken, refreshCookieOptions);
+            Response.Cookies.Append("Token", tokens.AccessToken, accessCookieOptions);
+            Response.Cookies.Append("RefreshToken", tokens.RefreshToken, refreshCookieOptions);
         }
 
         private void ClearAuthCookies()
         {
             Response.Cookies.Delete("Token");
             Response.Cookies.Delete("RefreshToken");
-        }
-
-        private static UserModel BuildUserModel(User user, IReadOnlyCollection<string> roles)
-        {
-            return new UserModel
-            {
-                Id = user.Id,
-                Email = user.Email ?? string.Empty,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Roles = MapRoles(roles),
-            };
-        }
-
-        private static List<UserRoleModel> MapRoles(IReadOnlyCollection<string> roles)
-        {
-            return roles
-                .Select(MapRole)
-                .Where(role => role.HasValue)
-                .Select(role => role.GetValueOrDefault())
-                .Distinct()
-                .ToList();
-        }
-
-        private static UserRoleModel? MapRole(string roleName)
-        {
-            if (RoleNames.Admin.Equals(roleName, StringComparison.OrdinalIgnoreCase))
-            {
-                return UserRoleModel.Admin;
-            }
-
-            if (RoleNames.User.Equals(roleName, StringComparison.OrdinalIgnoreCase))
-            {
-                return UserRoleModel.User;
-            }
-
-            return null;
-        }
-
-        private async Task RevokeTokenIfActiveAsync(string? token, DateTime revokedAtUtc)
-        {
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return;
-            }
-
-            var storedToken = await DbContext.Tokens
-                .FirstOrDefaultAsync(x => x.Value == token && x.RevokedAtUtc == null);
-
-            if (storedToken != null)
-            {
-                storedToken.RevokedAtUtc = revokedAtUtc;
-            }
-        }
-
-        private async Task RevokeRefreshTokenIfActiveAsync(string? refreshToken, DateTime revokedAtUtc)
-        {
-            if (string.IsNullOrWhiteSpace(refreshToken))
-            {
-                return;
-            }
-
-            var storedRefreshToken = await DbContext.RefreshTokens
-                .FirstOrDefaultAsync(x => x.Value == refreshToken && x.RevokedAtUtc == null);
-
-            if (storedRefreshToken != null)
-            {
-                storedRefreshToken.RevokedAtUtc = revokedAtUtc;
-            }
         }
     }
 }

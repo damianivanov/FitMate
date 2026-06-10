@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { unwrap } from "@/lib/unwrap";
 import { workoutService } from "@/services/workoutService";

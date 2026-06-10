@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 import { useUserStore } from "@/stores/userStore";
 import { mobileBottomNavItems } from "./navigation";
 
@@ -6,14 +6,15 @@ type MobileBottomNavProps = {
   onNavigate: () => void;
 };
 
-const bottomNavLinkClassName =
-  "flex h-10 w-10 items-center justify-center border-b border-transparent pb-0.5 text-amber-50/85 transition-colors";
+const baseBottomNavLinkClassName =
+  "flex h-10 w-10 items-center justify-center rounded-full transition-colors";
 
-const activeBottomNavLinkClassName =
-  `${bottomNavLinkClassName} border-primary-300 text-primary-400`;
+const bottomNavLinkClassName = `${baseBottomNavLinkClassName} text-amber-50/75`;
+
+const activeBottomNavLinkClassName = `${baseBottomNavLinkClassName} text-primary ring-1 ring-inset ring-primary/25`;
 
 const primaryActionBottomNavLinkClassName = [
-  "flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition",
+  "flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white transition",
   "ring-1 ring-primary-300/45 shadow-[0_10px_24px_rgba(var(--primary-rgb),0.26)]",
 ].join(" ");
 
@@ -41,7 +42,7 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
       aria-label="Mobile primary navigation"
       className="liquid-mobile-bottom-nav-shell pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
     >
-      <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto h-14 w-11/12 max-w-lg rounded-full px-3">
+      <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto h-14 w-full max-w-lg rounded-full px-2">
         <ul className="grid h-full grid-cols-5 place-items-center">
           {mobileBottomNavItems.map((item) => {
             const Icon = item.icon;
@@ -58,7 +59,7 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
                 >
                   <Icon
                     className={getBottomNavIconClassName()}
-                    strokeWidth={2.25}
+                    strokeWidth={2}
                   />
                 </NavLink>
               </li>

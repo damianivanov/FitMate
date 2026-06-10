@@ -41,6 +41,7 @@ import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { SortableHandleItem, useDndSensors } from "@/shared/components/Dnd";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
+import { PreviousSetsButton } from "./PreviousSetsButton";
 import { getMetricGridColumnsClass } from "./format";
 import type {
   ExerciseBuilderCallbacks,
@@ -61,12 +62,6 @@ type ExerciseCardProps = {
   isDragging?: boolean;
   isDragOverlay?: boolean;
 };
-
-function getMetricButtonClass(isActive: boolean): string {
-  return isActive
-    ? "cursor-pointer text-primary transition"
-    : "cursor-pointer text-muted transition hover:text-secondary";
-}
 
 export function ExerciseCard({
   exercise,
@@ -105,8 +100,10 @@ export function ExerciseCard({
     exercise.groupId == null || exercise.groupType === ExerciseGroupType.Straight;
 
   const showRest = capabilities.showRestColumn;
-  const showPrevious = capabilities.showPreviousColumn;
   const showRpe = capabilities.showRpeColumn;
+  const previousSets = exercise.previousSets;
+  const showPreviousSets =
+    capabilities.showPreviousSets && previousSets != null && previousSets.sets.length > 0;
 
   const noteButtonText = isNotesVisible
     ? "Hide Note"
@@ -116,9 +113,6 @@ export function ExerciseCard({
 
   const headerGridClass = ["grid min-w-0 flex-1 gap-2 sm:gap-4", getMetricGridColumnsClass(capabilities)].join(" ");
 
-  // Controlled-elements floating menu: trigger and panel are tracked via state setters so
-  // autoUpdate re-measures against the live trigger rect. Deleting a sibling exercise reflows
-  // the list, autoUpdate fires, and the menu stays anchored instead of flashing at a stale spot.
   const [menuTriggerElement, setMenuTriggerElement] = useState<HTMLButtonElement | null>(null);
   const [menuPanelElement, setMenuPanelElement] = useState<HTMLDivElement | null>(null);
   const { floatingStyles, context, isPositioned } = useFloating({
@@ -194,16 +188,8 @@ export function ExerciseCard({
     setShowAllSets(true);
   };
 
-  const handleRepsMetricClick = () => {
-    callbacks.onExerciseMetricModeChange(exercise.id, "reps");
-  };
-
-  const handleDurationMetricClick = () => {
-    callbacks.onExerciseMetricModeChange(exercise.id, "duration");
-  };
-
-  const handleDistanceMetricClick = () => {
-    callbacks.onExerciseMetricModeChange(exercise.id, "distance");
+  const handleMetricModeToggle = () => {
+    callbacks.onExerciseMetricModeChange(exercise.id, metricMode === "duration" ? "reps" : "duration");
   };
 
   const handleDragHandleMouseDown = (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -364,6 +350,14 @@ export function ExerciseCard({
                 <LuGripVertical className="h-5 w-5" />
               </button>
             ) : null}
+            {exercise.imageUrl ? (
+              <img
+                src={exercise.imageUrl}
+                alt=""
+                className="h-7 w-7 shrink-0 rounded-lg object-cover"
+                loading="lazy"
+              />
+            ) : null}
             {isExerciseCompleted ? (
               <span
                 className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
@@ -392,6 +386,13 @@ export function ExerciseCard({
               </span>
             )}
             <div className="flex shrink-0 items-center gap-0.5">
+              {showPreviousSets && previousSets ? (
+                <PreviousSetsButton
+                  previousSets={previousSets}
+                  exerciseName={exercise.displayName}
+                  onFastAdd={() => callbacks.onApplyPreviousSets?.(exercise.id)}
+                />
+              ) : null}
               {hasSetEditing ? (
                 <button
                   type="button"
@@ -456,44 +457,17 @@ export function ExerciseCard({
                   )}
                   <div className={headerGridClass}>
                     <span className="block w-full text-center text-secondary">Weight</span>
-                    <div className="flex w-full items-center justify-center gap-0.5 text-center">
-                      <button
-                        type="button"
-                        onClick={handleRepsMetricClick}
-                        className={getMetricButtonClass(metricMode === "reps")}
-                        aria-label="Use reps metric"
-                        aria-pressed={metricMode === "reps"}
-                      >
-                        Reps
-                      </button>
-                      <span className="text-muted">/</span>
-                      <button
-                        type="button"
-                        onClick={handleDurationMetricClick}
-                        className={getMetricButtonClass(metricMode === "duration")}
-                        aria-label="Use duration metric"
-                        aria-pressed={metricMode === "duration"}
-                      >
-                        Time
-                      </button>
-                      <span className="text-muted">/</span>
-                      <button
-                        type="button"
-                        onClick={handleDistanceMetricClick}
-                        className={getMetricButtonClass(metricMode === "distance")}
-                        aria-label="Use distance metric"
-                        aria-pressed={metricMode === "distance"}
-                      >
-                        Dist
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleMetricModeToggle}
+                      className="block w-full cursor-pointer text-center text-primary transition hover:text-primary-700"
+                      aria-label={`Metric: ${metricMode === "duration" ? "Time" : "Reps"}. Tap to switch.`}
+                      title="Tap to switch between Reps and Time"
+                    >
+                      {metricMode === "duration" ? "Time" : "Reps"}
+                    </button>
                     {showRest ? (
                       <span className="block w-full text-center text-secondary">Rest</span>
-                    ) : null}
-                    {showPrevious ? (
-                      <span className="block w-full text-center text-secondary" title="Previous completed set for this exercise">
-                        Last
-                      </span>
                     ) : null}
                     {showRpe ? (
                       <span className="block w-full text-center text-secondary" title="Rate of perceived exertion (0-10)">

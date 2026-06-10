@@ -12,7 +12,6 @@ export function getMetricColumnCount(capabilities: ExerciseBuilderCapabilities):
   return (
     2
     + (capabilities.showRestColumn ? 1 : 0)
-    + (capabilities.showPreviousColumn ? 1 : 0)
     + (capabilities.showRpeColumn ? 1 : 0)
   );
 }
@@ -26,20 +25,12 @@ export function getMetricModeLabel(metricMode: ExerciseMetricMode): string {
     return "Duration";
   }
 
-  if (metricMode === "distance") {
-    return "Distance";
-  }
-
   return "Reps";
 }
 
 export function getMetricModeUnit(metricMode: ExerciseMetricMode): string {
   if (metricMode === "duration") {
     return "sec";
-  }
-
-  if (metricMode === "distance") {
-    return "m";
   }
 
   return "reps";
@@ -69,7 +60,6 @@ export function formatPreviousSetLabel(previousSet: PreviousExerciseSet | undefi
   const weight = formatMetricValue(previousSet.weightKg);
   const reps = formatMetricValue(previousSet.reps);
   const duration = formatMetricValue(previousSet.durationSeconds);
-  const distance = formatMetricValue(previousSet.distanceMeters);
 
   if (weight && reps) {
     return `${weight} kg x ${reps}`;
@@ -81,10 +71,6 @@ export function formatPreviousSetLabel(previousSet: PreviousExerciseSet | undefi
 
   if (duration) {
     return `${duration}s`;
-  }
-
-  if (distance) {
-    return `${distance} m`;
   }
 
   return null;

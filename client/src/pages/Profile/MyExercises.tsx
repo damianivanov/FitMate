@@ -1,4 +1,5 @@
-import { LuImage, LuPencil, LuPlus, LuSearch, LuTrash2 } from "react-icons/lu";
+import { useEffect, useRef } from "react";
+import { LuImage, LuLoader, LuPencil, LuPlus, LuSearch, LuTrash2 } from "react-icons/lu";
 import {
   ActionMenu,
   AddExerciseModal,
@@ -10,15 +11,50 @@ import {
 } from "@/shared/components";
 import { useMyExercisesPage } from "./hooks/useMyExercisesPage";
 
+function getScrollParent(node: HTMLElement | null): HTMLElement | null {
+  let current = node?.parentElement ?? null;
+
+  while (current) {
+    const overflowY = window.getComputedStyle(current).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll") {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return null;
+}
+
 export default function MyExercises() {
   const { state, actions } = useMyExercisesPage();
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          actions.loadMore();
+        }
+      },
+      { root: getScrollParent(sentinel), rootMargin: "0px 0px 30px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [actions, state.hasMore]);
 
   const emptyState = (
     <div className="liquid-panel rounded-2xl px-5 py-10 text-center">
       <p className="text-sm font-semibold text-foreground">
-        {state.totalCount === 0 ? "You haven't added any exercises yet." : "No exercises match your filters."}
+        {state.hasActiveFilters ? "No exercises match your filters." : "You haven't added any exercises yet."}
       </p>
-      {state.totalCount === 0 ? (
+      {!state.hasActiveFilters ? (
         <button
           type="button"
           onClick={actions.openCreate}
@@ -139,6 +175,14 @@ export default function MyExercises() {
             );
           })}
         </div>
+
+        {state.isLoadingMore ? (
+          <div className="flex items-center justify-center py-4">
+            <LuLoader className="h-5 w-5 animate-spin text-secondary" aria-label="Loading more exercises" />
+          </div>
+        ) : null}
+
+        {state.hasMore ? <div ref={sentinelRef} aria-hidden className="h-px w-full" /> : null}
       </AsyncSection>
 
       <AddExerciseModal

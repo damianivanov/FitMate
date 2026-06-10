@@ -6,6 +6,7 @@ import {
   LuLayoutDashboard,
   LuLayoutTemplate,
   LuPlus,
+  LuScale,
 } from "react-icons/lu";
 
 export interface NavItem {
@@ -38,6 +39,7 @@ export const trainingNavItems: DesktopNavItem[] = [
 export const insightNavItems: DesktopNavItem[] = [
   { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
   { label: "Records", to: "/records", icon: LuLayoutDashboard, end: false },
+  { label: "Weight", to: "/weight-log", icon: LuScale, end: false },
 ];
 
 const managementNavItems: DesktopNavItem[] = [
@@ -64,5 +66,5 @@ export const mobileBottomNavItems: MobileNavItem[] = [
   { label: "All Workout Templates", to: "/templates", icon: LuLayoutTemplate, end: true },
   { label: "New workout", to: "/workouts/new", icon: LuPlus, end: true, isPrimaryAction: true },
   { label: "Calendar", to: "/calendar", icon: LuCalendarDays, end: true },
-  { label: "Profile", to: "/profile", icon: LuCircleUserRound, end: true },
+  { label: "Profile", to: "/profile", icon: LuCircleUserRound, end: false },
 ];

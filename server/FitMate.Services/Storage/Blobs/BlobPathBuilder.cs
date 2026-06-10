@@ -26,9 +26,7 @@ public static partial class BlobPathBuilder
         }
 
         return cleaned;
-    }
-
-    public static bool IsOwnedBlobPath(string? value)
+    }    public static bool IsOwnedBlobPath(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

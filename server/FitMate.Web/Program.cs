@@ -3,6 +3,8 @@ using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.Services.Analytics;
+using FitMate.Services.Auth;
+using FitMate.Services.BodyMetrics;
 using FitMate.Services.Exercises;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.Storage.Blobs;
@@ -14,7 +16,6 @@ using FitMate.Services.Workouts;
 using FitMate.Web.Attributes;
 using FitMate.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -142,6 +143,7 @@ builder.Services
                 if (!string.IsNullOrEmpty(token))
                 {
                     context.Token = token;
+                    context.HttpContext.Items["AccessToken"] = token;
                 }
 
                 return Task.CompletedTask;
@@ -163,15 +165,25 @@ builder.Services
                 if (isActive != true)
                 {
                     context.Fail("User account is inactive.");
+                    return;
+                }
+
+                if (context.HttpContext.Items["AccessToken"] is string accessToken)
+                {
+                    var isRevoked = await dbContext.Tokens
+                        .AsNoTracking()
+                        .AnyAsync(t => t.Value == accessToken && t.RevokedAtUtc != null);
+
+                    if (isRevoked)
+                    {
+                        context.Fail("Token has been revoked.");
+                    }
                 }
             },
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Admin", policy => policy.AddRequirements(new AdminAuthorizationRequirement()));
-});
+builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
@@ -194,13 +206,14 @@ builder.Services.AddScoped<IImageProcessor, ImageSharpImageProcessor>();
 builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 builder.Services.AddScoped<IPhotoUrlResolver, PhotoUrlResolver>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
-builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<IMuscleGroupService, MuscleGroupService>();
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IWorkoutTemplateService, WorkoutTemplateService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IBodyMetricService, BodyMetricService>();
 
 var app = builder.Build();
 
@@ -213,8 +226,15 @@ app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MigrateDatabase();
-await app.SeedDatabase();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.MigrateDatabase();
+    await app.SeedDatabase();
+}
 
 app.MapControllers();
 app.Run();
+
+public partial class Program
+{
+}

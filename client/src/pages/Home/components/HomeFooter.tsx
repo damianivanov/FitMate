@@ -5,10 +5,12 @@ export default function HomeFooter() {
 
   return (
     <div className="px-4 pb-4">
-      <div className="liquid-surface mx-auto flex w-full max-w-3xl justify-center rounded-full px-6 py-3 text-xs text-secondary">
-        <div className="text-center">(c) {currentYear} FitMate. All rights reserved.</div>
+      <div className="liquid-surface mx-auto flex w-full max-w-3xl justify-center items-center gap-3 rounded-3xl px-6 py-4 text-xs text-secondary sm:flex-row sm:justify-between">
+        <span className="font-semibold text-foreground">
+          Fit<span className="text-primary">Mate</span>
+        </span>
+        <span>© {currentYear} FitMate. All rights reserved.</span>
       </div>
     </div>
   );
 }
-

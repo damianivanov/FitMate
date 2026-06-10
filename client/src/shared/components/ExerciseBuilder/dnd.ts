@@ -165,7 +165,6 @@ function findBlockPosition(
   return blocks.findIndex((block) => block.indexes.includes(exerciseIndex));
 }
 
-// Members reorder within their own group; everything else moves whole blocks (keeps group runs contiguous).
 export function getExerciseBlockDragOrderIndexes(
   items: readonly ExerciseBlockKeyLike[],
   activeId: string,

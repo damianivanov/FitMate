@@ -2,14 +2,14 @@ using FitMate.Core.JsonModels.Exercises;
 using FitMate.DB;
 using FitMate.Services.Exercises;
 using FitMate.Services.Users;
+using FitMate.Web.Attributes;
 using FitMate.Web.Controllers.Base;
 using FitMate.Web.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitMate.Web.Controllers.Admin;
 
-[Authorize(Policy = "Admin")]
+[AdminGuard]
 [Route("api/admin/exercises")]
 public class AdminExerciseController : BaseApiController
 {

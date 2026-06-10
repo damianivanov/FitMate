@@ -1,5 +1,5 @@
 import { LuClock, LuDumbbell, LuEye, LuLock, LuPencil, LuPlay, LuRepeat } from "react-icons/lu";
-import { useMatch, useNavigate } from "react-router-dom";
+import { useMatch, useNavigate } from "react-router";
 import { ExerciseGroupType, type WorkoutTemplate, type WorkoutTemplateExercise } from "@/types";
 import {
   formatTemplateDate,
@@ -24,29 +24,36 @@ function formatMetricValue(value: number | null | undefined): string {
   return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
-function formatExerciseTarget(exercise: WorkoutTemplateExercise): string {
-  const firstSet = exercise.sets[0];
-  if (!firstSet) {
-    return `${exercise.targetSets} sets`;
-  }
-
-  const weight = formatMetricValue(firstSet.weightKg);
-  const reps = formatMetricValue(firstSet.reps);
-  const duration = formatMetricValue(firstSet.durationSeconds);
+function formatSetLine(set: WorkoutTemplateExercise["sets"][number]): string {
+  const weight = formatMetricValue(set.weightKg);
+  const reps = formatMetricValue(set.reps);
+  const duration = formatMetricValue(set.durationSeconds);
 
   if (weight && reps) {
-    return `${exercise.sets.length} x ${weight} kg x ${reps}`;
+    return `${reps} x ${weight} kg`;
   }
 
   if (reps) {
-    return `${exercise.sets.length} x ${reps} reps`;
+    return `${reps} reps`;
   }
 
   if (duration) {
-    return `${exercise.sets.length} x ${duration}s`;
+    return `${duration}s`;
   }
 
-  return `${exercise.sets.length} sets`;
+  if (weight) {
+    return `${weight} kg`;
+  }
+
+  return "-";
+}
+
+function getExerciseTargetLines(exercise: WorkoutTemplateExercise): string[] {
+  if (exercise.sets.length === 0) {
+    return [`${exercise.targetSets} sets`];
+  }
+
+  return exercise.sets.map(formatSetLine);
 }
 
 export function TemplatePreviewPanel({
@@ -172,9 +179,9 @@ export function TemplatePreviewPanel({
                   <p className="truncate text-sm font-bold text-foreground">
                     {getTemplateGroupSummary(group)}
                   </p>
-                  <p className="mt-0.5 text-xs text-secondary">
-                    {group.exercises.length} exercise{group.exercises.length === 1 ? "" : "s"}
-                  </p>
+                  {group.exercises.length > 1 ? (
+                    <p className="mt-0.5 text-xs text-secondary">{group.exercises.length} exercises</p>
+                  ) : null}
                 </div>
                 {isGrouped ? (
                   <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-100/25 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -200,8 +207,10 @@ export function TemplatePreviewPanel({
                         {exercise.exerciseName || `Exercise #${exercise.exerciseId}`}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs font-semibold text-muted">
-                      {formatExerciseTarget(exercise)}
+                    <span className="flex shrink-0 flex-col items-end text-xs font-semibold tabular-nums text-muted">
+                      {getExerciseTargetLines(exercise).map((line, index) => (
+                        <span key={index}>{line}</span>
+                      ))}
                     </span>
                   </div>
                 ))}

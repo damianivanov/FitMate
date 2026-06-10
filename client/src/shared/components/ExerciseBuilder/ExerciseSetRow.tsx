@@ -3,7 +3,6 @@ import { LuCheck, LuGripVertical, LuTrash2 } from "react-icons/lu";
 import { ExerciseSetType } from "@/types";
 import { ExerciseSetTypeDropdown } from "./ExerciseSetTypeDropdown";
 import {
-  formatPreviousSetLabel,
   getCompactSetValueText,
   getMetricGridColumnsClass,
   getMetricModeLabel,
@@ -34,7 +33,6 @@ type ExerciseSetRowProps = {
 const METRIC_FIELD_BY_MODE: Record<ExerciseMetricMode, QuickSetFieldKey> = {
   reps: "reps",
   duration: "durationSeconds",
-  distance: "distanceMeters",
 };
 
 function getSetIndexScaleClassName(setNumber: number): string {
@@ -52,10 +50,6 @@ function getSetIndexScaleClassName(setNumber: number): string {
 function getMetricValue(set: ExerciseBuilderSetVM, metricMode: ExerciseMetricMode): number | undefined {
   if (metricMode === "duration") {
     return set.durationSeconds;
-  }
-
-  if (metricMode === "distance") {
-    return set.distanceMeters;
   }
 
   return set.reps;
@@ -178,9 +172,8 @@ export function ExerciseSetRow({
         ].join(" ")}
       >
         {gripButton}
-        {indexLabel}
         {capabilities.showSetTypeDropdown ? (
-          <div className="w-20 shrink-0">
+          <div className="w-24 shrink-0">
             <ExerciseSetTypeDropdown
               value={set.setType ?? ExerciseSetType.Working}
               setNumber={setNumber}
@@ -205,10 +198,8 @@ export function ExerciseSetRow({
   }
 
   const showRest = capabilities.showRestColumn;
-  const showPrevious = capabilities.showPreviousColumn;
   const showRpe = capabilities.showRpeColumn;
   const showCompletion = capabilities.showCompletionCheckbox;
-  const previousLabel = formatPreviousSetLabel(set.previousSet) ?? "-";
 
   const metricButtonClass = [
     "liquid-input w-full cursor-pointer rounded-md px-1 py-2 text-center text-xs font-semibold tabular-nums sm:rounded-lg sm:px-2 sm:py-1.5 sm:text-sm",
@@ -256,18 +247,6 @@ export function ExerciseSetRow({
             >
               {getCompactSetValueText(set.restSeconds)}
             </button>
-          ) : null}
-
-          {showPrevious ? (
-            <span
-              className={[
-                "liquid-input flex w-full min-w-0 items-center justify-center truncate rounded-md px-1 py-2 text-center text-2xs font-semibold text-secondary sm:rounded-lg sm:px-2 sm:py-1.5 sm:text-sm",
-                set.isCompleted ? "border-success/60! bg-success/20! text-success" : "",
-              ].join(" ")}
-              title={`Last completed set: ${previousLabel}`}
-            >
-              {previousLabel}
-            </span>
           ) : null}
 
           {showRpe ? (

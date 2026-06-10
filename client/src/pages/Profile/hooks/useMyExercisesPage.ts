@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { unwrap } from "@/lib/unwrap";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { invalidateExerciseLookupCache } from "@/hooks/useExerciseLookup";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { exerciseService } from "@/services/exerciseService";
 import { emptyExerciseFormValues, type ExerciseFormValues } from "@/shared/components";
 import type { CreateExerciseRequest, ExerciseLookup } from "@/types";
+
+const PAGE_SIZE = 30;
+const SEARCH_DEBOUNCE_MS = 260;
 
 function toFormValues(item: ExerciseLookup): ExerciseFormValues {
   return {
@@ -30,15 +34,37 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
   };
 }
 
+function appendUnique(previous: ExerciseLookup[], page: ExerciseLookup[]): ExerciseLookup[] {
+  const existingIds = new Set(previous.map((item) => item.id));
+  const next = [...previous];
+
+  for (const item of page) {
+    if (existingIds.has(item.id)) {
+      continue;
+    }
+
+    existingIds.add(item.id);
+    next.push(item);
+  }
+
+  return next;
+}
+
 export function useMyExercisesPage() {
   const { muscleGroups, error: muscleGroupsError } = useMuscleGroups();
-  const [exercises, setExercises] = useState<ExerciseLookup[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadIndex, setReloadIndex] = useState(0);
 
   const [searchInput, setSearchInput] = useState("");
   const [muscleFilterId, setMuscleFilterId] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS);
+  const muscleFilterNumericId = muscleFilterId ? Number(muscleFilterId) : null;
+
+  const [exercises, setExercises] = useState<ExerciseLookup[]>([]);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadIndex, setReloadIndex] = useState(0);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -50,56 +76,71 @@ export function useMyExercisesPage() {
   const [pendingDelete, setPendingDelete] = useState<ExerciseLookup | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const hasActiveFilters = debouncedSearch.length > 0 || muscleFilterNumericId != null;
+
   useEffect(() => {
+    setSkip(0);
+  }, [debouncedSearch, muscleFilterNumericId, reloadIndex]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const isFirstPage = skip === 0;
+
     async function loadExercises() {
-      setIsLoading(true);
+      if (isFirstPage) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       setError(null);
 
       try {
-        const response = await exerciseService.getMine({ skip: 0, take: 500 });
-        setExercises(unwrap(response.data, "Unable to load your exercises."));
+        const response = await exerciseService.getMine({
+          skip,
+          take: PAGE_SIZE,
+          search: debouncedSearch || undefined,
+          muscleGroupIds: muscleFilterNumericId ? [muscleFilterNumericId] : undefined,
+        });
+        const page = unwrap(response.data, "Unable to load your exercises.");
+        if (isCancelled) {
+          return;
+        }
+
+        setExercises((previous) => (isFirstPage ? page : appendUnique(previous, page)));
+        setHasMore(page.length === PAGE_SIZE);
       } catch (loadError) {
-        setExercises(null);
+        if (isCancelled) {
+          return;
+        }
+
+        if (isFirstPage) {
+          setExercises([]);
+        }
+        setHasMore(false);
         setError(loadError instanceof Error ? loadError.message : "Unable to load your exercises.");
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     }
 
     void loadExercises();
-  }, [reloadIndex]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [skip, debouncedSearch, muscleFilterNumericId, reloadIndex]);
 
   const reload = useCallback(() => setReloadIndex((index) => index + 1), []);
 
-  const filteredExercises = useMemo(() => {
-    const all = exercises ?? [];
-    const search = searchInput.trim().toLowerCase();
-    const muscleId = muscleFilterId ? Number(muscleFilterId) : null;
+  const loadMore = useCallback(() => {
+    if (isLoading || isLoadingMore || !hasMore) {
+      return;
+    }
 
-    return all.filter((exercise) => {
-      if (muscleId != null) {
-        const matchesMuscle =
-          exercise.primaryMuscleGroupId === muscleId || exercise.secondaryMuscleGroupId === muscleId;
-        if (!matchesMuscle) {
-          return false;
-        }
-      }
-
-      if (!search) {
-        return true;
-      }
-
-      return [
-        exercise.name,
-        exercise.slug,
-        exercise.primaryMuscleGroupName,
-        exercise.secondaryMuscleGroupName ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
-    });
-  }, [exercises, muscleFilterId, searchInput]);
+    setSkip((previous) => previous + PAGE_SIZE);
+  }, [hasMore, isLoading, isLoadingMore]);
 
   const openCreate = useCallback(() => {
     setEditingId(null);
@@ -202,7 +243,7 @@ export function useMyExercisesPage() {
       unwrap(response.data, "Delete failed.");
 
       invalidateExerciseLookupCache();
-      setExercises((current) => (current ?? []).filter((item) => item.id !== exercise.id));
+      setExercises((current) => current.filter((item) => item.id !== exercise.id));
       setPendingDelete(null);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Delete failed.");
@@ -213,9 +254,11 @@ export function useMyExercisesPage() {
 
   const state = useMemo(
     () => ({
-      exercises: filteredExercises,
-      totalCount: exercises?.length ?? 0,
+      exercises,
+      hasActiveFilters,
       isLoading,
+      isLoadingMore,
+      hasMore,
       error: error ?? muscleGroupsError,
       searchInput,
       muscleFilterId,
@@ -231,9 +274,11 @@ export function useMyExercisesPage() {
       isDeleting,
     }),
     [
-      filteredExercises,
       exercises,
+      hasActiveFilters,
       isLoading,
+      isLoadingMore,
+      hasMore,
       error,
       muscleGroupsError,
       searchInput,
@@ -254,6 +299,7 @@ export function useMyExercisesPage() {
     () => ({
       onSearchChange: setSearchInput,
       onMuscleFilterChange: setMuscleFilterId,
+      loadMore,
       openCreate,
       openEdit,
       closeEditor,
@@ -267,6 +313,7 @@ export function useMyExercisesPage() {
       reload,
     }),
     [
+      loadMore,
       openCreate,
       openEdit,
       closeEditor,

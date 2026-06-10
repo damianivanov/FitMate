@@ -120,8 +120,6 @@ public class ExerciseService : IExerciseService
         exercise.PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId;
         exercise.SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId;
 
-        // Visibility is owner-controlled only; an admin editing a global or another
-        // user's exercise must not flip its IsPublic flag.
         if (exercise.UserId == userService.LoggedInUserId)
         {
             exercise.IsPublic = normalized.IsPublic;
@@ -287,9 +285,14 @@ public class ExerciseService : IExerciseService
                 || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
         }
 
+        var skip = request.Skip < 0 ? 0 : request.Skip;
+        var take = request.Take <= 0 ? 30 : Math.Min(request.Take, 100);
+
         var items = await query
             .OrderByDescending(x => x.DateCreated)
             .ThenByDescending(x => x.Id)
+            .Skip(skip)
+            .Take(take)
             .Select(MapToLookupModelExpression())
             .ToListAsync();
 
@@ -303,7 +306,6 @@ public class ExerciseService : IExerciseService
     {
         var normalized = NormalizeRequest(request);
 
-        // Slugs are derived from the name for new exercises; the client never supplies one.
         normalized.Slug = await GenerateUniqueSlugAsync(normalized.Name);
 
         var validationError = await ValidateRequestAsync(normalized, null);

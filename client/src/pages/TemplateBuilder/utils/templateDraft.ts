@@ -12,7 +12,6 @@ export type TemplateSetMetricField =
   | "weightKg"
   | "reps"
   | "durationSeconds"
-  | "distanceMeters"
   | "restSeconds"
   | "rpe";
 
@@ -22,7 +21,6 @@ export type TemplateSetDraft = {
   weightKg?: number;
   reps?: number;
   durationSeconds?: number;
-  distanceMeters?: number;
   rpe?: number;
   restSeconds?: number;
   notes?: string;
@@ -51,7 +49,6 @@ const DEFAULT_TEMPLATE_DURATION_MINUTES = 60;
 const DEFAULT_SET_REPS = 8;
 const DEFAULT_SET_REST_SECONDS = 90;
 const DEFAULT_SET_DURATION_SECONDS = 30;
-const DEFAULT_SET_DISTANCE_METERS = 1000;
 
 function isGroupedExerciseType(groupType: ExerciseGroupType): boolean {
   return groupType === ExerciseGroupType.Superset || groupType === ExerciseGroupType.Circuit;
@@ -143,7 +140,6 @@ export function buildTemplateDraftFromTemplate(template: WorkoutTemplateModel): 
                 weightKg: set.weightKg ?? undefined,
                 reps: set.reps ?? undefined,
                 durationSeconds: set.durationSeconds ?? undefined,
-                distanceMeters: set.distanceMeters ?? undefined,
                 rpe: set.rpe ?? undefined,
                 restSeconds: set.restSeconds ?? undefined,
                 notes: set.notes ?? undefined,
@@ -169,7 +165,6 @@ export function buildTemplatePayload(draft: TemplateDraft): CreateWorkoutTemplat
         weightKg: set.weightKg,
         reps: set.reps,
         durationSeconds: set.durationSeconds,
-        distanceMeters: set.distanceMeters,
         rpe: set.rpe,
         restSeconds: set.restSeconds,
         notes: set.notes,
@@ -191,10 +186,6 @@ export function getTemplateExerciseMetricMode(exercise: TemplateExerciseDraft): 
     return "duration";
   }
 
-  if (exercise.sets.some((set) => set.distanceMeters !== undefined)) {
-    return "distance";
-  }
-
   return "reps";
 }
 
@@ -208,7 +199,6 @@ export function setTemplateExerciseMetricMode(
       ...set,
       reps: metricMode === "reps" ? set.reps ?? DEFAULT_SET_REPS : undefined,
       durationSeconds: metricMode === "duration" ? set.durationSeconds ?? DEFAULT_SET_DURATION_SECONDS : undefined,
-      distanceMeters: metricMode === "distance" ? set.distanceMeters ?? DEFAULT_SET_DISTANCE_METERS : undefined,
     })),
   };
 }

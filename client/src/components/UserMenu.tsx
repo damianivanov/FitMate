@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
 import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
@@ -25,7 +25,7 @@ export default function UserMenu({
   const { theme, toggleTheme } = useThemeStore();
   const isAdminUser = hasAdminRole(user);
   const isLightMode = theme === "light";
-  const displayName = buildDisplayName(user.firstName, user.lastName) || "FitMate User";
+  const displayName = buildDisplayName(user.firstName, user.lastName) || user.email;
   const initials = buildInitials(user.firstName, user.lastName, user.email);
   const avatarColorClassName = getAvatarColorClassName(user.id);
   const sunToggleIconClassName = isLightMode ? "h-4 w-4 text-orange-600" : "h-4 w-4 text-orange-400/85";
@@ -58,7 +58,7 @@ export default function UserMenu({
     toggleTheme();
   };
 
-  const menuIconClassName = "h-4 w-4 text-slate-500 dark:text-slate-400";
+  const menuIconClassName = "h-5 w-5 text-slate-500 dark:text-slate-400";
   const containerBaseClassName = "relative";
   const containerClassName = `${containerBaseClassName} ${className}`.trim();
 
@@ -96,14 +96,14 @@ export default function UserMenu({
       <button
         type="button"
         onClick={handleToggleMenu}
-        className="liquid-pill flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-left"
+        className="liquid-pill flex w-full items-center gap-3 rounded-full px-3.5 py-2 text-left"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        <span className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${avatarColorClassName}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${avatarColorClassName}`}>
           {initials}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+        <span className="min-w-0 flex-1 truncate font-semibold text-slate-800 dark:text-slate-100">
           {displayName}
         </span>
         <LuMenu className={menuIconClassName} />
@@ -116,15 +116,17 @@ export default function UserMenu({
         >
           <div className="liquid-divider border-b px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-              {user.email ? <p className="truncate text-xs text-tertiary">{user.email}</p> : null}
+              <p className="truncate text-sm text-foreground">{displayName}</p>
+              {user.email && user.email !== displayName ? (
+                <p className="truncate text-xs text-tertiary">{user.email}</p>
+              ) : null}
             </div>
           </div>
 
           <Link
             to="/profile"
             onClick={handleProfileClick}
-            className="liquid-nav-item mt-1 flex items-center gap-2 rounded-full px-3 py-2.5 text-sm font-medium"
+            className="liquid-nav-item mt-1 flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
             role="menuitem"
           >
             <LuUserRound className="h-4 w-4" />
@@ -135,7 +137,7 @@ export default function UserMenu({
             <Link
               to="/management"
               onClick={handleAdminClick}
-              className="liquid-nav-item flex items-center gap-2 rounded-full px-3 py-2.5 text-sm font-medium"
+              className="liquid-nav-item flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
               role="menuitem"
             >
               <LuShield className="h-4 w-4" />
@@ -169,7 +171,7 @@ export default function UserMenu({
             <button
               type="button"
               onClick={handleLogoutClick}
-              className="liquid-nav-item liquid-pill-danger flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-left text-sm font-medium"
+              className="liquid-nav-item liquid-pill-danger flex w-full items-center gap-2.5 rounded-full px-3 py-2.5 text-left text-sm font-medium"
               role="menuitem"
             >
               <LuLogOut className="h-4 w-4" />
