@@ -17,8 +17,9 @@ RUN npm run build
 
 # ---- runtime stage ----
 FROM nginx:1.27-alpine AS runtime
-# Substitute ONLY ${PORT} into the nginx config so nginx's own $uri/$host vars survive.
-ENV NGINX_ENVSUBST_FILTER=^PORT$
+# Substitute only PORT and BACKEND_ORIGIN into the nginx config; nginx's own
+# $uri/$host/$proxy_host vars must survive envsubst untouched.
+ENV NGINX_ENVSUBST_FILTER=^(PORT|BACKEND_ORIGIN)$
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 # The nginx image entrypoint runs envsubst on the template and starts nginx.
