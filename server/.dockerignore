@@ -1,0 +1,15 @@
+# Build outputs (don't ship host artifacts into the image)
+**/bin/
+**/obj/
+**/.vs/
+
+# Local secrets / config (never bake into the image)
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+*.user
+
+# Test project isn't published, but keep it out of the context too
+FitMate.Tests/
+
+# Misc
+**/.DS_Store

@@ -25,6 +25,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
 
+// The app stores all timestamps as UTC (see AppDbContext.AddTimestamps) and previously ran
+// on SQL Server (datetime2, no time-zone). Legacy timestamp behavior maps DateTime to
+// `timestamp without time zone`, preserving that semantics and avoiding Npgsql throwing on
+// DateTimes with Kind=Unspecified/Local (e.g. dates bound from request payloads).
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
@@ -70,7 +76,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseNpgsql(connectionString);
 });
 
 builder.Services

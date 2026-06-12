@@ -26,7 +26,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(x => x.GoogleId)
             .IsUnique()
-            .HasFilter("[GoogleId] IS NOT NULL");
+            .HasFilter("\"GoogleId\" IS NOT NULL");
 
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true)
