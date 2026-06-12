@@ -10,6 +10,7 @@ export interface ExerciseModel
 	videoUrl?: string;
 	primaryMuscleGroupId: number;
 	secondaryMuscleGroupId?: number;
+	creatorDisplayName?: string;
 	dateCreated: string;
 	dateModified?: string;
 }

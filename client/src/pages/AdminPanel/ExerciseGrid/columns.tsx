@@ -1,5 +1,5 @@
 import type { GridColDef } from "@mui/x-data-grid";
-import { LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuImage, LuPencil, LuTrash2 } from "react-icons/lu";
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import type { Exercise, MuscleGroup } from "@/types";
 import { ExerciseNameCell, ExerciseSearchHeader } from "./components/ExerciseGridCells";
