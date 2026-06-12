@@ -45,6 +45,27 @@ public static partial class BlobPathBuilder
         return !isAbsoluteUrl;
     }
 
+    /// <summary>
+    /// Rebuilds the full owned blob path (<c>{module}/{id}/{name}</c>) from a stored bare file name.
+    /// Values that are not bare owned names — external URLs, "/static" paths, or already-qualified
+    /// blob paths (containing a '/') — are returned unchanged so old data keeps resolving.
+    /// </summary>
+    public static string? Compose(StorageModule module, long id, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        var trimmed = value.Trim();
+        if (!IsOwnedBlobPath(trimmed) || trimmed.Contains('/'))
+        {
+            return trimmed;
+        }
+
+        return $"{module.ToFolder()}/{id}/{trimmed}";
+    }
+
     [GeneratedRegex("[^a-z0-9.-]+")]
     private static partial Regex InvalidCharsRegex();
 }

@@ -3,6 +3,7 @@ using FitMate.Core.Exceptions;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
+using FitMate.Services.Storage.Blobs;
 using FitMate.Services.Storage.Urls;
 using Microsoft.EntityFrameworkCore;
 
@@ -1029,7 +1030,8 @@ public class WorkoutService : IWorkoutService
         {
             foreach (var exercise in group.Exercises)
             {
-                exercise.ExerciseImageUrl = await ResolveImageUrlAsync(exercise.ExerciseImageUrl, resolvedCache);
+                var imagePath = BlobPathBuilder.Compose(StorageModule.Exercises, exercise.ExerciseId, exercise.ExerciseImageUrl);
+                exercise.ExerciseImageUrl = await ResolveImageUrlAsync(imagePath, resolvedCache);
             }
         }
 

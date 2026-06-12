@@ -11,7 +11,7 @@ export default function MuscleGroupGrid() {
       <PageHeader title="Muscle Group Grid" subtitle="Global muscle group management for admin users." />
 
       <PageBody>
-        <section className="liquid-surface mx-auto w-full max-w-[79dvw] rounded-3xl p-5 md:p-6">
+        <section className="liquid-surface w-full rounded-3xl p-5 md:p-6">
           <div className="mb-4">
             <input
               value={state.searchInput}

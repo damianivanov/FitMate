@@ -12,6 +12,7 @@ public class ExerciseModel
     public string? VideoUrl { get; set; }
     public long PrimaryMuscleGroupId { get; set; }
     public long? SecondaryMuscleGroupId { get; set; }
+    public string? CreatorDisplayName { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }
 }

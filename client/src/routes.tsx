@@ -2,7 +2,7 @@ import { Outlet, createBrowserRouter } from "react-router";
 import Layout from "@/components/Layout";
 import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
-import { Login, Register } from "./pages/Auth";
+import { Login, Register, ForgotPassword, ResetPassword } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount, MyExercises } from "./pages/Profile";
 import AdminPanel, { ErrorGrid, ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
@@ -24,7 +24,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <AccessGate requireUnauthenticated authenticatedRedirectTo="/workouts">
+            <Home />
+          </AccessGate>
+        ),
       },
       {
         path: "login",
@@ -39,6 +43,22 @@ export const router = createBrowserRouter([
         element: (
           <AccessGate requireUnauthenticated>
             <Register />
+          </AccessGate>
+        ),
+      },
+      {
+        path: "forgot-password",
+        element: (
+          <AccessGate requireUnauthenticated>
+            <ForgotPassword />
+          </AccessGate>
+        ),
+      },
+      {
+        path: "reset-password",
+        element: (
+          <AccessGate requireUnauthenticated>
+            <ResetPassword />
           </AccessGate>
         ),
       },

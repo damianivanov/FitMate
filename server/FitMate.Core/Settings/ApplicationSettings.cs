@@ -36,6 +36,15 @@ public class ApplicationSettings
     public string AzureStorageContainerName => GetSetting("AzureStorage:ContainerName") ?? "media";
     public int AzureStorageSasMinutes => ParseOrDefault(GetSetting("AzureStorage:SasMinutes"), 15);
 
+    public string GoogleClientId => GetSetting("Google:ClientId") ?? string.Empty;
+
+    public string SmtpHost => GetSetting("Email:SmtpHost") ?? string.Empty;
+    public int SmtpPort => ParseOrDefault(GetSetting("Email:SmtpPort"), 587);
+    public string SmtpUser => GetSetting("Email:SmtpUser") ?? string.Empty;
+    public string SmtpPassword => GetSetting("Email:SmtpPassword") ?? string.Empty;
+    public string EmailFromAddress => GetSetting("Email:FromAddress") ?? string.Empty;
+    public string EmailFromName => GetSetting("Email:FromName") ?? "FitMate";
+
     public string? HostingEnvironment => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
     public bool IsDevelopment => "Development".Equals(HostingEnvironment, StringComparison.OrdinalIgnoreCase);
     public bool IsProduction => "Production".Equals(HostingEnvironment, StringComparison.OrdinalIgnoreCase);

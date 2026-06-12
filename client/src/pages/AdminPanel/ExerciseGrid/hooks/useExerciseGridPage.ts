@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ChangeEventHandler } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { useSearchParams } from "react-router";
 import { unwrap } from "@/lib/unwrap";
@@ -68,7 +67,6 @@ export function useExerciseGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
-          isGlobal: true,
         });
         setExercises(unwrap(response.data, "Unable to load exercises."));
       } catch (loadError) {
@@ -119,8 +117,8 @@ export function useExerciseGridPage() {
     setEditorError(null);
   }, []);
 
-  const muscleGroupLookup = useMemo(
-    () => new Map(muscleGroups.map((group) => [group.id, group.name])),
+  const muscleGroupById = useMemo(
+    () => new Map(muscleGroups.map((group) => [group.id, group])),
     [muscleGroups],
   );
 
@@ -130,9 +128,14 @@ export function useExerciseGridPage() {
         return "None";
       }
 
-      return muscleGroupLookup.get(id) ?? `#${id}`;
+      return muscleGroupById.get(id)?.name ?? `#${id}`;
     },
-    [muscleGroupLookup],
+    [muscleGroupById],
+  );
+
+  const resolveMuscleGroup = useCallback(
+    (id?: number) => (id ? muscleGroupById.get(id) ?? null : null),
+    [muscleGroupById],
   );
 
   const onDelete = useCallback(
@@ -169,21 +172,23 @@ export function useExerciseGridPage() {
     setReloadIndex((index) => index + 1);
   }, []);
 
+  const onSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    setActionError(null);
+  }, []);
+
   const columns: GridColDef<Exercise>[] = useMemo(
     () =>
       createExerciseGridColumns({
         resolveMuscleGroupName,
+        resolveMuscleGroup,
+        onSearchChange,
         onEdit: openEditEditor,
         onDelete,
         onImage: openImageModal,
       }),
-    [onDelete, openEditEditor, openImageModal, resolveMuscleGroupName],
+    [onDelete, onSearchChange, openEditEditor, openImageModal, resolveMuscleGroup, resolveMuscleGroupName],
   );
-
-  const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
-    setSearchInput(event.target.value);
-    setActionError(null);
-  }, []);
 
   const changePagination = useCallback((model: GridPaginationModel) => {
     setPaginationModel(model);
@@ -227,7 +232,6 @@ export function useExerciseGridPage() {
       loading: isLoading,
       pageError: error ?? actionError ?? muscleGroupsError,
       editorError,
-      searchInput,
       isSaving,
       isEditorOpen,
       isEditing: editingId !== null,
@@ -244,7 +248,6 @@ export function useExerciseGridPage() {
       actionError,
       muscleGroupsError,
       editorError,
-      searchInput,
       isSaving,
       isEditorOpen,
       editingId,
@@ -260,7 +263,6 @@ export function useExerciseGridPage() {
     () => ({
       openCreateEditor,
       closeEditor,
-      onSearchInputChange,
       changePagination,
       save,
       openImageModal,
@@ -270,7 +272,6 @@ export function useExerciseGridPage() {
     [
       openCreateEditor,
       closeEditor,
-      onSearchInputChange,
       changePagination,
       save,
       openImageModal,

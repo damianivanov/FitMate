@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -72,55 +73,56 @@ export default function Login() {
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit} autoComplete="on">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={handleEmailChange}
-              autoComplete="username"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              className="liquid-input w-full rounded-full  px-3 py-2.5 mt-2"
-            />
-          </div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            value={email}
+            onChange={handleEmailChange}
+            autoComplete="username"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="liquid-input w-full rounded-full px-3 py-2.5"
+          />
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              value={password}
-              onChange={handlePasswordChange}
-              autoComplete="current-password"
-              className="liquid-input w-full rounded-full px-3 py-2.5 mt-2"
-            />
-          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            value={password}
+            onChange={handlePasswordChange}
+            autoComplete="current-password"
+            className="liquid-input w-full rounded-full px-3 py-2.5"
+          />
 
           {error && <p className="text-sm text-danger">{error}</p>}
 
           <PrimaryButton type="submit" disabled={isLoading} className="w-full">
             {isLoading ? "Signing in..." : "Sign In"}
           </PrimaryButton>
+
+          <div className="flex justify-between text-sm">
+            <Link to="/forgot-password" className="liquid-link">
+              Forgot password?
+            </Link>
+            
+            <Link to="/register" className="liquid-link">
+              Create account
+            </Link>            
+          </div>
         </form>
 
-        <p className="flex items-center gap-2 text-sm text-secondary">
-          New to FitMate?{" "}
-          <Link to="/register" className="liquid-link font-semibold">
-            Create account
-          </Link>
-        </p>
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-current opacity-10" />
+          <span className="text-xs font-medium uppercase tracking-wide text-tertiary">or</span>
+          <span className="h-px flex-1 bg-current opacity-10" />
+        </div>
+
+        <GoogleSignInButton onError={setError} />
       </div>
     </div>
   );

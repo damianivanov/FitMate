@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { PrimaryButton } from "@/shared/components/Buttons";
 import { authService } from "@/services/authService";
 import { useUserStore } from "@/stores/userStore";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -178,6 +179,14 @@ export default function Register() {
             {isLoading ? "Creating account..." : "Create account"}
           </PrimaryButton>
         </form>
+
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-current opacity-10" />
+          <span className="text-xs font-medium uppercase tracking-wide text-tertiary">or</span>
+          <span className="h-px flex-1 bg-current opacity-10" />
+        </div>
+
+        <GoogleSignInButton onError={setError} />
 
         <p className="text-sm text-secondary text-center">
           Already tracking with us?{" "}

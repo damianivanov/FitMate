@@ -20,6 +20,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(100)
             .IsRequired(false);
 
+        builder.Property(x => x.GoogleId)
+            .HasMaxLength(256)
+            .IsRequired(false);
+
+        builder.HasIndex(x => x.GoogleId)
+            .IsUnique()
+            .HasFilter("[GoogleId] IS NOT NULL");
+
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true)
             .IsRequired();

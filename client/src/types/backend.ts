@@ -329,6 +329,7 @@ export namespace JsonModels.Exercises {
 		videoUrl?: string;
 		primaryMuscleGroupId: number;
 		secondaryMuscleGroupId?: number;
+		creatorDisplayName?: string;
 		dateCreated: string;
 		dateModified?: string;
 	}
@@ -400,6 +401,19 @@ export namespace JsonModels.Auth {
 		message?: string;
 		user?: JsonModels.Auth.UserModel;
 	}
+	export interface ChangePasswordRequest
+	{
+		currentPassword: string;
+		newPassword: string;
+	}
+	export interface ForgotPasswordRequest
+	{
+		email: string;
+	}
+	export interface GoogleLoginRequest
+	{
+		credential: string;
+	}
 	export interface LoginRequest
 	{
 		email: string;
@@ -411,6 +425,12 @@ export namespace JsonModels.Auth {
 		password: string;
 		firstName: string;
 		lastName: string;
+	}
+	export interface ResetPasswordRequest
+	{
+		email: string;
+		token: string;
+		newPassword: string;
 	}
 	export interface UpdateProfileRequest
 	{

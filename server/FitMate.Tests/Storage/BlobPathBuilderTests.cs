@@ -47,4 +47,17 @@ public class BlobPathBuilderTests
     {
         Assert.Equal(expected, BlobPathBuilder.IsOwnedBlobPath(value));
     }
+
+    // Само голо име получава префикс {module}/{id}/; всичко друго остава непроменено
+    [Theory]
+    [InlineData("20260530T192011921Z-x.jpg", 42, "exercises/42/20260530T192011921Z-x.jpg")]
+    [InlineData("exercises/42/20260530T192011921Z-x.jpg", 42, "exercises/42/20260530T192011921Z-x.jpg")]
+    [InlineData("https://fitnessbuddy.blob.core.windows.net/fitness-buddy/x.jpg", 42, "https://fitnessbuddy.blob.core.windows.net/fitness-buddy/x.jpg")]
+    [InlineData("/images/muscle-groups/abs.png", 42, "/images/muscle-groups/abs.png")]
+    [InlineData(null, 42, null)]
+    [InlineData("", 42, "")]
+    public void Compose_RebuildsPathOnlyForBareNames(string? value, long id, string? expected)
+    {
+        Assert.Equal(expected, BlobPathBuilder.Compose(StorageModule.Exercises, id, value));
+    }
 }

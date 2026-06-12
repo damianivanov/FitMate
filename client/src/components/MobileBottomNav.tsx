@@ -1,5 +1,6 @@
 import { NavLink } from "react-router";
 import { useUserStore } from "@/stores/userStore";
+import { useMobileActionStore } from "@/stores/mobileActionStore";
 import { mobileBottomNavItems } from "./navigation";
 
 type MobileBottomNavProps = {
@@ -32,6 +33,7 @@ function getBottomNavIconClassName(): string {
 
 export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
   const { userLoaded, isAuthenticated } = useUserStore();
+  const addExercise = useMobileActionStore((state) => state.addExercise);
 
   if (!userLoaded || !isAuthenticated) {
     return null;
@@ -46,6 +48,26 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
         <ul className="grid h-full grid-cols-5 place-items-center">
           {mobileBottomNavItems.map((item) => {
             const Icon = item.icon;
+
+            // On the workout/template builders the center button adds an exercise
+            // instead of navigating (see useMobileActionStore / ExerciseBoard).
+            if (item.isPrimaryAction && addExercise) {
+              return (
+                <li key={item.to}>
+                  <button
+                    type="button"
+                    onClick={addExercise}
+                    aria-label="Add exercise"
+                    className={getBottomNavLinkClassName(false, true)}
+                  >
+                    <Icon
+                      className={getBottomNavIconClassName()}
+                      strokeWidth={2}
+                    />
+                  </button>
+                </li>
+              );
+            }
 
             return (
               <li key={item.to}>

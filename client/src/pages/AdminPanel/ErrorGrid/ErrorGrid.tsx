@@ -11,7 +11,7 @@ export default function ErrorGrid() {
       <PageHeader title="Error Grid" subtitle="Server-side errors captured from API requests." />
 
       <PageBody>
-        <section className="liquid-surface mx-auto w-full max-w-[79dvw] rounded-3xl p-5 md:p-6">
+        <section className="liquid-surface w-full rounded-3xl p-5 md:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <input
               value={state.searchInput}

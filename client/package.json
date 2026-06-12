@@ -22,6 +22,7 @@
     "@fontsource-variable/geist": "^5.2.8",
     "@mui/material": "^7.3.9",
     "@mui/x-data-grid": "^8.27.4",
+    "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.7.0",
     "lucide-react": "^0.577.0",

@@ -6,6 +6,7 @@ using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using UserRoleModel = FitMate.Core.JsonModels.Auth.UserRole;
@@ -14,6 +15,8 @@ namespace FitMate.Services.Auth;
 
 public class AuthService : IAuthService
 {
+    private const int MaxRefreshTokensPerUser = 2;
+
     private readonly AppDbContext dbContext;
     private readonly ApplicationSettings settings;
 
@@ -26,6 +29,7 @@ public class AuthService : IAuthService
     public async Task<IssuedTokens> IssueTokensAsync(User user, IReadOnlyCollection<string> roles)
     {
         RevokeActiveTokens(user.Id);
+        PruneRefreshTokens(user.Id);
 
         var accessToken = GenerateJwtToken(user, roles, out var accessTokenExpiresAtUtc);
         var refreshToken = GenerateRefreshToken(user, roles, out var refreshTokenExpiresAtUtc);
@@ -103,6 +107,41 @@ public class AuthService : IAuthService
         };
     }
 
+    public async Task<GoogleUserInfo?> ValidateGoogleCredentialAsync(string credential)
+    {
+        if (string.IsNullOrWhiteSpace(credential) || string.IsNullOrWhiteSpace(settings.GoogleClientId))
+        {
+            return null;
+        }
+
+        try
+        {
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = [settings.GoogleClientId],
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(credential, validationSettings);
+            if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
+            {
+                return null;
+            }
+
+            return new GoogleUserInfo(
+                payload.Subject,
+                payload.Email,
+                payload.GivenName,
+                payload.FamilyName,
+                payload.Picture,
+                payload.EmailVerified);
+        }
+        catch
+        {
+            // Invalid signature, wrong audience, expired token, etc. — treat as an unauthenticated attempt.
+            return null;
+        }
+    }
+
     private void RevokeActiveTokens(long userId)
     {
         var now = DateTime.UtcNow;
@@ -123,6 +162,23 @@ public class AuthService : IAuthService
         foreach (var activeRefreshToken in activeRefreshTokens)
         {
             activeRefreshToken.RevokedAtUtc = now;
+        }
+    }
+
+    private void PruneRefreshTokens(long userId)
+    {
+        // Keep only the newest (MaxRefreshTokensPerUser - 1) existing rows for the user. The caller adds one
+        // brand-new refresh token in the same SaveChanges, so the post-save total stays at MaxRefreshTokensPerUser.
+        // Without this the table gains a permanent row on every login/refresh and is never cleaned up.
+        var staleRefreshTokens = dbContext.RefreshTokens
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.Id)
+            .Skip(MaxRefreshTokensPerUser - 1)
+            .ToList();
+
+        if (staleRefreshTokens.Count > 0)
+        {
+            dbContext.RefreshTokens.RemoveRange(staleRefreshTokens);
         }
     }
 

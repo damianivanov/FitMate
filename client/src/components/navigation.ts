@@ -41,10 +41,6 @@ export const insightNavItems: DesktopNavItem[] = [
   { label: "Weight", to: "/weight-log", icon: LuScale, end: false },
 ];
 
-const managementNavItems: DesktopNavItem[] = [
-  { label: "Admin Dashboard", to: "/management", icon: LuLayoutDashboard, end: false, requiresAdmin: true },
-];
-
 export const navSections: NavSection[] = [
   {
     section: "Training",
@@ -53,10 +49,6 @@ export const navSections: NavSection[] = [
   {
     section: "Insights",
     items: insightNavItems,
-  },
-  {
-    section: "Management",
-    items: managementNavItems,
   },
 ];
 

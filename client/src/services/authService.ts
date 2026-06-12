@@ -1,8 +1,12 @@
 import type {
   AuthResponse,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  GoogleLoginRequest,
   JsonData,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   UpdateProfileRequest,
   User,
 } from "@/types";
@@ -15,6 +19,22 @@ export const authService = {
 
   async register(payload: RegisterRequest) {
     return api.post<JsonData<AuthResponse>>("auth/register", payload);
+  },
+
+  async googleLogin(payload: GoogleLoginRequest) {
+    return api.post<JsonData<AuthResponse>>("auth/google", payload);
+  },
+
+  async changePassword(payload: ChangePasswordRequest) {
+    return api.post<JsonData<string>>("auth/change-password", payload);
+  },
+
+  async forgotPassword(payload: ForgotPasswordRequest) {
+    return api.post<JsonData<string>>("auth/forgot-password", payload);
+  },
+
+  async resetPassword(payload: ResetPasswordRequest) {
+    return api.post<JsonData<string>>("auth/reset-password", payload);
   },
 
   async refresh() {

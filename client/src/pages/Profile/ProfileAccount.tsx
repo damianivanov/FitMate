@@ -1,16 +1,18 @@
 import { PrimaryButton } from "@/shared/components/Buttons";
+import ChangePassword from "./ChangePassword";
 import { useProfileAccountPage } from "./hooks/useProfileAccountPage";
 
 export default function ProfileAccount() {
   const { state, actions } = useProfileAccountPage();
 
   return (
-    <div className="liquid-panel rounded-2xl p-5 md:p-6">
-      <div className="mb-5">
-        <h2 className="text-xl font-bold text-foreground">Account Details</h2>
-      </div>
+    <div className="space-y-6">
+      <div className="liquid-panel rounded-2xl p-5 md:p-6">
+        <div className="mb-5">
+          <h2 className="text-xl font-bold text-foreground">Account Details</h2>
+        </div>
 
-      <form className="grid gap-4 md:grid-cols-2" onSubmit={actions.save}>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={actions.save}>
         <div className="space-y-2">
           <label className="text-sm font-medium text-secondary" htmlFor="firstName">
             First Name
@@ -64,7 +66,10 @@ export default function ProfileAccount() {
             {state.isSaving ? "Saving..." : "Save Profile"}
           </PrimaryButton>
         </div>
-      </form>
+        </form>
+      </div>
+
+      <ChangePassword />
     </div>
   );
 }

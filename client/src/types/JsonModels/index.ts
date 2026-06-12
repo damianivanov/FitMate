@@ -7,6 +7,7 @@ export type { AnalyticsOverviewModel } from "./Analytics/AnalyticsOverviewModel"
 export type { AnalyticsQueryRequest } from "./Analytics/AnalyticsQueryRequest";
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { BodyMetricEntryModel } from "./BodyMetrics/BodyMetricEntryModel";
+export type { ChangePasswordRequest } from "./Auth/ChangePasswordRequest";
 export type { CreateExerciseRequest } from "./Exercises/CreateExerciseRequest";
 export type { CreateMuscleGroupRequest } from "./MuscleGroups/CreateMuscleGroupRequest";
 export type { CreateTemplateFromWorkoutRequest } from "./WorkoutTemplates/CreateTemplateFromWorkoutRequest";
@@ -23,6 +24,8 @@ export type { ExerciseModel } from "./Exercises/ExerciseModel";
 export type { ExerciseProgressionModel } from "./Analytics/ExerciseProgressionModel";
 export type { ExerciseProgressionPointModel } from "./Analytics/ExerciseProgressionPointModel";
 export type { ExerciseQueryRequest } from "./Exercises/ExerciseQueryRequest";
+export type { ForgotPasswordRequest } from "./Auth/ForgotPasswordRequest";
+export type { GoogleLoginRequest } from "./Auth/GoogleLoginRequest";
 export type { JsonData } from "./JsonData";
 export type { LogBodyMetricRequest } from "./BodyMetrics/LogBodyMetricRequest";
 export type { LoginRequest } from "./Auth/LoginRequest";
@@ -38,6 +41,7 @@ export type { PreviousExerciseSetsModel } from "./Workouts/PreviousExerciseSetsM
 export type { PreviousExerciseSetsQueryRequest } from "./Workouts/PreviousExerciseSetsQueryRequest";
 export type { PreviousExerciseSetsResponse } from "./Workouts/PreviousExerciseSetsResponse";
 export type { RegisterRequest } from "./Auth/RegisterRequest";
+export type { ResetPasswordRequest } from "./Auth/ResetPasswordRequest";
 export type { SaveWorkoutRequest } from "./Workouts/SaveWorkoutRequest";
 export type { UpdateProfileRequest } from "./Auth/UpdateProfileRequest";
 export type { UpdateUserRequest } from "./Users/UpdateUserRequest";

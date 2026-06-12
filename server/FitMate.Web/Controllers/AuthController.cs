@@ -3,6 +3,7 @@ using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
 using FitMate.Services.Auth;
+using FitMate.Services.Email;
 using FitMate.Services.Users;
 using FitMate.Web.Controllers.Base;
 using FitMate.Web.Extensions;
@@ -20,6 +21,7 @@ namespace FitMate.Web.Controllers
         private readonly UserManager<User> userManager;
         private readonly SignInManager<User> signInManager;
         private readonly IAuthService authService;
+        private readonly IEmailSender emailSender;
 
         public AuthController(
             ILogger<BaseApiController> logger,
@@ -27,12 +29,14 @@ namespace FitMate.Web.Controllers
             IUserService userService,
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            IAuthService authService)
+            IAuthService authService,
+            IEmailSender emailSender)
             : base(logger, dbContext, userService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.authService = authService;
+            this.emailSender = emailSender;
         }
 
         [AllowAnonymous]
@@ -103,6 +107,177 @@ namespace FitMate.Web.Controllers
             };
 
             return this.ReturnJson(response);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("google")]
+        public async Task<ActionResult> GoogleLogin([FromBody] GoogleLoginRequest model)
+        {
+            var googleUser = await authService.ValidateGoogleCredentialAsync(model.Credential);
+            if (googleUser == null)
+            {
+                return this.ReturnJsonError("Google sign-in failed. Please try again.");
+            }
+
+            if (!googleUser.EmailVerified)
+            {
+                return this.ReturnJsonError("Your Google email address is not verified.");
+            }
+
+            // Match on the stable Google subject first, then fall back to email.
+            var user = await userManager.Users.FirstOrDefaultAsync(u => u.GoogleId == googleUser.Subject);
+            user ??= await userManager.FindByEmailAsync(googleUser.Email);
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    UserName = googleUser.Email,
+                    Email = googleUser.Email,
+                    FirstName = googleUser.FirstName,
+                    LastName = googleUser.LastName,
+                    AvatarUrl = googleUser.Picture,
+                    GoogleId = googleUser.Subject,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                };
+
+                var createResult = await userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    var firstError = createResult.Errors.FirstOrDefault()?.Description ?? "Unable to create account.";
+                    return this.ReturnJsonError(firstError);
+                }
+
+                await userManager.AddToRoleAsync(user, RoleNames.User);
+            }
+            else
+            {
+                if (!user.IsActive)
+                {
+                    return this.ReturnJsonError("Your account is inactive.");
+                }
+
+                // Link the Google account and backfill any missing profile data on first Google sign-in.
+                if (string.IsNullOrEmpty(user.GoogleId))
+                {
+                    user.GoogleId = googleUser.Subject;
+                }
+
+                if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(googleUser.Picture))
+                {
+                    user.AvatarUrl = googleUser.Picture;
+                }
+
+                if (string.IsNullOrEmpty(user.FirstName) && !string.IsNullOrEmpty(googleUser.FirstName))
+                {
+                    user.FirstName = googleUser.FirstName;
+                }
+
+                if (string.IsNullOrEmpty(user.LastName) && !string.IsNullOrEmpty(googleUser.LastName))
+                {
+                    user.LastName = googleUser.LastName;
+                }
+            }
+
+            user.LastLoginAt = DateTime.UtcNow;
+            await userManager.UpdateAsync(user);
+
+            var roles = await userManager.GetRolesAsync(user);
+            var tokens = await authService.IssueTokensAsync(user, [.. roles]);
+            SetAuthCookies(tokens);
+
+            var response = new AuthResponse
+            {
+                Success = true,
+                User = authService.BuildUserModel(user, [.. roles]),
+            };
+
+            return this.ReturnJson(response);
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequest model)
+        {
+            var userId = UserService.LoggedInUserId;
+            if (userId == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
+            }
+
+            var user = await userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
+            }
+
+            IdentityResult result;
+            if (await userManager.HasPasswordAsync(user))
+            {
+                if (string.IsNullOrEmpty(model.CurrentPassword))
+                {
+                    return this.ReturnJsonError("Current password is required.");
+                }
+
+                result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+            }
+            else
+            {
+                // Google-only account that has never had a password — let them set one.
+                result = await userManager.AddPasswordAsync(user, model.NewPassword);
+            }
+
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault()?.Description ?? "Unable to change password.";
+                return this.ReturnJsonError(firstError);
+            }
+
+            return this.ReturnJson("Password changed successfully.");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequest model)
+        {
+            // Always return the same response so the endpoint can't be used to discover which emails exist.
+            var genericResponse = this.ReturnJson("If an account exists for that email, a reset link has been sent.");
+
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null || !user.IsActive || string.IsNullOrEmpty(user.Email))
+            {
+                return genericResponse;
+            }
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var clientUrl = UserService.ApplicationSettings.ClientUrl.TrimEnd('/');
+            var resetLink = $"{clientUrl}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";
+
+            var html = PasswordResetEmail.BuildHtml(resetLink, user.FirstName);
+            await emailSender.SendAsync(user.Email, PasswordResetEmail.Subject, html);
+
+            return genericResponse;
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
+        {
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return this.ReturnJsonError("Invalid or expired reset link.");
+            }
+
+            var result = await userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault()?.Description ?? "Invalid or expired reset link.";
+                return this.ReturnJsonError(firstError);
+            }
+
+            return this.ReturnJson("Your password has been reset. You can now sign in.");
         }
 
         [AllowAnonymous]

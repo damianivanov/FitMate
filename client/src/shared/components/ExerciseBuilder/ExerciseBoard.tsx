@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { LuPlus } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
+import { useMobileActionStore } from "@/stores/mobileActionStore";
 import { SortableHandleItem, useDndSensors } from "@/shared/components/Dnd";
 import { buildExerciseRenderBlocks, getGroupBlockId } from "./dnd";
 import { ExerciseCard } from "./ExerciseCard";
@@ -41,6 +42,14 @@ export function ExerciseBoard({
 }: ExerciseBoardProps) {
   const dndSensors = useDndSensors();
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
+
+  // Surface "Add Exercise" on the mobile bottom nav's center button while a builder is open.
+  const setAddExercise = useMobileActionStore((state) => state.setAddExercise);
+  const onAddExerciseClick = callbacks.onAddExerciseClick;
+  useEffect(() => {
+    setAddExercise(onAddExerciseClick);
+    return () => setAddExercise(null);
+  }, [onAddExerciseClick, setAddExercise]);
 
   const [activeDragExerciseId, setActiveDragExerciseId] = useState<string | null>(null);
   const lastOverExerciseIdRef = useRef<string | null>(null);
@@ -230,17 +239,6 @@ export function ExerciseBoard({
         </span>
         <span>Add Exercise</span>
       </button>
-
-      {!isInteractionLocked ? (
-        <button
-          type="button"
-          onClick={callbacks.onAddExerciseClick}
-          className="liquid-primary-btn fixed bottom-28 right-5 z-90 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full md:hidden"
-          aria-label="Add Exercise"
-        >
-          <LuPlus className="h-5 w-5" />
-        </button>
-      ) : null}
     </>
   );
 }

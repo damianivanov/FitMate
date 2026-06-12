@@ -8,6 +8,7 @@ public class User : IdentityUser<long>, IBaseEntity
     public string? AvatarUrl { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public string? GoogleId { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime DateCreated { get; set; }

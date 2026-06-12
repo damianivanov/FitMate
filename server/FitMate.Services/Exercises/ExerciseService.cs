@@ -156,7 +156,10 @@ public class ExerciseService : IExerciseService
         }
 
         var blobPath = BlobPathBuilder.Build(StorageModule.Exercises, id, fileName, processed.Extension, DateTime.UtcNow);
-        exercise.ImageUrl = await blobStorage.UploadAsync(processed.Content, blobPath, processed.ContentType);
+        await blobStorage.UploadAsync(processed.Content, blobPath, processed.ContentType);
+
+        // Persist only the file name; the {module}/{id}/ prefix is rebuilt on read via BlobPathBuilder.Compose.
+        exercise.ImageUrl = Path.GetFileName(blobPath);
         await dbContext.SaveChangesAsync();
         InvalidateLookupCache();
 
@@ -394,8 +397,10 @@ public class ExerciseService : IExerciseService
 
     private async Task<ExerciseModel> ResolveModelUrlsAsync(ExerciseModel model)
     {
-        model.ImageUrl = await photoUrlResolver.ResolveAsync(model.ImageUrl);
-        model.VideoUrl = await photoUrlResolver.ResolveAsync(model.VideoUrl);
+        model.ImageUrl = await photoUrlResolver.ResolveAsync(
+            BlobPathBuilder.Compose(StorageModule.Exercises, model.Id, model.ImageUrl));
+        model.VideoUrl = await photoUrlResolver.ResolveAsync(
+            BlobPathBuilder.Compose(StorageModule.Exercises, model.Id, model.VideoUrl));
         return model;
     }
 
@@ -413,8 +418,10 @@ public class ExerciseService : IExerciseService
                 Name = item.Name,
                 Slug = item.Slug,
                 Description = item.Description,
-                ImageUrl = await photoUrlResolver.ResolveAsync(item.ImageUrl),
-                VideoUrl = await photoUrlResolver.ResolveAsync(item.VideoUrl),
+                ImageUrl = await photoUrlResolver.ResolveAsync(
+                    BlobPathBuilder.Compose(StorageModule.Exercises, item.Id, item.ImageUrl)),
+                VideoUrl = await photoUrlResolver.ResolveAsync(
+                    BlobPathBuilder.Compose(StorageModule.Exercises, item.Id, item.VideoUrl)),
                 PrimaryMuscleGroupId = item.PrimaryMuscleGroupId,
                 PrimaryMuscleGroupName = item.PrimaryMuscleGroupName,
                 SecondaryMuscleGroupId = item.SecondaryMuscleGroupId,
@@ -518,6 +525,7 @@ public class ExerciseService : IExerciseService
             VideoUrl = entity.VideoUrl,
             PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            CreatorDisplayName = ResolveCreatorName(entity.User),
             DateCreated = entity.DateCreated,
             DateModified = entity.DateModified,
         };
@@ -537,9 +545,43 @@ public class ExerciseService : IExerciseService
             VideoUrl = entity.VideoUrl,
             PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            CreatorDisplayName =
+                entity.User == null
+                    ? null
+                    : entity.User.FirstName != null && entity.User.FirstName != ""
+                        ? entity.User.LastName != null && entity.User.LastName != ""
+                            ? entity.User.FirstName + " " + entity.User.LastName
+                            : entity.User.FirstName
+                        : entity.User.LastName != null && entity.User.LastName != ""
+                            ? entity.User.LastName
+                            : entity.User.Email != null && entity.User.Email != ""
+                                ? entity.User.Email
+                                : null,
             DateCreated = entity.DateCreated,
             DateModified = entity.DateModified,
         };
+    }
+
+    private static string? ResolveCreatorName(User? user)
+    {
+        if (user == null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(user.FirstName))
+        {
+            return !string.IsNullOrEmpty(user.LastName)
+                ? $"{user.FirstName} {user.LastName}"
+                : user.FirstName;
+        }
+
+        if (!string.IsNullOrEmpty(user.LastName))
+        {
+            return user.LastName;
+        }
+
+        return string.IsNullOrEmpty(user.Email) ? null : user.Email;
     }
 
     private static Expression<Func<Exercise, ExerciseLookupModel>> MapToLookupModelExpression()

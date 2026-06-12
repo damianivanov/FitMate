@@ -25,28 +25,25 @@ const gridLinks = [
 
 export default function AdminPanel() {
   return (
-    <div className="w-full flex-1 px-5 py-8">
-      <div className="mx-auto w-full max-w-[79dvw] space-y-6">
-        <header className="space-y-2">
+    <div className="w-full flex-1 p-3 pt-8 md:p-8">
+      <div className="liquid-surface rounded-3xl p-3 md:p-6">
+        <header className="space-y-2 py-5 px-3 rounded-xl">
           <h1 className="text-3xl font-extrabold text-primary">Admin Dashboard</h1>
           <p className="text-sm text-secondary">Central place for management grids and tools.</p>
         </header>
 
-        <section className="liquid-surface rounded-3xl p-5 md:p-6">
-          <h2 className="mb-4 text-lg font-bold text-primary">Grids</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {gridLinks.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="liquid-pill block rounded-2xl p-4 transition hover:-translate-y-0.5"
-              >
-                <p className="text-base font-semibold text-primary">{item.title}</p>
-                <p className="mt-1 text-sm text-secondary">{item.description}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {gridLinks.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="liquid-pill block rounded-2xl p-4 transition hover:-translate-y-0.5"
+            >
+              <p className="text-base font-semibold text-primary">{item.title}</p>
+              <p className="mt-1 text-sm text-secondary">{item.description}</p>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
