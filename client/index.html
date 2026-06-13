@@ -11,21 +11,6 @@
     <meta name="apple-mobile-web-app-title" content="FitMate" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>FitMate</title>
-    <script>
-      // Capture the install prompt before the app bundle loads — Chrome can
-      // fire `beforeinstallprompt` early, so missing it here means no prompt.
-      // The React side reads window.__pwaInstallPrompt (see hooks/usePwa.ts).
-      window.__pwaInstallPrompt = null;
-      window.addEventListener('beforeinstallprompt', function (event) {
-        event.preventDefault();
-        window.__pwaInstallPrompt = event;
-        window.dispatchEvent(new Event('pwa-install-change'));
-      });
-      window.addEventListener('appinstalled', function () {
-        window.__pwaInstallPrompt = null;
-        window.dispatchEvent(new Event('pwa-install-change'));
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
