@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
+import { LuDownload, LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
+import { toast } from "sonner";
 import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useThemeStore } from "@/stores/themeStore";
+import { useIsPwa, usePwaInstall } from "@/hooks/usePwa";
 import type { User } from "@/types";
 
 type UserMenuProps = {
@@ -23,6 +25,11 @@ export default function UserMenu({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { theme, toggleTheme } = useThemeStore();
+  const isPwa = useIsPwa();
+  const { canPrompt: canInstallPrompt, isIos, promptInstall } = usePwaInstall();
+  // Show the install entry whenever we're not already running as the installed
+  // PWA; the click handler then picks the best available install path.
+  const showInstallButton = !isPwa;
   const isAdminUser = hasAdminRole(user);
   const isLightMode = theme === "light";
   const displayName = buildDisplayName(user.firstName, user.lastName) || user.email;
@@ -56,6 +63,29 @@ export default function UserMenu({
 
   const handleThemeToggle = () => {
     toggleTheme();
+  };
+
+  const handleInstallClick = () => {
+    handleCloseMenu();
+
+    // Chromium: fire the real install prompt.
+    if (canInstallPrompt) {
+      void promptInstall();
+      return;
+    }
+
+    // iOS Safari has no install API — guide the user to Add to Home Screen.
+    if (isIos) {
+      toast.info("Tap the Share button, then “Add to Home Screen” to install FitMate.", {
+        duration: 6000,
+      });
+      return;
+    }
+
+    // Other browsers / prompt not available yet — point at the browser menu.
+    toast.info("Open your browser menu and choose “Install app” to add FitMate.", {
+      duration: 6000,
+    });
   };
 
   const menuIconClassName = "h-5 w-5 text-slate-500 dark:text-slate-400";
@@ -143,6 +173,18 @@ export default function UserMenu({
               <LuShield className="h-4 w-4" />
               Admin
             </Link>
+          ) : null}
+
+          {showInstallButton ? (
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="liquid-nav-item flex w-full items-center gap-2.5 rounded-full px-3 py-2.5 text-left text-sm font-semibold text-primary"
+              role="menuitem"
+            >
+              <LuDownload className="h-4 w-4" />
+              Download app
+            </button>
           ) : null}
 
           <div className="liquid-divider mt-1 border-t px-1 pt-1">

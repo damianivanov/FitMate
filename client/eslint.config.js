@@ -6,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig(
-  { ignores: ['dist', 'src/types/backend.ts', 'src/types/JsonModels/**'] },
+  { ignores: ['dist', 'dev-dist', 'src/types/backend.ts', 'src/types/JsonModels/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
