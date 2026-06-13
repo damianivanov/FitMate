@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -37,6 +37,118 @@ type ExerciseAddModalProps = {
   onRemoveExercise?: (exercise: ExerciseLookupModel) => boolean;
   feedback?: ExerciseAddFeedback | null;
 };
+
+type ExerciseLibraryRowProps = {
+  exercise: ExerciseLookupModel;
+  isAlreadyAdded: boolean;
+  isAddAnimating: boolean;
+  canRemove: boolean;
+  onSelect: (exercise: ExerciseLookupModel) => void;
+  onRemove: (exercise: ExerciseLookupModel) => void;
+};
+
+// Memoized so adding/removing an exercise only re-renders the affected row.
+// Without this, every background draft update re-rendered the entire library
+// list, which made the modal visibly "jump" while exercises were added.
+const ExerciseLibraryRow = memo(function ExerciseLibraryRow({
+  exercise,
+  isAlreadyAdded,
+  isAddAnimating,
+  canRemove,
+  onSelect,
+  onRemove,
+}: ExerciseLibraryRowProps) {
+  const handleClick = () => {
+    onSelect(exercise);
+  };
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(exercise);
+    }
+  };
+
+  const handleRemoveClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onRemove(exercise);
+  };
+
+  const exerciseItemClassName = [
+    "flex items-center gap-3 rounded-3xl px-2 py-3 transition-all duration-300 ease-out",
+    isAlreadyAdded
+      ? "cursor-default bg-emerald-300/22 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.55)]"
+      : "cursor-pointer hover:bg-white/4",
+    isAddAnimating
+      ? "bg-emerald-400/18 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.78),0_10px_24px_rgba(16,185,129,0.24)] -translate-y-0.5"
+      : "",
+  ].join(" ");
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className={exerciseItemClassName}
+    >
+      {exercise.imageUrl ? (
+        <img
+          src={exercise.imageUrl}
+          alt=""
+          className="h-10 w-10 shrink-0 rounded-xl object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-200 text-sm font-bold text-primary">
+          {exercise.name.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <span
+          className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+          style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
+        >
+          {exercise.primaryMuscleGroupName}
+        </span>
+        {exercise.secondaryMuscleGroupName ? (
+          <span
+            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+            style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
+          >
+            {exercise.secondaryMuscleGroupName}
+          </span>
+        ) : null}
+      </div>
+      {isAlreadyAdded ? (
+        canRemove ? (
+          <button
+            type="button"
+            onClick={handleRemoveClick}
+            aria-label={`Remove ${exercise.name}`}
+            className="group relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-300 transition-colors hover:bg-(--color-danger-soft)"
+          >
+            <LuCheck className="h-5 w-5 transition-all duration-200 group-hover:scale-75 group-hover:opacity-0" />
+            <LuX className="absolute h-5 w-5 text-danger opacity-0 transition-all duration-200 group-hover:opacity-100" />
+          </button>
+        ) : (
+          <LuCheck className="h-5 w-5 shrink-0 text-emerald-300" />
+        )
+      ) : (
+        <LuPlus
+          className={[
+            "h-4 w-4 shrink-0 text-emerald-300 transition-transform duration-200",
+            isAddAnimating ? "scale-110" : "",
+          ].join(" ")}
+        />
+      )}
+    </div>
+  );
+});
 
 export function ExerciseAddModal({
   isOpen,
@@ -229,40 +341,35 @@ export function ExerciseAddModal({
     setLibraryLookupSkip((previous) => previous + DEFAULT_LIBRARY_LOOKUP_TAKE);
   };
 
-  const handleExerciseItemSelect = (exercise: ExerciseLookupModel) => {
-    if (selectedExerciseIdSet.has(exercise.id)) {
+  // Keep the row callbacks referentially stable (the rows are memoized) by
+  // reading the latest values through refs instead of capturing them.
+  const onAddExerciseRef = useRef(onAddExercise);
+  onAddExerciseRef.current = onAddExercise;
+  const onRemoveExerciseRef = useRef(onRemoveExercise);
+  onRemoveExerciseRef.current = onRemoveExercise;
+  const selectedExerciseIdSetRef = useRef(selectedExerciseIdSet);
+  selectedExerciseIdSetRef.current = selectedExerciseIdSet;
+
+  const handleSelectExercise = useCallback((exercise: ExerciseLookupModel) => {
+    if (selectedExerciseIdSetRef.current.has(exercise.id)) {
       return;
     }
 
-    const wasAdded = onAddExercise(exercise);
+    const wasAdded = onAddExerciseRef.current(exercise);
     if (wasAdded) {
       startAddHighlight(exercise.id);
     }
-  };
+  }, [startAddHighlight]);
 
-  const handleExerciseItemKeyDown = (
-    event: ReactKeyboardEvent<HTMLDivElement>,
-    exercise: ExerciseLookupModel,
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleExerciseItemSelect(exercise);
+  const handleRemoveLibraryRow = useCallback((exercise: ExerciseLookupModel) => {
+    const removeExercise = onRemoveExerciseRef.current;
+    if (!removeExercise) {
+      return;
     }
-  };
 
-  const handleRemoveButtonClick = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>, exercise: ExerciseLookupModel) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!onRemoveExercise) {
-        return;
-      }
-
-      clearAddHighlight(exercise.id);
-      onRemoveExercise(exercise);
-    },
-    [clearAddHighlight, onRemoveExercise],
-  );
+    clearAddHighlight(exercise.id);
+    removeExercise(exercise);
+  }, [clearAddHighlight]);
 
   const handleExerciseListScroll = (event: ReactUIEvent<HTMLDivElement>) => {
     if (isWaitingForLibraryResults || !hasMoreLibraryExercises) {
@@ -431,96 +538,17 @@ export function ExerciseAddModal({
           ) : null}
 
           <div className="divide-y space-y-2">
-            {libraryExercises.map((exercise) => {
-              const isAlreadyAdded = selectedExerciseIdSet.has(exercise.id);
-              const isAddAnimating = Boolean(isAddAnimatingByExerciseId[exercise.id]);
-              const exerciseItemClassName = [
-                "flex items-center gap-3 rounded-3xl px-2 py-3 transition-all duration-300 ease-out",
-                isAlreadyAdded
-                  ? "cursor-default bg-emerald-300/22 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.55)]"
-                  : "cursor-pointer hover:bg-white/4",
-                isAddAnimating
-                  ? "bg-emerald-400/18 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.78),0_10px_24px_rgba(16,185,129,0.24)] -translate-y-0.5"
-                  : "",
-              ].join(" ");
-
-              const handleExerciseClick = () => {
-                handleExerciseItemSelect(exercise);
-              };
-
-              const handleExerciseKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-                handleExerciseItemKeyDown(event, exercise);
-              };
-
-              const handleRemoveClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
-                handleRemoveButtonClick(event, exercise);
-              };
-
-              return (
-                <div
-                  key={exercise.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleExerciseClick}
-                  onKeyDown={handleExerciseKeyDown}
-                  className={exerciseItemClassName}
-                >
-                  {exercise.imageUrl ? (
-                    <img
-                      src={exercise.imageUrl}
-                      alt=""
-                      className="h-10 w-10 shrink-0 rounded-xl object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-200 text-sm font-bold text-primary">
-                      {exercise.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span
-                      className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
-                    >
-                      {exercise.primaryMuscleGroupName}
-                    </span>
-                    {exercise.secondaryMuscleGroupName ? (
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                        style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
-                      >
-                        {exercise.secondaryMuscleGroupName}
-                      </span>
-                    ) : null}
-                  </div>
-                  {isAlreadyAdded ? (
-                    onRemoveExercise ? (
-                      <button
-                        type="button"
-                        onClick={handleRemoveClick}
-                        aria-label={`Remove ${exercise.name}`}
-                        className="group relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-300 transition-colors hover:bg-(--color-danger-soft)"
-                      >
-                        <LuCheck className="h-5 w-5 transition-all duration-200 group-hover:scale-75 group-hover:opacity-0" />
-                        <LuX className="absolute h-5 w-5 text-danger opacity-0 transition-all duration-200 group-hover:opacity-100" />
-                      </button>
-                    ) : (
-                      <LuCheck className="h-5 w-5 shrink-0 text-emerald-300" />
-                    )
-                  ) : (
-                    <LuPlus
-                      className={[
-                        "h-4 w-4 shrink-0 text-emerald-300 transition-transform duration-200",
-                        isAddAnimating ? "scale-110" : "",
-                      ].join(" ")}
-                    />
-                  )}
-                </div>
-              );
-            })}
+            {libraryExercises.map((exercise) => (
+              <ExerciseLibraryRow
+                key={exercise.id}
+                exercise={exercise}
+                isAlreadyAdded={selectedExerciseIdSet.has(exercise.id)}
+                isAddAnimating={Boolean(isAddAnimatingByExerciseId[exercise.id])}
+                canRemove={Boolean(onRemoveExercise)}
+                onSelect={handleSelectExercise}
+                onRemove={handleRemoveLibraryRow}
+              />
+            ))}
           </div>
 
           {!libraryExercises.length && !isWaitingForLibraryResults ? (

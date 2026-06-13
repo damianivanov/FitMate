@@ -637,8 +637,31 @@ textarea { resize: none; }
 }
 
 @media (max-width: 767px) {
-  .liquid-main-shell > .liquid-scrollbar {
+  /* .liquid-main-shell and .liquid-scrollbar are both on the same <main>
+     scroll container, so this is a compound (same-element) selector, not a
+     child combinator. */
+  .liquid-main-shell.liquid-scrollbar {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);
+  }
+}
+
+/* ----------------------------------------------------------------
+   PWA (installed / standalone) — set on <html> via usePwa.
+   Extend the top bar under the status bar and lift the bottom nav so
+   they blend with the app background instead of sitting behind the
+   OS chrome. Only applied when installed (needs viewport-fit=cover).
+   ---------------------------------------------------------------- */
+.pwa-standalone .liquid-mobile-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+}
+
+.pwa-standalone .liquid-mobile-bottom-nav-shell {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.65rem);
+}
+
+@media (max-width: 767px) {
+  .pwa-standalone .liquid-main-shell.liquid-scrollbar {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
   }
 }
 

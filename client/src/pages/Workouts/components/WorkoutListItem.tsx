@@ -77,6 +77,41 @@ function getExerciseDisplayName(exercise: WorkoutExercise): string {
   return exercise.exerciseName || `Exercise #${exercise.exerciseId}`;
 }
 
+type WorkoutStatus = "not-started" | "in-progress" | "finished";
+
+// A workout is "not started" until it has a startedAt, "in progress" once it
+// has started but not yet finished, and "finished" once it has a finishedAt.
+function getWorkoutStatus(workout: Workout): WorkoutStatus {
+  if (workout.finishedAt) {
+    return "finished";
+  }
+  if (workout.startedAt) {
+    return "in-progress";
+  }
+  return "not-started";
+}
+
+const WORKOUT_STATUS_META: Record<
+  WorkoutStatus,
+  { label: string; pillClassName: string; dotClassName: string }
+> = {
+  "not-started": {
+    label: "Not started",
+    pillClassName: "border border-white/10 bg-white/5 text-secondary",
+    dotClassName: "bg-current opacity-60",
+  },
+  "in-progress": {
+    label: "In progress",
+    pillClassName: "border border-primary-400 bg-primary-100 text-primary",
+    dotClassName: "bg-primary animate-pulse",
+  },
+  finished: {
+    label: "Finished",
+    pillClassName: "border border-(--color-success-border) bg-(--color-success-soft) text-success",
+    dotClassName: "bg-success",
+  },
+};
+
 export function WorkoutListItem({
   workout,
   isDeleting,
@@ -90,15 +125,20 @@ export function WorkoutListItem({
   const visibleExercises = imageExercises.slice(0, 6);
   const hiddenExerciseCount = Math.max(0, imageExercises.length - visibleExercises.length);
   const exerciseNames = workoutExercises.map(getExerciseDisplayName);
-  const startedAtLabel = formatWorkoutDate(workout.startedAt);
-  const durationLabel = formatDuration(workout.durationSeconds);
   const workoutTitle = getWorkoutTitle(workout);
+  const status = getWorkoutStatus(workout);
+  const statusMeta = WORKOUT_STATUS_META[status];
+  const isFinished = status === "finished";
+  const dateValue = workout.finishedAt ?? workout.startedAt;
+  const dateLabel = dateValue ? formatWorkoutDate(dateValue) : null;
+  const durationLabel =
+    isFinished && workout.durationSeconds != null
+      ? formatDuration(workout.durationSeconds)
+      : null;
 
   const handleWorkoutOpen = () => {
     onOpen(workout);
   };
-
-  const isFinished = Boolean(workout.finishedAt);
 
   const menuItems: ActionMenuItem[] = [];
   if (onRepeat && isFinished) {
@@ -187,21 +227,34 @@ export function WorkoutListItem({
           </div>
         ) : null}
 
-        <div className="mt-4 flex min-w-0 items-center gap-3 overflow-hidden text-xs text-secondary sm:gap-4">
+        <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 text-xs text-secondary sm:gap-x-3">
+          <span
+            className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 font-semibold ${statusMeta.pillClassName}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${statusMeta.dotClassName}`}
+              aria-hidden="true"
+            />
+            <span className="whitespace-nowrap">{statusMeta.label}</span>
+          </span>
           <span className="inline-flex shrink-0 items-center gap-1.5">
             <LuDumbbell className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span className="whitespace-nowrap">
               {workout.setCount} set{workout.setCount === 1 ? "" : "s"}
             </span>
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5">
-            <LuClock className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="whitespace-nowrap">{durationLabel}</span>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1.5">
-            <LuCalendar className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="whitespace-nowrap">{startedAtLabel}</span>
-          </span>
+          {durationLabel ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5">
+              <LuClock className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="whitespace-nowrap">{durationLabel}</span>
+            </span>
+          ) : null}
+          {dateLabel ? (
+            <span className="inline-flex shrink-0 items-center gap-1.5">
+              <LuCalendar className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="whitespace-nowrap">{dateLabel}</span>
+            </span>
+          ) : null}
         </div>
       </button>
     </article>

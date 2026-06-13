@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo.svg'],
+      includeAssets: ['logo.png', 'logo.svg'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
@@ -35,15 +35,15 @@ export default defineConfig({
         name: 'FitMate',
         short_name: 'FitMate',
         description: 'Track workouts, templates, sets, and progress.',
-        theme_color: '#171221',
-        background_color: '#120f19',
+        theme_color: '#0e0e1a',
+        background_color: '#09091a',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
-            src: 'logo.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: 'logo.png',
+            sizes: '630x630',
+            type: 'image/png',
             purpose: 'any maskable',
           },
         ],

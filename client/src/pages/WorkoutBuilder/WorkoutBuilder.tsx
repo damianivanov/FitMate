@@ -83,6 +83,13 @@ export default function WorkoutBuilder() {
     });
   }, [draft, previousSetsByExerciseId, collapsedExerciseIds]);
 
+  // Derived from `draft` only (not the per-second elapsed timer) so the add
+  // modal does not re-render on every tick or background autosave.
+  const selectedExerciseIds = useMemo(
+    () => draft?.exercises.map((exercise) => exercise.exerciseId) ?? [],
+    [draft],
+  );
+
   const callbacks = useMemo<ExerciseBuilderCallbacks>(() => ({
     onOpenQuickSetPopover: (exerciseId, setId, field, anchorElement) => {
       if (field === "restSeconds") {
@@ -266,7 +273,7 @@ export default function WorkoutBuilder() {
 
       <ExerciseAddModal
         isOpen={isAddExerciseModalOpen}
-        selectedExerciseIds={draft.exercises.map((exercise) => exercise.exerciseId)}
+        selectedExerciseIds={selectedExerciseIds}
         onAddExercise={actions.handleAddExercise}
         onClose={actions.handleAddExerciseModalClose}
       />

@@ -194,6 +194,15 @@ export function useTemplateWorkoutBuilderPage() {
 
   const loadTemplateWorkout = useCallback(async () => {
     if (workoutId) {
+      // The draft already corresponds to this workout (e.g. adding the first
+      // exercise just created it and navigated to /workouts/:id). Refetching
+      // here would null the draft, flip the builder into its loading state and
+      // unmount any open modal mid-interaction, so skip the destructive reload.
+      if (draftWorkoutIdRef.current === workoutId && draftRef.current) {
+        setIsLoadingTemplate(false);
+        return;
+      }
+
       setIsLoadingTemplate(true);
       setTemplateError(null);
       setDraft(null);

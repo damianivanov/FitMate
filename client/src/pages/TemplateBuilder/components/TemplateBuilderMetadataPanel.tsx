@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent, type MouseEvent as ReactMouseEvent } from "react";
-import { LuChevronDown, LuClock, LuEye, LuLock } from "react-icons/lu";
+import { LuChevronDown, LuEye, LuLock } from "react-icons/lu";
 import { SegmentControl, SegmentControlSize, type SegmentControlOption } from "@/shared/components";
 import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/DurationSetPickerPopover";
 
@@ -122,23 +122,15 @@ export function TemplateBuilderMetadataPanel({
                   value={templateName}
                   onChange={handleTemplateNameChange}
                   placeholder="Name..."
-                  className="liquid-input min-w-0 flex-1 rounded-xl px-3 py-2 text-sm font-medium sm:max-w-md"
+                  className="liquid-input min-w-0 flex-1 rounded-xl px-3 py-2 text-sm font-medium"
                 />
                 <button
                   type="button"
                   onClick={handleDurationPickerOpen}
-                  className="liquid-input flex min-h-10 w-max min-w-[206px] max-w-full shrink-0 cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition hover:border-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+                  className="liquid-primary-chip mono flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
                   aria-label="Edit duration"
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <LuClock className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="hidden text-xs font-semibold uppercase tracking-widest text-muted sm:inline">
-                      Duration
-                    </span>
-                  </span>
-                  <span className="liquid-primary-chip mono inline-flex min-w-14 shrink-0 items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold">
-                    {durationMinutes} min
-                  </span>
+                  {durationMinutes} min
                 </button>
                 <div className="order-last w-full shrink-0 sm:order-0 sm:w-40 xl:w-44">
                   <SegmentControl

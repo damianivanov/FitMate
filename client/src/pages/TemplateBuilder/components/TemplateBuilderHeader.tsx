@@ -1,4 +1,4 @@
-import { LuArrowLeft } from "react-icons/lu";
+import { LuArrowLeft, LuX } from "react-icons/lu";
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
 
@@ -25,39 +25,36 @@ export function TemplateBuilderHeader({
 
   return (
     <header className="liquid-page-header px-4 py-2 md:px-8 md:py-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={handleBackClick}
-          className="liquid-pill flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition md:h-9 md:w-9"
+          className="liquid-pill flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition"
           aria-label="Back to templates"
         >
           <LuArrowLeft className="h-4 w-4" />
         </button>
 
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-center text-2xl font-extrabold tracking-tight text-foreground md:text-xl">
-            New Template
-          </h1>
-        </div>
+        <h1 className="min-w-0 flex-1 truncate text-xl font-extrabold tracking-tight text-foreground">
+          New Template
+        </h1>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onDiscardClick}
-            className="liquid-pill h-9 cursor-pointer rounded-full px-4 text-sm font-semibold text-primary-700 transition"
-          >
-            Discard
-          </button>
-          <button
-            type="button"
-            onClick={onSaveTemplateClick}
-            disabled={saveDisabled}
-            className="liquid-primary-btn h-10 cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSavingTemplate ? "Saving..." : saveTemplateLabel}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onDiscardClick}
+          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-(--color-danger-border) bg-(--color-danger-soft) text-danger transition hover:bg-(--color-danger-glow) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+          aria-label="Discard changes"
+        >
+          <LuX className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onSaveTemplateClick}
+          disabled={saveDisabled}
+          className="liquid-primary-btn flex h-10 shrink-0 cursor-pointer items-center rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSavingTemplate ? "Saving..." : saveTemplateLabel}
+        </button>
       </div>
     </header>
   );
