@@ -31,8 +31,18 @@ server {
         try_files  $uri =404;
     }
 
-    # SPA: fall back to index.html so client-side (react-router) routes resolve.
+    # The service worker and manifest must NEVER be cached, otherwise a new deploy is
+    # never detected and the installed PWA only updates after a delete/reinstall. no-cache
+    # lets the browser store them but revalidate every load (cheap 304s when unchanged),
+    # so vite-plugin-pwa's autoUpdate picks up the new build on the next launch.
+    location ~* ^/(sw\.js|registerSW\.js|manifest\.webmanifest)$ {
+        add_header Cache-Control "no-cache";
+        try_files  $uri =404;
+    }
+
+    # SPA: fall back to index.html (also no-cache so the app shell is always fresh).
     location / {
+        add_header Cache-Control "no-cache";
         try_files $uri $uri/ /index.html;
     }
 }
