@@ -380,8 +380,7 @@ namespace FitMate.Web.Controllers
             {
                 if (existingRefreshToken != null)
                 {
-                    existingRefreshToken.RevokedAtUtc = DateTime.UtcNow;
-                    await DbContext.SaveChangesAsync(existingRefreshToken.UserId);
+                    await authService.RevokeRefreshTokenByIdAsync(existingRefreshToken.Id, existingRefreshToken.UserId);
                 }
 
                 return this.ReturnJsonError("Invalid refresh token.");
@@ -392,8 +391,7 @@ namespace FitMate.Web.Controllers
             {
                 if (existingRefreshToken != null)
                 {
-                    existingRefreshToken.RevokedAtUtc = DateTime.UtcNow;
-                    await DbContext.SaveChangesAsync(existingRefreshToken.UserId);
+                    await authService.RevokeRefreshTokenByIdAsync(existingRefreshToken.Id, existingRefreshToken.UserId);
                 }
 
                 return this.ReturnJsonError("Invalid token claims.");
@@ -406,23 +404,20 @@ namespace FitMate.Web.Controllers
 
             if (existingRefreshToken.UserId != tokenUserId)
             {
-                existingRefreshToken.RevokedAtUtc = DateTime.UtcNow;
-                await DbContext.SaveChangesAsync(existingRefreshToken.UserId);
+                await authService.RevokeRefreshTokenByIdAsync(existingRefreshToken.Id, existingRefreshToken.UserId);
                 return this.ReturnJsonError("Invalid token claims.");
             }
 
             if (existingRefreshToken.ExpiresAtUtc <= DateTime.UtcNow)
             {
-                existingRefreshToken.RevokedAtUtc = DateTime.UtcNow;
-                await DbContext.SaveChangesAsync(existingRefreshToken.UserId);
+                await authService.RevokeRefreshTokenByIdAsync(existingRefreshToken.Id, existingRefreshToken.UserId);
                 return this.ReturnJsonError("Refresh token expired.");
             }
 
             var user = existingRefreshToken.User;
             if (!user.IsActive)
             {
-                existingRefreshToken.RevokedAtUtc = DateTime.UtcNow;
-                await DbContext.SaveChangesAsync(existingRefreshToken.UserId);
+                await authService.RevokeRefreshTokenByIdAsync(existingRefreshToken.Id, existingRefreshToken.UserId);
                 return this.ReturnJsonError("User is inactive.");
             }
 

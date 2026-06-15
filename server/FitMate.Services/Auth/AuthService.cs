@@ -28,11 +28,17 @@ public class AuthService : IAuthService
 
     public async Task<IssuedTokens> IssueTokensAsync(User user, IReadOnlyCollection<string> roles)
     {
-        RevokeActiveTokens(user.Id);
-        PruneRefreshTokens(user.Id);
-
         var accessToken = GenerateJwtToken(user, roles, out var accessTokenExpiresAtUtc);
         var refreshToken = GenerateRefreshToken(user, roles, out var refreshTokenExpiresAtUtc);
+
+        // Rotating tokens races with itself: concurrent refreshes (multiple tabs/devices sharing one
+        // refresh-token cookie) all touch the same rows. The revoke/prune below are set-based and
+        // idempotent so a row another request already changed/deleted is a no-op, not a
+        // DbUpdateConcurrencyException. The transaction keeps "revoke old + issue new" atomic.
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        await RevokeActiveTokensAsync(user.Id);
+        await PruneRefreshTokensAsync(user.Id);
 
         dbContext.Tokens.Add(new Token
         {
@@ -49,6 +55,7 @@ public class AuthService : IAuthService
         });
 
         await dbContext.SaveChangesAsync(user.Id);
+        await transaction.CommitAsync();
 
         return new IssuedTokens(accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc);
     }
@@ -83,6 +90,21 @@ public class AuthService : IAuthService
         {
             return false;
         }
+    }
+
+    public Task RevokeRefreshTokenByIdAsync(long refreshTokenId, long actingUserId)
+    {
+        var now = DateTime.UtcNow;
+
+        // Set-based UPDATE keyed on the row id, so a row a concurrent refresh already revoked or pruned
+        // matches nothing instead of raising DbUpdateConcurrencyException. DateModified/ModifiedById are
+        // set here because ExecuteUpdate bypasses SaveChanges and therefore the timestamp/user trackers.
+        return dbContext.RefreshTokens
+            .Where(x => x.Id == refreshTokenId && x.RevokedAtUtc == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.RevokedAtUtc, now)
+                .SetProperty(x => x.DateModified, now)
+                .SetProperty(x => x.ModifiedById, actingUserId));
     }
 
     public async Task RevokeTokensAsync(string? accessToken, string? refreshToken, long? actingUserId)
@@ -142,44 +164,43 @@ public class AuthService : IAuthService
         }
     }
 
-    private void RevokeActiveTokens(long userId)
+    private async Task RevokeActiveTokensAsync(long userId)
     {
         var now = DateTime.UtcNow;
 
-        var activeTokens = dbContext.Tokens
+        // Set-based UPDATE: idempotent under concurrent refreshes (a row already revoked just matches
+        // nothing) and avoids the load-then-save round trip. DateModified/ModifiedById are set here
+        // because ExecuteUpdate bypasses SaveChanges and therefore the timestamp/user trackers.
+        await dbContext.Tokens
             .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ExpiresAtUtc > now)
-            .ToList();
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.RevokedAtUtc, now)
+                .SetProperty(x => x.DateModified, now)
+                .SetProperty(x => x.ModifiedById, userId));
 
-        foreach (var activeToken in activeTokens)
-        {
-            activeToken.RevokedAtUtc = now;
-        }
-
-        var activeRefreshTokens = dbContext.RefreshTokens
+        await dbContext.RefreshTokens
             .Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ExpiresAtUtc > now)
-            .ToList();
-
-        foreach (var activeRefreshToken in activeRefreshTokens)
-        {
-            activeRefreshToken.RevokedAtUtc = now;
-        }
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.RevokedAtUtc, now)
+                .SetProperty(x => x.DateModified, now)
+                .SetProperty(x => x.ModifiedById, userId));
     }
 
-    private void PruneRefreshTokens(long userId)
+    private async Task PruneRefreshTokensAsync(long userId)
     {
         // Keep only the newest (MaxRefreshTokensPerUser - 1) existing rows for the user. The caller adds one
         // brand-new refresh token in the same SaveChanges, so the post-save total stays at MaxRefreshTokensPerUser.
         // Without this the table gains a permanent row on every login/refresh and is never cleaned up.
-        var staleRefreshTokens = dbContext.RefreshTokens
+        // Set-based DELETE so a row a concurrent refresh already removed is a no-op, not a concurrency error.
+        var keepIds = dbContext.RefreshTokens
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.Id)
-            .Skip(MaxRefreshTokensPerUser - 1)
-            .ToList();
+            .Take(MaxRefreshTokensPerUser - 1)
+            .Select(x => x.Id);
 
-        if (staleRefreshTokens.Count > 0)
-        {
-            dbContext.RefreshTokens.RemoveRange(staleRefreshTokens);
-        }
+        await dbContext.RefreshTokens
+            .Where(x => x.UserId == userId && !keepIds.Contains(x.Id))
+            .ExecuteDeleteAsync();
     }
 
     private async Task RevokeTokenIfActiveAsync(string? token, DateTime revokedAtUtc)
