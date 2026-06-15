@@ -632,6 +632,8 @@ textarea { resize: none; }
 .liquid-mobile-header { border-bottom: 1px solid var(--glass-border); }
 
 .liquid-mobile-bottom-nav-shell {
+  /* Floating pill, sat low: a small gap above the bottom edge (+ the home-indicator inset
+     when it's live). NOT a big lift — that's what read as "pushed up". */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
 }
 
@@ -709,13 +711,13 @@ textarea { resize: none; }
   }
 }
 
-/* PWA status-bar blend: in standalone (apple status bar is translucent), push content below
-   the status bar so the .liquid-shell scene gradient shows through it. Scoped to standalone
-   so regular browser tabs are unaffected. */
-@media (display-mode: standalone) {
-  .pwa-safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
+/* PWA status-bar clearance: iOS standalone uses a translucent status bar (black-translucent),
+   so content extends under it. Pad the shell down by the top safe-area inset so nothing sits
+   beneath the bar; the .liquid-shell scene gradient shows through behind it. Mirrors how
+   FitnessApp-Client applies `padding-top: env(safe-area-inset-top)` to <body>. Insets are 0
+   in normal browser tabs (no viewport-fit=cover), so this is a no-op there. */
+.pwa-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .liquid-page-header {
