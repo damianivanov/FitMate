@@ -217,7 +217,7 @@ export function ExerciseSetRow({
       ].join(" ")}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        {gripButton ?? indexLabel}
+        {indexLabel}
 
         <div className={gridClass}>
           <button

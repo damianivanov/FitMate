@@ -59,7 +59,7 @@ export function PreviousSetsButton({ previousSets, exerciseName, onFastAdd }: Pr
         ref={setTriggerElement}
         type="button"
         className={[
-          "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9",
+          "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary",
           isOpen ? "bg-primary-100 text-primary ring-1 ring-primary-400 hover:bg-primary-100" : "",
         ].join(" ")}
         aria-label={isOpen ? `Hide last sets for ${exerciseName}` : `Show last sets for ${exerciseName}`}
@@ -92,7 +92,7 @@ export function PreviousSetsButton({ previousSets, exerciseName, onFastAdd }: Pr
               <button
                 type="button"
                 onClick={handleFastAddClick}
-                className="flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-green-400/40 bg-green-100/10 px-2.5 text-2xs font-semibold text-green-400 transition hover:bg-green-100/20 hover:text-green-300"
+                className="flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-primary-300 bg-primary-100/10 px-2.5 text-2xs font-semibold text-primary transition hover:bg-primary-100/20 hover:text-primary-700"
                 aria-label={`Add last sets to ${exerciseName}`}
                 title="Add these sets"
               >

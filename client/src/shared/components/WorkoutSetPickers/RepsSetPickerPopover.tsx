@@ -54,7 +54,7 @@ export function RepsSetPickerPopover({
       anchorElement={anchorElement}
       desktopWidthClassName="w-64"
     >
-      <div className="liquid-input rounded-3xl px-4 pb-4 pt-4 text-center">
+      <div className="text-center">
         <div className="mono flex h-14 items-center justify-center text-5xl font-bold leading-none text-foreground tabular-nums">
           {boundedValue}
         </div>

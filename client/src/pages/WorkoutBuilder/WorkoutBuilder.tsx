@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LuArrowLeft, LuChevronDown, LuRefreshCw } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import {
@@ -67,6 +67,7 @@ export default function WorkoutBuilder({
     : undefined;
   const { state, actions } = useTemplateWorkoutBuilderPage(hookOptions);
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
+  const [isReorderMode, setIsReorderMode] = useState(false);
   const leadingAction = isSheet
     ? WorkoutHeaderLeadingAction.Minimize
     : WorkoutHeaderLeadingAction.Back;
@@ -173,7 +174,9 @@ export default function WorkoutBuilder({
   if (!draft || !summary) {
     return (
       <>
-        <header className="liquid-page-header flex items-center gap-3 px-4 py-3 md:px-8">
+        <header
+          className={`flex items-center gap-3 px-4 py-3 md:px-8 ${isSheet ? "" : "liquid-page-header"}`}
+        >
           <button
             type="button"
             onClick={actions.handleBackClick}
@@ -216,6 +219,11 @@ export default function WorkoutBuilder({
     );
   }
 
+  // Exercise reordering on the mobile sheet is opt-in: a toggle in the summary reveals the
+  // drag handles (otherwise hidden to keep the cards clean). Desktop keeps handles always on.
+  const canReorderExercises = isMobileViewport && summary.exerciseCount > 1;
+  const isReorderingExercises = canReorderExercises && isReorderMode;
+
   return (
     <>
       <WorkoutSessionHeader
@@ -237,18 +245,21 @@ export default function WorkoutBuilder({
       <div
         className={
           isSheet
-            ? "px-3 pb-24 pt-4"
+            ? "px-4 pb-24 pt-4"
             : "liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6"
         }
       >
         <div className="w-full space-y-6">
-          <section className="min-w-0 md:space-y-4">
+          <section className="min-w-0 space-y-4">
             <WorkoutSessionSummary
               templateName={draft.templateName ?? draft.title}
               startedAt={draft.startedAt}
               notes={draft.notes}
               elapsedSeconds={elapsedSeconds}
               summary={summary}
+              showReorderToggle={canReorderExercises}
+              isReorderMode={isReorderingExercises}
+              onToggleReorderMode={() => setIsReorderMode((previous) => !previous)}
               onNotesChange={actions.handleWorkoutNotesChange}
               onNotesCommit={actions.handleWorkoutNotesCommit}
             />
@@ -258,6 +269,7 @@ export default function WorkoutBuilder({
               capabilities={WORKOUT_CAPABILITIES}
               callbacks={callbacks}
               isInteractionLocked={isAddExerciseModalOpen || activeQuickSetPopoverContext !== null}
+              reorderMode={isMobileViewport ? isReorderingExercises : undefined}
             />
           </section>
         </div>

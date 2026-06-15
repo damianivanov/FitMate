@@ -172,7 +172,7 @@ export function DurationSetPickerPopover({
       anchorElement={anchorElement}
       desktopWidthClassName="w-fit min-w-80"
     >
-      <div className="rounded-3xl liquid-input px-4 pb-4 pt-3 text-center">
+      <div className="text-center">
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
@@ -220,7 +220,10 @@ export function DurationSetPickerPopover({
               />
             </svg>
 
-            <div className="liquid-input pointer-events-none absolute inset-3 flex flex-col items-center justify-center rounded-full">
+            <div
+              className="pointer-events-none absolute inset-3 flex flex-col items-center justify-center rounded-full border border-(--input-border)"
+              style={{ background: "var(--glass-bg-soft)" }}
+            >
               <span className="mono text-3xl font-bold leading-none text-foreground tabular-nums">
                 {boundedValue}
               </span>

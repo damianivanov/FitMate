@@ -49,14 +49,14 @@ export function WorkoutSessionHeader({
     : (isSavingWorkout ? "Starting" : "Start");
 
   return (
-    <header className="liquid-page-header px-4 py-2 md:px-8 md:py-3">
+    <header
+      className={`px-4 py-2 md:px-8 md:py-3 ${isMinimizeAction ? "" : "liquid-page-header"}`}
+    >
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={onBackClick}
-          className={`liquid-pill flex shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition ${
-            isMinimizeAction ? "h-11 w-11" : "h-8 w-8 md:h-9 md:w-9"
-          }`}
+          className="liquid-pill flex shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition h-10 w-10"
           aria-label={isMinimizeAction ? "Minimize workout" : "Back to templates"}
         >
           {isMinimizeAction ? (
@@ -89,7 +89,7 @@ export function WorkoutSessionHeader({
             type="button"
             onClick={onDeleteWorkout}
             disabled={isDeletingWorkout || isSavingWorkout}
-            className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-danger disabled:cursor-not-allowed disabled:opacity-60"
+            className="liquid-pill inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-danger disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Delete workout"
             title="Delete workout"
           >

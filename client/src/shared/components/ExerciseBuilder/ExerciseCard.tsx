@@ -33,12 +33,16 @@ import {
   LuChevronDown,
   LuEllipsis,
   LuGripVertical,
+  LuLayers,
+  LuNotebookPen,
   LuPlus,
   LuSlidersHorizontal,
   LuTrash2,
+  LuX,
 } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { SortableHandleItem, useDndSensors } from "@/shared/components/Dnd";
+import { Modal } from "../Modal";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
 import { PreviousSetsButton } from "./PreviousSetsButton";
@@ -61,6 +65,11 @@ type ExerciseCardProps = {
   setDragHandleRef?: (element: HTMLElement | null) => void;
   isDragging?: boolean;
   isDragOverlay?: boolean;
+  /**
+   * Gates the exercise drag handle behind a reorder mode. `undefined` (desktop /
+   * template builder) always shows it; when defined, it only shows while `true`.
+   */
+  reorderMode?: boolean;
 };
 
 export function ExerciseCard({
@@ -71,11 +80,13 @@ export function ExerciseCard({
   setDragHandleRef,
   isDragging = false,
   isDragOverlay = false,
+  reorderMode,
 }: ExerciseCardProps) {
   const dndSensors = useDndSensors();
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
 
   const [isExerciseMenuOpen, setIsExerciseMenuOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isNotesVisible, setIsNotesVisible] = useState(() => exercise.notes.trim().length > 0);
   const [isSetEditMode, setIsSetEditMode] = useState(false);
   const [showAllSets, setShowAllSets] = useState(false);
@@ -98,6 +109,12 @@ export function ExerciseCard({
     exercise.sets.length > 0 && exercise.sets.every((set) => set.isCompleted);
   const canCreateExerciseGroup =
     exercise.groupId == null || exercise.groupType === ExerciseGroupType.Straight;
+  // `reorderMode === false` hides the handle (reorder mode off); `undefined` keeps it always on.
+  const showDragHandle = capabilities.allowExerciseDnd && reorderMode !== false;
+  // The "ready" (complete-all) control sits at the front; it only yields its slot while
+  // actively reordering (a mobile-only state). `undefined`/`false` reorderMode => still shown,
+  // so the desktop builder (handles always on) keeps the complete button.
+  const showCompleteButton = capabilities.showCompletionCheckbox && reorderMode !== true;
 
   const showRest = capabilities.showRestColumn;
   const showRpe = capabilities.showRpeColumn;
@@ -150,6 +167,7 @@ export function ExerciseCard({
 
   const handleSetEditToggleClick = () => {
     setIsSetEditMode((previous) => !previous);
+    handleExerciseMenuClose();
   };
 
   const handleCollapseClick = () => {
@@ -246,14 +264,33 @@ export function ExerciseCard({
               : "text-secondary hover:bg-white/8",
           ].join(" ")}
         >
+          <LuNotebookPen className="h-4 w-4" />
           <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
         </button>
+        {hasSetEditing ? (
+          <button
+            type="button"
+            onClick={handleSetEditToggleClick}
+            className={[
+              "mt-1",
+              menuActionClassName,
+              isSetEditMode
+                ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
+                : "text-secondary hover:bg-white/8",
+            ].join(" ")}
+            aria-pressed={isSetEditMode}
+          >
+            <LuSlidersHorizontal className="h-4 w-4" />
+            <span>{isSetEditMode ? "Done editing sets" : "Edit sets"}</span>
+          </button>
+        ) : null}
         {canCreateExerciseGroup ? (
           <button
             type="button"
             onClick={handleCreateSupersetClick}
             className={["mt-1", menuActionClassName, "text-secondary hover:bg-white/8"].join(" ")}
           >
+            <LuLayers className="h-4 w-4" />
             <span>Create Superset</span>
           </button>
         ) : null}
@@ -334,9 +371,9 @@ export function ExerciseCard({
           isDragging && !isDragOverlay ? "opacity-25" : "opacity-100",
         ].join(" ")}
       >
-        <div className={`px-3 py-2.5 md:px-4 md:py-3 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
+        <div className={`py-2 pl-2 pr-3 md:py-2.5 md:pl-3 md:pr-4 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
           <div className="flex items-center gap-2">
-            {capabilities.allowExerciseDnd ? (
+            {showDragHandle ? (
               <button
                 type="button"
                 ref={(element) => setDragHandleRef?.(element)}
@@ -344,21 +381,49 @@ export function ExerciseCard({
                 onMouseDown={handleDragHandleMouseDown}
                 onTouchStart={handleDragHandleTouchStart}
                 onKeyDown={handleDragHandleKeyDown}
-                className="inline-flex h-7 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:cursor-grabbing"
+                className="inline-flex h-10 w-10 shrink-0 cursor-grab touch-none items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 active:cursor-grabbing"
                 aria-label={`Drag to reorder ${exercise.displayName}`}
               >
                 <LuGripVertical className="h-5 w-5" />
               </button>
             ) : null}
-            {exercise.imageUrl ? (
-              <img
-                src={exercise.imageUrl}
-                alt=""
-                className="h-7 w-7 shrink-0 rounded-lg object-cover"
-                loading="lazy"
-              />
+            {showCompleteButton ? (
+              <button
+                type="button"
+                onClick={() => callbacks.onCompleteExercise?.(exercise.id)}
+                className={[
+                  "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-95",
+                  isExerciseCompleted
+                    ? "border-success bg-success/15 text-success"
+                    : "border-(--glass-divider) text-secondary hover:border-success/60 hover:text-success",
+                ].join(" ")}
+                aria-pressed={isExerciseCompleted}
+                aria-label={
+                  isExerciseCompleted
+                    ? `Mark ${exercise.displayName} not done`
+                    : `Mark all sets in ${exercise.displayName} done`
+                }
+                title={isExerciseCompleted ? "Completed — tap to undo" : "Mark all sets done"}
+              >
+                <LuCheck className="h-4 w-4" />
+              </button>
             ) : null}
-            {isExerciseCompleted ? (
+            {exercise.imageUrl ? (
+              <button
+                type="button"
+                onClick={() => setIsImageModalOpen(true)}
+                className="shrink-0 cursor-zoom-in overflow-hidden rounded-xl transition active:scale-95"
+                aria-label={`View ${exercise.displayName} image`}
+              >
+                <img
+                  src={exercise.imageUrl}
+                  alt=""
+                  className="h-14 w-14 object-cover"
+                  loading="lazy"
+                />
+              </button>
+            ) : null}
+            {isExerciseCompleted && !showCompleteButton ? (
               <span
                 className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
                 aria-hidden="true"
@@ -386,27 +451,6 @@ export function ExerciseCard({
               </span>
             )}
             <div className="flex shrink-0 items-center gap-0.5">
-              {capabilities.showCompletionCheckbox ? (
-                <button
-                  type="button"
-                  onClick={() => callbacks.onCompleteExercise?.(exercise.id)}
-                  className={[
-                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-95 md:h-9 md:w-9",
-                    isExerciseCompleted
-                      ? "border-success bg-success/15 text-success"
-                      : "border-(--glass-divider) text-secondary hover:border-success/60 hover:text-success",
-                  ].join(" ")}
-                  aria-pressed={isExerciseCompleted}
-                  aria-label={
-                    isExerciseCompleted
-                      ? `Mark ${exercise.displayName} not done`
-                      : `Mark all sets in ${exercise.displayName} done`
-                  }
-                  title={isExerciseCompleted ? "Completed — tap to undo" : "Mark all sets done"}
-                >
-                  <LuCheck className="h-4 w-4" />
-                </button>
-              ) : null}
               {showPreviousSets && previousSets ? (
                 <PreviousSetsButton
                   previousSets={previousSets}
@@ -414,25 +458,10 @@ export function ExerciseCard({
                   onFastAdd={() => callbacks.onApplyPreviousSets?.(exercise.id)}
                 />
               ) : null}
-              {hasSetEditing ? (
-                <button
-                  type="button"
-                  onClick={handleSetEditToggleClick}
-                  className={[
-                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9",
-                    isSetEditMode ? "bg-primary-100 text-primary ring-1 ring-primary-400 hover:bg-primary-100" : "",
-                  ].join(" ")}
-                  aria-pressed={isSetEditMode}
-                  aria-label={isSetEditMode ? "Hide set edit controls" : "Show set edit controls"}
-                  title={isSetEditMode ? "Hide set editing" : "Edit sets"}
-                >
-                  <LuSlidersHorizontal className="h-4 w-4" />
-                </button>
-              ) : null}
               <button
                 ref={setMenuTriggerElement}
                 type="button"
-                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:h-9 md:w-9"
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary"
                 aria-label={isExerciseMenuOpen ? `Close ${exercise.displayName} menu` : `Open ${exercise.displayName} menu`}
                 {...getReferenceProps({ onClick: handleExerciseMenuToggleClick })}
               >
@@ -442,7 +471,7 @@ export function ExerciseCard({
                 <button
                   type="button"
                   onClick={handleCollapseClick}
-                  className="shrink-0 cursor-pointer rounded-full border-none bg-transparent p-1.5 text-secondary transition hover:bg-white/8 hover:text-primary md:hidden"
+                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary md:hidden"
                   aria-label={isCollapsed ? "Expand exercise card" : "Collapse exercise card"}
                 >
                   <LuChevronDown className={`h-5 w-5 transition-transform ${isCollapsed ? "rotate-0" : "rotate-180"}`} />
@@ -471,11 +500,7 @@ export function ExerciseCard({
               aria-hidden={isSetEditMode ? true : undefined}
             >
                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                  {capabilities.allowSetDnd ? (
-                    <span className="w-6 shrink-0" />
-                  ) : (
-                    <span className="mono w-7 shrink-0 whitespace-nowrap text-center text-2xs font-semibold" />
-                  )}
+                  <span className="mono w-7 shrink-0 whitespace-nowrap text-center text-2xs font-semibold" />
                   <div className={headerGridClass}>
                     <span className="block w-full text-center text-secondary">Weight</span>
                     <button
@@ -524,7 +549,7 @@ export function ExerciseCard({
             <button
               type="button"
               onClick={handleAddSetClick}
-              className="mt-3 flex w-full cursor-pointer items-center justify-center rounded-xl border border-(--glass-divider) border-dashed bg-(--glass-bg-soft) p-1 text-green-400 transition hover:bg-green-100/20 hover:text-green-300 sm:px-2 sm:py-1.5"
+              className="mt-3 flex w-full cursor-pointer items-center justify-center rounded-xl border border-primary-300 border-dashed bg-(--glass-bg-soft) px-2 py-3 text-primary transition hover:bg-primary-100/20 hover:text-primary-700"
               aria-label="Add set"
             >
               <LuPlus className="h-5 w-5" />
@@ -533,6 +558,30 @@ export function ExerciseCard({
         ) : null}
       </article>
       {exerciseMenu}
+      {exercise.imageUrl ? (
+        <Modal
+          isOpen={isImageModalOpen}
+          onClose={() => setIsImageModalOpen(false)}
+          maxWidth="lg"
+          variant="image"
+        >
+          <div className="relative p-0">
+            <img
+              src={exercise.imageUrl}
+              alt={exercise.displayName}
+              className="block max-h-[80vh] w-full rounded-2xl object-contain"
+            />
+            <button
+              type="button"
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+              aria-label={`Close ${exercise.displayName} image`}
+            >
+              <LuX className="h-4 w-4" />
+            </button>
+          </div>
+        </Modal>
+      ) : null}
     </>
   );
 }

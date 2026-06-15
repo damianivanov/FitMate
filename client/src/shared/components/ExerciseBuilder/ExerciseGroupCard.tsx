@@ -39,6 +39,7 @@ type ExerciseGroupCardProps = {
   callbacks: ExerciseBuilderCallbacks;
   isInteractionLocked: boolean;
   isMobileViewport: boolean;
+  reorderMode?: boolean;
 };
 
 export function ExerciseGroupCard({
@@ -47,6 +48,7 @@ export function ExerciseGroupCard({
   callbacks,
   isInteractionLocked,
   isMobileViewport,
+  reorderMode,
 }: ExerciseGroupCardProps) {
   const dndSensors = useDndSensors();
 
@@ -170,6 +172,7 @@ export function ExerciseGroupCard({
             dragHandleProps={dragHandleProps}
             setDragHandleRef={setDragHandleRef}
             isDragging={isDragging || activeDragMemberId === exercise.id}
+            reorderMode={reorderMode}
           />
         )}
       </SortableHandleItem>
@@ -204,6 +207,7 @@ export function ExerciseGroupCard({
                   capabilities={capabilities}
                   callbacks={callbacks}
                   isDragOverlay
+                  reorderMode={reorderMode}
                 />
               ) : null}
             </DragOverlay>,

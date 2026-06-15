@@ -12,6 +12,8 @@ import { lockBodyScroll, unlockBodyScroll } from "@/shared/utils/bodyScrollLock"
 
 type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "default";
 
+type ModalVariant = "default" | "image";
+
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +21,11 @@ type ModalProps = {
   titleIcon?: ReactNode;
   children: ReactNode;
   maxWidth?: ModalSize;
+  /**
+   * "image" renders no header/close chrome at all — the caller supplies its own layout
+   * (e.g. a padded photo with a close button floating on its corner).
+   */
+  variant?: ModalVariant;
 };
 
 const EXIT_DURATION_MS = 220;
@@ -41,6 +48,7 @@ export function Modal({
   titleIcon,
   children,
   maxWidth = "default",
+  variant = "default",
 }: ModalProps) {
   const [isMounted, setIsMounted] = useState(isOpen);
   const [isVisible, setIsVisible] = useState(false);
@@ -167,7 +175,7 @@ export function Modal({
         className={panelClassName}
         onTransitionEnd={handlePanelTransitionEnd}
       >
-        {title ? (
+        {variant === "image" ? null : title ? (
           <div className="liquid-divider flex items-center justify-between gap-3 border-b px-5 py-4">
             <div className="flex min-w-0 items-center gap-2">
               {titleIcon ? (

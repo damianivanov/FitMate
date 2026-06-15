@@ -1,5 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 import {
+  LuArrowDownUp,
+  LuCheck,
   LuChevronDown,
   LuClock,
   LuDumbbell,
@@ -16,6 +18,9 @@ type WorkoutSessionSummaryProps = {
   notes: string;
   elapsedSeconds: number;
   summary: WorkoutSummary;
+  showReorderToggle?: boolean;
+  isReorderMode?: boolean;
+  onToggleReorderMode?: () => void;
   onNotesChange: (value: string) => void;
   onNotesCommit: () => void;
 };
@@ -44,6 +49,9 @@ export function WorkoutSessionSummary({
   notes,
   elapsedSeconds,
   summary,
+  showReorderToggle = false,
+  isReorderMode = false,
+  onToggleReorderMode,
   onNotesChange,
   onNotesCommit,
 }: WorkoutSessionSummaryProps) {
@@ -68,14 +76,14 @@ export function WorkoutSessionSummary({
 
   return (
     <aside className="liquid-panel rounded-2xl p-1.5 md:rounded-lg md:p-2">
-      <button
-        type="button"
-        onClick={handleSummaryToggle}
-        className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-white/8"
-        aria-expanded={isExpanded}
-        aria-label={isExpanded ? "Hide workout details" : "Show workout details"}
-      >
-        <span className="grid min-w-0 grid-cols-[auto_1fr] items-center gap-3 md:flex md:gap-4">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleSummaryToggle}
+          className="grid min-w-0 flex-1 cursor-pointer grid-cols-[auto_1fr] items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-white/8 md:flex md:gap-4"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Hide workout details" : "Show workout details"}
+        >
           <span className="min-w-24 shrink-0 text-lg font-bold tabular-nums text-primary md:min-w-0 md:text-base">
             {formatElapsedTime(elapsedSeconds)}
           </span>
@@ -94,14 +102,47 @@ export function WorkoutSessionSummary({
               </span>
             ) : null}
           </span>
-        </span>
-        <LuChevronDown
-          className={[
-            "h-4 w-4 shrink-0 text-muted transition-transform",
-            isExpanded ? "rotate-180" : "rotate-0",
-          ].join(" ")}
-        />
-      </button>
+        </button>
+
+        {showReorderToggle ? (
+          <button
+            type="button"
+            onClick={onToggleReorderMode}
+            className={
+              isReorderMode
+                ? "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary-100 px-3 text-sm font-semibold text-primary-900 transition hover:bg-primary-100"
+                : "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary"
+            }
+            aria-pressed={isReorderMode}
+            aria-label={isReorderMode ? "Finish reordering exercises" : "Reorder exercises"}
+            title={isReorderMode ? "Finish reordering" : "Reorder exercises"}
+          >
+            {isReorderMode ? (
+              <>
+                <LuCheck className="h-4 w-4" />
+                <span>Done</span>
+              </>
+            ) : (
+              <LuArrowDownUp className="h-4 w-4" />
+            )}
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={handleSummaryToggle}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-primary"
+        >
+          <LuChevronDown
+            className={[
+              "h-4 w-4 transition-transform",
+              isExpanded ? "rotate-180" : "rotate-0",
+            ].join(" ")}
+          />
+        </button>
+      </div>
 
       {isExpanded ? (
         <div className="px-2 pb-2 pt-3 md:px-3 md:pb-3">

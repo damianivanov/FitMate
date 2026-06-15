@@ -31,6 +31,12 @@ type ExerciseBoardProps = {
   capabilities: ExerciseBuilderCapabilities;
   callbacks: ExerciseBuilderCallbacks;
   isInteractionLocked: boolean;
+  /**
+   * Gates the per-exercise drag handles behind a reorder mode. When `undefined`
+   * (e.g. the desktop/template builder) handles are always shown; when defined,
+   * handles only appear while `true`.
+   */
+  reorderMode?: boolean;
 };
 
 export function ExerciseBoard({
@@ -38,6 +44,7 @@ export function ExerciseBoard({
   capabilities,
   callbacks,
   isInteractionLocked,
+  reorderMode,
 }: ExerciseBoardProps) {
   const dndSensors = useDndSensors();
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
@@ -137,6 +144,7 @@ export function ExerciseBoard({
             dragHandleProps={dragHandleProps}
             setDragHandleRef={setDragHandleRef}
             isDragging={isDragging || activeDragExerciseId === exercise.id}
+            reorderMode={reorderMode}
           />
         )}
       </SortableHandleItem>
@@ -158,6 +166,7 @@ export function ExerciseBoard({
             callbacks={callbacks}
             isInteractionLocked={isInteractionLocked}
             isMobileViewport={isMobileViewport}
+            reorderMode={reorderMode}
           />
         );
       })}
@@ -194,6 +203,7 @@ export function ExerciseBoard({
                       capabilities={capabilities}
                       callbacks={callbacks}
                       isDragOverlay
+                      reorderMode={reorderMode}
                     />
                   ) : null}
                 </DragOverlay>,

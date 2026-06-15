@@ -173,7 +173,7 @@ export function WeightSetPickerPopover({
       anchorElement={anchorElement}
       desktopWidthClassName="w-72"
     >
-      <div className="liquid-input rounded-3xl px-4 pb-4 pt-4 text-center">
+      <div className="text-center">
         {/* Big, tappable value */}
         <div className="flex flex-col items-center">
           {isEditingValue ? (

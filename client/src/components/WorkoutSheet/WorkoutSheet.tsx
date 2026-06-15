@@ -137,8 +137,11 @@ export function WorkoutSheet({
       >
         <div
           {...dragHandlers}
-          style={{ touchAction: "none", paddingTop: "env(safe-area-inset-top, 0px)" }}
-          className="flex shrink-0 cursor-grab items-center justify-center py-2 active:cursor-grabbing"
+          style={{
+            touchAction: "none",
+            paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.875rem)",
+          }}
+          className="flex shrink-0 cursor-grab items-center justify-center pb-2.5 active:cursor-grabbing"
         >
           <span className="liquid-sheet-handle" aria-hidden="true" />
         </div>
