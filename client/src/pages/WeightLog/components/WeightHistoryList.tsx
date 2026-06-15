@@ -5,6 +5,8 @@ import type { BodyMetricEntry } from "@/types";
 type WeightHistoryListProps = {
   entries: BodyMetricEntry[];
   deletingId: number | null;
+  hasMore: boolean;
+  onLoadMore: () => void;
   onDelete: (entry: BodyMetricEntry) => void;
 };
 
@@ -19,48 +21,65 @@ function formatEntryDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : DATE_FORMATTER.format(date);
 }
 
-export function WeightHistoryList({ entries, deletingId, onDelete }: WeightHistoryListProps) {
+export function WeightHistoryList({
+  entries,
+  deletingId,
+  hasMore,
+  onLoadMore,
+  onDelete,
+}: WeightHistoryListProps) {
   return (
-    <ul className="space-y-2">
-      {entries.map((entry) => {
-        const isDeleting = deletingId === entry.id;
+    <div>
+      <ul className="divide-y divide-(--glass-divider)">
+        {entries.map((entry) => {
+          const isDeleting = deletingId === entry.id;
 
-        return (
-          <li
-            key={entry.id}
-            className="liquid-panel flex items-start justify-between gap-3 rounded-xl px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-baseline gap-x-2 text-base font-bold text-foreground">
-                <span>{entry.bodyWeightKg != null ? `${formatNumber(entry.bodyWeightKg, 1)} kg` : "—"}</span>
-                {entry.bodyFatPercentage != null ? (
-                  <span className="text-xs font-semibold text-secondary">
-                    {formatNumber(entry.bodyFatPercentage, 1)}% fat
+          return (
+            <li key={entry.id} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="flex items-baseline gap-2">
+                  <span className="text-sm font-bold tabular-nums text-foreground">
+                    {entry.bodyWeightKg != null ? `${formatNumber(entry.bodyWeightKg, 1)} kg` : "—"}
                   </span>
-                ) : null}
-              </p>
-              <p className="mt-0.5 text-xs text-secondary">{formatEntryDate(entry.loggedAt)}</p>
-              {entry.notes ? (
-                <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted">{entry.notes}</p>
-              ) : null}
-            </div>
+                  {entry.bodyFatPercentage != null ? (
+                    <span className="text-2xs font-medium text-muted">
+                      {formatNumber(entry.bodyFatPercentage, 1)}%
+                    </span>
+                  ) : null}
+                </p>
+                <p className="truncate text-2xs text-muted">
+                  {formatEntryDate(entry.loggedAt)}
+                  {entry.notes ? ` · ${entry.notes}` : ""}
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => onDelete(entry)}
-              disabled={isDeleting}
-              aria-label="Delete entry"
-              className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary transition hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isDeleting ? (
-                <LuLoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <LuTrash2 className="h-4 w-4" />
-              )}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+              <button
+                type="button"
+                onClick={() => onDelete(entry)}
+                disabled={isDeleting}
+                aria-label="Delete entry"
+                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition hover:bg-white/8 hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting ? (
+                  <LuLoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LuTrash2 className="h-4 w-4" />
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {hasMore ? (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="mt-2 w-full cursor-pointer rounded-full py-2 text-xs font-semibold uppercase tracking-wide text-secondary transition hover:text-primary"
+        >
+          Load more
+        </button>
+      ) : null}
+    </div>
   );
 }

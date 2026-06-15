@@ -5,6 +5,8 @@ import { unwrap } from "@/lib/unwrap";
 import { bodyMetricService } from "@/services/bodyMetricService";
 import type { BodyMetricEntry } from "@/types";
 
+const WEIGHT_PAGE_SIZE = 10;
+
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
@@ -36,6 +38,8 @@ export function useWeightLogPage() {
   const [bodyFat, setBodyFat] = useState(0);
   const [note, setNote] = useState("");
   const [isLogging, setIsLogging] = useState(false);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(WEIGHT_PAGE_SIZE);
 
   const [entryPendingDelete, setEntryPendingDelete] = useState<BodyMetricEntry | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -75,10 +79,10 @@ export function useWeightLogPage() {
     if (latest.bodyWeightKg != null) {
       setWeightKg(latest.bodyWeightKg);
     }
-    if (latest.bodyFatPercentage != null) {
-      setBodyFat(latest.bodyFatPercentage);
-    }
   }, [entries]);
+
+  const visibleEntries = useMemo(() => entries.slice(0, visibleCount), [entries, visibleCount]);
+  const hasMoreEntries = entries.length > visibleCount;
 
   const chartPoints = useMemo(
     () =>
@@ -122,6 +126,7 @@ export function useWeightLogPage() {
 
       setAllEntries((current) => [entry, ...(current ?? [])]);
       setNote("");
+      setIsLogModalOpen(false);
       toast.success("Weight logged.");
     } catch (logError) {
       toast.error(logError instanceof Error ? logError.message : "Unable to log weight.");
@@ -174,12 +179,15 @@ export function useWeightLogPage() {
   const state = useMemo(
     () => ({
       entries,
+      visibleEntries,
+      hasMoreEntries,
       isLoading,
       error,
       weightKg,
       bodyFat,
       note,
       isLogging,
+      isLogModalOpen,
       chartPoints,
       latestWeight,
       weightChange,
@@ -191,12 +199,15 @@ export function useWeightLogPage() {
     }),
     [
       entries,
+      visibleEntries,
+      hasMoreEntries,
       isLoading,
       error,
       weightKg,
       bodyFat,
       note,
       isLogging,
+      isLogModalOpen,
       chartPoints,
       latestWeight,
       weightChange,
@@ -212,6 +223,9 @@ export function useWeightLogPage() {
       setBodyFat,
       setNote,
       log,
+      openLogModal: () => setIsLogModalOpen(true),
+      closeLogModal: () => setIsLogModalOpen(false),
+      loadMore: () => setVisibleCount((count) => count + WEIGHT_PAGE_SIZE),
       requestDelete,
       cancelDelete,
       confirmDelete,
