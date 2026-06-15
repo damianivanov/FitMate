@@ -37,7 +37,7 @@ export default function AdminPanel() {
             <Link
               key={item.to}
               to={item.to}
-              className="liquid-pill block rounded-2xl p-4 transition hover:-translate-y-0.5"
+              className="liquid-pill block rounded-2xl p-4 transition [@media(hover:hover)and(pointer:fine)]:hover:-translate-y-0.5"
             >
               <p className="text-base font-semibold text-primary">{item.title}</p>
               <p className="mt-1 text-sm text-secondary">{item.description}</p>

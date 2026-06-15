@@ -102,7 +102,7 @@ export function TemplateListItem({
     <article
       className={[
         "liquid-panel w-full rounded-2xl p-4 transition",
-        isSelected ? "border-primary-300 bg-primary-100/15" : "hover:-translate-y-0.5 hover:border-primary-300/60",
+        isSelected ? "border-primary-300 bg-primary-100/15" : "hover:border-primary-300/60 [@media(hover:hover)and(pointer:fine)]:hover:-translate-y-0.5",
       ].join(" ")}
       aria-current={isSelected}
     >

@@ -52,7 +52,7 @@ export function ActionMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
   const [panelElement, setPanelElement] = useState<HTMLDivElement | null>(null);
-  const { floatingStyles, context, isPositioned } = useFloating({
+  const { floatingStyles, context, isPositioned, placement: resolvedPlacement } = useFloating({
     open: isOpen,
     onOpenChange: setIsOpen,
     strategy: "fixed",
@@ -93,30 +93,40 @@ export function ActionMenu({
       </button>
       {isOpen ? (
         <FloatingPortal>
+          {/* Outer = floating-ui positioning (transform). Inner = origin-aware entrance
+              (its own transform) so the keyframe doesn't fight the positioning transform. */}
           <div
             ref={setPanelElement}
-            role="menu"
-            className={`liquid-user-menu z-420 rounded-2xl p-2 ${menuWidthClassName}`}
+            className="z-420"
             style={{ ...floatingStyles, visibility: isPositioned ? "visible" : "hidden" }}
             {...getFloatingProps()}
           >
-            {items.map((item, index) => (
-              <button
-                key={item.key}
-                type="button"
-                role="menuitem"
-                onClick={() => handleItemSelect(item)}
-                disabled={item.disabled}
-                className={[
-                  index === 0 ? "" : item.variant === "danger" ? "mt-2" : "mt-1",
-                  MENU_ITEM_CLASS_NAME,
-                  VARIANT_CLASS_NAME[item.variant ?? "default"],
-                ].join(" ")}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
+            <div
+              role="menu"
+              className={`liquid-user-menu rounded-2xl p-2 ${menuWidthClassName} ${
+                resolvedPlacement.startsWith("top")
+                  ? "origin-bottom lookup-dropdown-menu-enter-up"
+                  : "origin-top lookup-dropdown-menu-enter-down"
+              }`}
+            >
+              {items.map((item, index) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleItemSelect(item)}
+                  disabled={item.disabled}
+                  className={[
+                    index === 0 ? "" : item.variant === "danger" ? "mt-2" : "mt-1",
+                    MENU_ITEM_CLASS_NAME,
+                    VARIANT_CLASS_NAME[item.variant ?? "default"],
+                  ].join(" ")}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </FloatingPortal>
       ) : null}

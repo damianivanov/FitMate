@@ -12,7 +12,7 @@ type MobileBottomNavProps = {
 };
 
 const baseBottomNavLinkClassName =
-  "flex h-10 w-10 items-center justify-center rounded-full transition-colors";
+  "flex h-10 w-10 items-center justify-center rounded-full transition active:scale-90";
 
 const bottomNavLinkClassName = `${baseBottomNavLinkClassName} text-amber-50/75`;
 

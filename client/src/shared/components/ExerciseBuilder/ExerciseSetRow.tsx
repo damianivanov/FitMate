@@ -268,7 +268,7 @@ export function ExerciseSetRow({
             type="button"
             onClick={handleCompletedClick}
             className={[
-              "inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition hover:bg-success/10 md:h-9 md:w-9",
+              "inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-90 hover:bg-success/10 md:h-9 md:w-9",
               set.isCompleted
                 ? "border-success bg-success text-white hover:bg-success"
                 : "border-(--input-border) bg-(--glass-bg-input) text-muted",

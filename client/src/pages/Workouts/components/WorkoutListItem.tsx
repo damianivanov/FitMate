@@ -172,7 +172,7 @@ export function WorkoutListItem({
   });
 
   return (
-    <article className="liquid-panel w-full rounded-2xl p-4 transition hover:-translate-y-0.5 hover:border-primary-300/60">
+    <article className="liquid-panel w-full rounded-2xl p-4 transition hover:border-primary-300/60 [@media(hover:hover)and(pointer:fine)]:hover:-translate-y-0.5">
       <div className="flex items-start justify-between gap-3">
         <button
           type="button"
