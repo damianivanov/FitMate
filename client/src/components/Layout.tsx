@@ -1,5 +1,6 @@
 import { Outlet } from "react-router";
 import { useUserStore } from "@/stores/userStore";
+import { ActiveWorkoutSheetHost } from "./ActiveWorkoutSheetHost";
 import Sidebar from "./Sidebar";
 
 export default function Layout() {
@@ -9,19 +10,20 @@ export default function Layout() {
   if (isReadyAuthenticated) {
     return (
       <div className="liquid-shell">
-        <div className="relative z-10 flex h-full min-h-0 flex-col md:h-dvh md:min-h-dvh md:flex-row md:overflow-hidden">
+        <div className="pwa-safe-top relative z-10 flex h-full min-h-0 flex-col md:h-dvh md:min-h-dvh md:flex-row md:overflow-hidden">
           <Sidebar />
           <main className="liquid-main-shell liquid-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain md:h-dvh">
             <Outlet />
           </main>
         </div>
+        <ActiveWorkoutSheetHost />
       </div>
     );
   }
 
   return (
     <div className="liquid-shell">
-      <div className="relative z-10 flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
+      <div className="pwa-safe-top relative z-10 flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
         <Sidebar />
         <main className="flex min-w-0 flex-1 flex-col min-h-0">
           <Outlet />

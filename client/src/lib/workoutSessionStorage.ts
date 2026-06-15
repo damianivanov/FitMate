@@ -78,6 +78,32 @@ function clearWorkoutSessionStorageIfMatches(storageKey: string, workoutId: numb
   }
 }
 
+/**
+ * Side-effect-free read of the live standalone session's workoutId, for restoring a
+ * minimized workout after a refresh. Unlike getWorkoutSessionState, this NEVER writes a
+ * fresh started-at. Returns undefined when there is no live, in-range, persisted workout.
+ */
+export function getLiveStandaloneWorkoutId(): number | undefined {
+  const storedSession = loadStoredObject<WorkoutSessionStartedAtStorage>(
+    getStandaloneWorkoutSessionStartedAtStorageKey(),
+    {
+      version: WORKOUT_SESSION_STARTED_AT_STORAGE_VERSION,
+      validate: isWorkoutSessionStartedAtStorage,
+    },
+  );
+
+  if (!storedSession || storedSession.workoutId === undefined) {
+    return undefined;
+  }
+
+  const startedAtAgeMs = Date.now() - new Date(storedSession.startedAtUtc).getTime();
+  if (startedAtAgeMs > WORKOUT_SESSION_STARTED_AT_MAX_AGE_MS) {
+    return undefined;
+  }
+
+  return storedSession.workoutId;
+}
+
 export function getTemplateWorkoutSessionState(templateId: number): { startedAt: Date; workoutId?: number } {
   return getWorkoutSessionState(getWorkoutSessionStartedAtStorageKey(templateId));
 }

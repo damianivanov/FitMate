@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { clearDeletedWorkoutSessionState } from "@/lib/workoutSessionStorage";
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import { unwrap } from "@/lib/unwrap";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { workoutService } from "@/services/workoutService";
+import { useActiveWorkoutStore } from "@/stores/activeWorkoutStore";
 import { useSaveWorkoutAsTemplate } from "@/shared/hooks/useSaveWorkoutAsTemplate";
 import type { Workout } from "@/types";
 
@@ -23,6 +25,7 @@ function getStartedTime(workout: Workout): number {
 
 export function useWorkoutsPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobileViewport();
   const [allWorkouts, setAllWorkouts] = useState<Workout[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,14 +68,30 @@ export function useWorkoutsPage() {
 
   const open = useCallback(
     (workout: Workout) => {
-      navigate(workout.finishedAt ? `/workouts/${workout.id}/summary` : `/workouts/${workout.id}`);
+      // Finished workouts always go to the read-only summary route.
+      if (workout.finishedAt) {
+        navigate(`/workouts/${workout.id}/summary`);
+        return;
+      }
+
+      if (isMobile) {
+        useActiveWorkoutStore.getState().openExistingWorkout(workout.id);
+        return;
+      }
+
+      navigate(`/workouts/${workout.id}`);
     },
-    [navigate],
+    [isMobile, navigate],
   );
 
   const create = useCallback(() => {
+    if (isMobile) {
+      useActiveWorkoutStore.getState().openNewWorkout();
+      return;
+    }
+
     navigate("/workouts/new");
-  }, [navigate]);
+  }, [isMobile, navigate]);
 
   const repeat = useCallback(
     async (workout: Workout) => {
@@ -85,13 +104,18 @@ export function useWorkoutsPage() {
       try {
         const response = await workoutService.duplicate(workout.id);
         const duplicateId = unwrap(response.data, "Unable to duplicate workout.");
-        navigate(`/workouts/${duplicateId}`);
+        if (isMobile) {
+          useActiveWorkoutStore.getState().openExistingWorkout(duplicateId);
+          duplicatingWorkoutIdRef.current = null;
+        } else {
+          navigate(`/workouts/${duplicateId}`);
+        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unable to duplicate workout.");
         duplicatingWorkoutIdRef.current = null;
       }
     },
-    [navigate],
+    [isMobile, navigate],
   );
 
   const requestDelete = useCallback(

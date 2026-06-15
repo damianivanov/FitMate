@@ -5,7 +5,6 @@ import {
   LuDumbbell,
   LuLayoutDashboard,
   LuLayoutTemplate,
-  LuPlus,
   LuScale,
 } from "react-icons/lu";
 
@@ -55,7 +54,7 @@ export const navSections: NavSection[] = [
 export const mobileBottomNavItems: MobileNavItem[] = [
   { label: "All Workouts", to: "/workouts", icon: LuDumbbell, end: true },
   { label: "All Workout Templates", to: "/templates", icon: LuLayoutTemplate, end: true },
-  { label: "New workout", to: "/workouts/new", icon: LuPlus, end: true, isPrimaryAction: true },
+  { label: "Workout", to: "/workouts/new", icon: LuDumbbell, end: true, isPrimaryAction: true },
   { label: "Calendar", to: "/calendar", icon: LuCalendarDays, end: true },
   { label: "Profile", to: "/profile", icon: LuCircleUserRound, end: false },
 ];

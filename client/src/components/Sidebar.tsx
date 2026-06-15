@@ -155,7 +155,7 @@ function AuthenticatedNav() {
             onClick={handleCloseMobile}
             aria-label="Close navigation overlay"
           />
-          <aside className="liquid-sidebar-panel relative h-full w-[84vw] max-w-sm p-4 pt-3 md:pt-4">
+          <aside className="liquid-sidebar-panel relative h-full w-[84vw] max-w-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
             <div className="relative z-10 flex h-full flex-col">
               <div className="flex items-center justify-between">
                 <AppLogo />

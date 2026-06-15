@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { LuArrowLeft, LuRefreshCw } from "react-icons/lu";
+import { LuArrowLeft, LuChevronDown, LuRefreshCw } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import {
   DeleteConfirmationModal,
@@ -13,9 +13,27 @@ import { DurationSetPickerPopover } from "@/shared/components/WorkoutSetPickers/
 import { RepsSetPickerPopover } from "@/shared/components/WorkoutSetPickers/RepsSetPickerPopover";
 import { WeightSetPickerPopover } from "@/shared/components/WorkoutSetPickers/WeightSetPickerPopover";
 import { WorkoutSessionHeader } from "./components/WorkoutSessionHeader";
+import { WorkoutHeaderLeadingAction } from "./components/workoutSessionHeaderActions";
 import { WorkoutSessionSummary } from "./components/WorkoutSessionSummary";
-import { useTemplateWorkoutBuilderPage } from "./hooks/useTemplateWorkoutBuilderPage";
+import {
+  useTemplateWorkoutBuilderPage,
+  type WorkoutBuilderHookOptions,
+} from "./hooks/useTemplateWorkoutBuilderPage";
 import { getWorkoutExerciseMetricMode } from "./utils/workoutDraft";
+
+/**
+ * Sheet-mode props. When `onBack` is provided, this builder is rendered inside the
+ * app-level mobile workout sheet (identity comes from the store, navigation intents are
+ * reported back via callbacks). With no props it is the desktop routed page (URL-driven).
+ */
+export type WorkoutBuilderProps = {
+  sheetWorkoutId?: number | null;
+  sheetTemplateId?: number | null;
+  onBack?: () => void;
+  onFinished?: (workoutId: number) => void;
+  onDeleted?: () => void;
+  onMetaChange?: WorkoutBuilderHookOptions["onMetaChange"];
+};
 
 const WORKOUT_CAPABILITIES: ExerciseBuilderCapabilities = {
   showRestColumn: false,
@@ -28,9 +46,30 @@ const WORKOUT_CAPABILITIES: ExerciseBuilderCapabilities = {
   allowSetDnd: true,
 };
 
-export default function WorkoutBuilder() {
-  const { state, actions } = useTemplateWorkoutBuilderPage();
+export default function WorkoutBuilder({
+  sheetWorkoutId,
+  sheetTemplateId,
+  onBack,
+  onFinished,
+  onDeleted,
+  onMetaChange,
+}: WorkoutBuilderProps = {}) {
+  const isSheet = onBack !== undefined;
+  const hookOptions: WorkoutBuilderHookOptions | undefined = isSheet
+    ? {
+        workoutId: sheetWorkoutId,
+        templateId: sheetTemplateId,
+        onBack,
+        onFinished,
+        onDeleted,
+        onMetaChange,
+      }
+    : undefined;
+  const { state, actions } = useTemplateWorkoutBuilderPage(hookOptions);
   const isMobileViewport = useIsMobileViewport({ defaultValue: true });
+  const leadingAction = isSheet
+    ? WorkoutHeaderLeadingAction.Minimize
+    : WorkoutHeaderLeadingAction.Back;
   const {
     draft,
     summary,
@@ -112,6 +151,7 @@ export default function WorkoutBuilder() {
     onExerciseReorder: actions.handleExerciseReorder,
     onSetReorder: actions.handleSetReorder,
     onSetCompletedToggle: actions.handleSetCompletedToggle,
+    onCompleteExercise: actions.handleCompleteExercise,
     onSetTypeChange: actions.handleSetTypeChange,
   }), [actions]);
 
@@ -137,10 +177,12 @@ export default function WorkoutBuilder() {
           <button
             type="button"
             onClick={actions.handleBackClick}
-            className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
-            aria-label="Back to templates"
+            className={`liquid-pill inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full ${
+              isSheet ? "h-11 w-11" : "h-9 w-9"
+            }`}
+            aria-label={isSheet ? "Minimize workout" : "Back to templates"}
           >
-            <LuArrowLeft className="h-4 w-4" />
+            {isSheet ? <LuChevronDown className="h-5 w-5" /> : <LuArrowLeft className="h-4 w-4" />}
           </button>
           <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-foreground md:text-2xl">
             New workout
@@ -180,6 +222,7 @@ export default function WorkoutBuilder() {
         title={draft.title}
         elapsedSeconds={elapsedSeconds}
         isWorkoutStarted={isWorkoutStarted}
+        leadingAction={leadingAction}
         canDeleteWorkout={canDeleteWorkout}
         isDeletingWorkout={isDeletingWorkout}
         isSavingWorkout={isSavingWorkout}
@@ -191,7 +234,13 @@ export default function WorkoutBuilder() {
         onTitleCommit={actions.handleTitleCommit}
       />
 
-      <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
+      <div
+        className={
+          isSheet
+            ? "px-3 pb-24 pt-4"
+            : "liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6"
+        }
+      >
         <div className="w-full space-y-6">
           <section className="min-w-0 md:space-y-4">
             <WorkoutSessionSummary

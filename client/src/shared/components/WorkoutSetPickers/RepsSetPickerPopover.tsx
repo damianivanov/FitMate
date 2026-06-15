@@ -30,13 +30,8 @@ export function RepsSetPickerPopover({
   const normalizedStep = Math.max(1, Math.round(step));
   const boundedValue = clampNumber(Math.round(value ?? minValue), minValue, maxValue);
 
-  const handleDecreaseClick = () => {
-    const nextValue = clampNumber(boundedValue - normalizedStep, minValue, maxValue);
-    onChange(nextValue);
-  };
-
-  const handleIncreaseClick = () => {
-    const nextValue = clampNumber(boundedValue + normalizedStep, minValue, maxValue);
+  const adjustValueByStep = (direction: -1 | 1) => {
+    const nextValue = clampNumber(boundedValue + direction * normalizedStep, minValue, maxValue);
     onChange(nextValue);
   };
 
@@ -48,8 +43,8 @@ export function RepsSetPickerPopover({
     onApplyToAll(boundedValue);
   };
 
-  const buttonClassName =
-    "flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl border border-(--input-border) bg-(--glass-bg-input) text-foreground transition active:scale-95 disabled:cursor-not-allowed disabled:border-(--glass-divider) disabled:bg-(--glass-bg-soft) disabled:text-muted";
+  const stepButtonClassName =
+    "liquid-press flex h-16 flex-1 items-center justify-center rounded-2xl border border-(--input-border) bg-(--glass-bg-input) text-foreground transition disabled:cursor-not-allowed disabled:border-(--glass-divider) disabled:bg-(--glass-bg-soft) disabled:text-muted";
 
   return (
     <SetPickerPopoverShell
@@ -59,30 +54,30 @@ export function RepsSetPickerPopover({
       anchorElement={anchorElement}
       desktopWidthClassName="w-64"
     >
-      <div className="rounded-3xl liquid-input px-4 pb-4 pt-3 text-center">
-        <div className="flex items-center justify-center gap-3">
+      <div className="liquid-input rounded-3xl px-4 pb-4 pt-4 text-center">
+        <div className="mono flex h-14 items-center justify-center text-5xl font-bold leading-none text-foreground tabular-nums">
+          {boundedValue}
+        </div>
+
+        <div className="mt-4 flex items-stretch gap-3">
           <button
             type="button"
-            onClick={handleDecreaseClick}
+            onClick={() => adjustValueByStep(-1)}
             disabled={boundedValue <= minValue}
-            className={buttonClassName}
+            className={stepButtonClassName}
             aria-label="Decrease reps"
           >
-            <LuMinus className="h-5 w-5" />
+            <LuMinus className="h-6 w-6" />
           </button>
-
-          <div className="mono min-w-16 text-center text-5xl font-bold leading-none text-foreground tabular-nums">
-            {boundedValue}
-          </div>
 
           <button
             type="button"
-            onClick={handleIncreaseClick}
+            onClick={() => adjustValueByStep(1)}
             disabled={boundedValue >= maxValue}
-            className={buttonClassName}
+            className={stepButtonClassName}
             aria-label="Increase reps"
           >
-            <LuPlus className="h-5 w-5" />
+            <LuPlus className="h-6 w-6" />
           </button>
         </div>
 
@@ -90,9 +85,9 @@ export function RepsSetPickerPopover({
           <button
             type="button"
             onClick={handleApplyToAllClick}
-            className="mt-4 w-full cursor-pointer rounded-xl border border-primary-300 bg-primary-100/20 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary-100/35"
+            className="liquid-press mt-4 w-full cursor-pointer rounded-xl border border-primary-300 bg-primary-100/20 px-3 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-100/35"
           >
-            Apply To All Sets
+            Apply to all sets
           </button>
         ) : null}
       </div>

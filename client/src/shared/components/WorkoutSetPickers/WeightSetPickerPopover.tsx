@@ -23,7 +23,7 @@ function getWeightValueSizeClassName(valueText: string): string {
   const normalizedLength = valueText.replace(/[^\d]/g, "").length;
 
   if (normalizedLength >= 5) {
-    return "text-2xl";
+    return "text-3xl";
   }
 
   if (normalizedLength >= 4) {
@@ -58,13 +58,16 @@ export function WeightSetPickerPopover({
     minValue,
     maxValue,
   );
-  const validQuickIncrements = quickIncrements.filter((increment) => increment > 0);
-  const [lastQuickIncrementStep, setLastQuickIncrementStep] = useState(normalizedStep);
+  const stepOptions = quickIncrements.filter((increment) => increment > 0);
+
+  // The selected step drives BOTH the minus and plus buttons (symmetric adjustment).
+  const [selectedStep, setSelectedStep] = useState(() => stepOptions[0] ?? normalizedStep);
   const [isEditingValue, setIsEditingValue] = useState(false);
   const [draftValue, setDraftValue] = useState(formatNumber(boundedValue, normalizedPrecision));
   const formattedBoundedValue = formatNumber(boundedValue, normalizedPrecision);
   const draftValueSizeClassName = getWeightValueSizeClassName(draftValue);
   const displayValueSizeClassName = getWeightValueSizeClassName(formattedBoundedValue);
+  const formattedStep = formatNumber(selectedStep, normalizedPrecision);
   const valueInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -142,19 +145,9 @@ export function WeightSetPickerPopover({
     }
   };
 
-  const handleDecreaseClick = () => {
-    const decrementStep = lastQuickIncrementStep > 0 ? lastQuickIncrementStep : normalizedStep;
+  const adjustValueByStep = (direction: -1 | 1) => {
     const nextValue = clampNumber(
-      roundToPrecision(boundedValue - decrementStep, normalizedPrecision),
-      minValue,
-      maxValue,
-    );
-    onChange(nextValue);
-  };
-
-  const handleIncreaseClick = () => {
-    const nextValue = clampNumber(
-      roundToPrecision(boundedValue + normalizedStep, normalizedPrecision),
+      roundToPrecision(boundedValue + direction * selectedStep, normalizedPrecision),
       minValue,
       maxValue,
     );
@@ -169,18 +162,8 @@ export function WeightSetPickerPopover({
     onApplyToAll(boundedValue);
   };
 
-  const handleQuickIncrementClick = (increment: number) => {
-    const nextValue = clampNumber(
-      roundToPrecision(boundedValue + increment, normalizedPrecision),
-      minValue,
-      maxValue,
-    );
-    setLastQuickIncrementStep(increment);
-    onChange(nextValue);
-  };
-
-  const buttonClassName =
-    "flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl border border-(--input-border) bg-(--glass-bg-input) text-foreground transition active:scale-95 disabled:cursor-not-allowed disabled:border-(--glass-divider) disabled:bg-(--glass-bg-soft) disabled:text-muted";
+  const stepButtonClassName =
+    "liquid-press flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl border border-(--input-border) bg-(--glass-bg-input) text-foreground transition disabled:cursor-not-allowed disabled:border-(--glass-divider) disabled:bg-(--glass-bg-soft) disabled:text-muted";
 
   return (
     <SetPickerPopoverShell
@@ -190,82 +173,100 @@ export function WeightSetPickerPopover({
       anchorElement={anchorElement}
       desktopWidthClassName="w-72"
     >
-      <div className="rounded-3xl liquid-input px-4 pb-4 pt-3 text-center">
-        <div className="flex items-center justify-center gap-3">
+      <div className="liquid-input rounded-3xl px-4 pb-4 pt-4 text-center">
+        {/* Big, tappable value */}
+        <div className="flex flex-col items-center">
+          {isEditingValue ? (
+            <input
+              ref={valueInputRef}
+              type="text"
+              inputMode="decimal"
+              value={draftValue}
+              onChange={handleDraftValueChange}
+              onBlur={handleDraftValueBlur}
+              onKeyDown={handleDraftValueKeyDown}
+              className={[
+                "mono h-14 w-full bg-transparent text-center font-bold leading-none text-foreground tabular-nums outline-none",
+                draftValueSizeClassName,
+              ].join(" ")}
+              aria-label={`Edit ${lowerCaseTitle} value`}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={handleValueDisplayClick}
+              className={[
+                "mono flex h-14 w-full cursor-text items-center justify-center text-center font-bold leading-none text-foreground tabular-nums",
+                displayValueSizeClassName,
+              ].join(" ")}
+              aria-label={`Edit ${lowerCaseTitle} value`}
+            >
+              {formattedBoundedValue}
+            </button>
+          )}
+          {unitLabel ? <p className="mt-1 text-sm text-secondary">{unitLabel}</p> : null}
+        </div>
+
+        {/* Symmetric steppers (step by the selected increment) */}
+        <div className="mt-4 flex items-stretch gap-3">
           <button
             type="button"
-            onClick={handleDecreaseClick}
+            onClick={() => adjustValueByStep(-1)}
             disabled={boundedValue <= minValue}
-            className={buttonClassName}
-            aria-label={`Decrease ${lowerCaseTitle}`}
+            className={stepButtonClassName}
+            aria-label={`Decrease ${lowerCaseTitle} by ${formattedStep}`}
           >
             <LuMinus className="h-5 w-5" />
+            <span className="mono text-lg font-bold tabular-nums">{formattedStep}</span>
           </button>
-
-          <div className="min-w-20">
-            {isEditingValue ? (
-              <input
-                ref={valueInputRef}
-                type="text"
-                inputMode="decimal"
-                value={draftValue}
-                onChange={handleDraftValueChange}
-                onBlur={handleDraftValueBlur}
-                onKeyDown={handleDraftValueKeyDown}
-                className={[
-                  "mono h-14 w-24 bg-transparent text-center font-bold leading-none text-foreground tabular-nums outline-none",
-                  draftValueSizeClassName,
-                ].join(" ")}
-                aria-label={`Edit ${lowerCaseTitle} value`}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={handleValueDisplayClick}
-                className={[
-                  "mono h-14 min-w-20 cursor-text text-center font-bold leading-none text-foreground tabular-nums",
-                  displayValueSizeClassName,
-                ].join(" ")}
-                aria-label={`Edit ${lowerCaseTitle} value`}
-              >
-                {formattedBoundedValue}
-              </button>
-            )}
-          </div>
 
           <button
             type="button"
-            onClick={handleIncreaseClick}
+            onClick={() => adjustValueByStep(1)}
             disabled={boundedValue >= maxValue}
-            className={buttonClassName}
-            aria-label={`Increase ${lowerCaseTitle}`}
+            className={stepButtonClassName}
+            aria-label={`Increase ${lowerCaseTitle} by ${formattedStep}`}
           >
             <LuPlus className="h-5 w-5" />
+            <span className="mono text-lg font-bold tabular-nums">{formattedStep}</span>
           </button>
         </div>
 
-        {unitLabel ? <p className="mt-2 text-sm text-secondary">{unitLabel}</p> : null}
-
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {validQuickIncrements.map((increment) => (
-              <button
-                key={increment}
-                type="button"
-                onClick={() => handleQuickIncrementClick(increment)}
-                className="cursor-pointer rounded-full border border-primary-300 px-3 py-1 text-xs font-semibold text-primary shadow-none transition hover:bg-primary-200 hover:shadow-none focus:shadow-none"
-              >
-                +{formatNumber(increment, normalizedPrecision)}
-              </button>
-          ))}
-        </div>
+        {/* Step selector */}
+        {stepOptions.length > 0 ? (
+          <div className="mt-4">
+            <p className="mb-2 text-2xs font-semibold uppercase tracking-widest text-muted">Step</p>
+            <div className="flex gap-1.5" role="group" aria-label="Step size">
+              {stepOptions.map((increment) => {
+                const isSelected = increment === selectedStep;
+                return (
+                  <button
+                    key={increment}
+                    type="button"
+                    onClick={() => setSelectedStep(increment)}
+                    aria-pressed={isSelected}
+                    className={[
+                      "liquid-press h-11 flex-1 rounded-xl text-sm font-semibold tabular-nums transition",
+                      isSelected
+                        ? "border border-primary bg-primary text-white"
+                        : "border border-(--input-border) bg-(--glass-bg-input) text-secondary hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {formatNumber(increment, normalizedPrecision)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {onApplyToAll ? (
           <button
             type="button"
             onClick={handleApplyToAllClick}
-            className="mt-3 w-full cursor-pointer rounded-xl border border-primary-300 bg-primary-100/20 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary-100/35"
+            className="liquid-press mt-4 w-full cursor-pointer rounded-xl border border-primary-300 bg-primary-100/20 px-3 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-100/35"
           >
-            Apply To All Sets
+            Apply to all sets
           </button>
         ) : null}
       </div>

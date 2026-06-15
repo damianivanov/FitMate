@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
-import { LuArrowLeft, LuLoaderCircle, LuTimer, LuTrash2 } from "react-icons/lu";
+import { LuArrowLeft, LuChevronDown, LuLoaderCircle, LuTimer, LuTrash2 } from "react-icons/lu";
 import { formatElapsedTime } from "../utils/workoutDraft";
+import { WorkoutHeaderLeadingAction } from "./workoutSessionHeaderActions";
 
 type WorkoutSessionHeaderProps = {
   title: string;
@@ -9,6 +10,7 @@ type WorkoutSessionHeaderProps = {
   canDeleteWorkout: boolean;
   isDeletingWorkout: boolean;
   isSavingWorkout: boolean;
+  leadingAction?: WorkoutHeaderLeadingAction;
   onBackClick: () => void;
   onDeleteWorkout: () => void;
   onStartWorkout: () => void;
@@ -24,6 +26,7 @@ export function WorkoutSessionHeader({
   canDeleteWorkout,
   isDeletingWorkout,
   isSavingWorkout,
+  leadingAction = WorkoutHeaderLeadingAction.Back,
   onBackClick,
   onDeleteWorkout,
   onStartWorkout,
@@ -31,6 +34,7 @@ export function WorkoutSessionHeader({
   onTitleChange,
   onTitleCommit,
 }: WorkoutSessionHeaderProps) {
+  const isMinimizeAction = leadingAction === WorkoutHeaderLeadingAction.Minimize;
   const handleTitleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     onTitleChange(event.target.value);
   };
@@ -50,10 +54,16 @@ export function WorkoutSessionHeader({
         <button
           type="button"
           onClick={onBackClick}
-          className="liquid-pill flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition md:h-9 md:w-9"
-          aria-label="Back to templates"
+          className={`liquid-pill flex shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition ${
+            isMinimizeAction ? "h-11 w-11" : "h-8 w-8 md:h-9 md:w-9"
+          }`}
+          aria-label={isMinimizeAction ? "Minimize workout" : "Back to templates"}
         >
-          <LuArrowLeft className="h-4 w-4" />
+          {isMinimizeAction ? (
+            <LuChevronDown className="h-5 w-5" />
+          ) : (
+            <LuArrowLeft className="h-4 w-4" />
+          )}
         </button>
 
         <div className="min-w-0 flex-1">
@@ -67,10 +77,12 @@ export function WorkoutSessionHeader({
           />
         </div>
 
-        <span className="liquid-pill hidden h-8 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold text-secondary sm:inline-flex md:h-9">
-          <LuTimer className="h-4 w-4 text-primary" />
-          <span className="mono tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
-        </span>
+        {isWorkoutStarted ? (
+          <span className="liquid-pill inline-flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold text-secondary md:h-9">
+            <LuTimer className="h-4 w-4 text-primary" />
+            <span className="mono tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
+          </span>
+        ) : null}
 
         {canDeleteWorkout ? (
           <button

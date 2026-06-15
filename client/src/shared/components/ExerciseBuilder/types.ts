@@ -70,5 +70,6 @@ export interface ExerciseBuilderCallbacks {
   onExerciseReorder?: (activeExerciseId: string, overExerciseId: string) => void;
   onSetReorder?: (exerciseId: string, activeSetId: string, overSetId: string) => void;
   onSetCompletedToggle?: (exerciseId: string, setId: string) => void;
+  onCompleteExercise?: (exerciseId: string) => void;
   onSetTypeChange?: (exerciseId: string, setId: string, setType: ExerciseSetType) => void;
 }

@@ -386,6 +386,27 @@ export function ExerciseCard({
               </span>
             )}
             <div className="flex shrink-0 items-center gap-0.5">
+              {capabilities.showCompletionCheckbox ? (
+                <button
+                  type="button"
+                  onClick={() => callbacks.onCompleteExercise?.(exercise.id)}
+                  className={[
+                    "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-95 md:h-9 md:w-9",
+                    isExerciseCompleted
+                      ? "border-success bg-success/15 text-success"
+                      : "border-(--glass-divider) text-secondary hover:border-success/60 hover:text-success",
+                  ].join(" ")}
+                  aria-pressed={isExerciseCompleted}
+                  aria-label={
+                    isExerciseCompleted
+                      ? `Mark ${exercise.displayName} not done`
+                      : `Mark all sets in ${exercise.displayName} done`
+                  }
+                  title={isExerciseCompleted ? "Completed — tap to undo" : "Mark all sets done"}
+                >
+                  <LuCheck className="h-4 w-4" />
+                </button>
+              ) : null}
               {showPreviousSets && previousSets ? (
                 <PreviousSetsButton
                   previousSets={previousSets}

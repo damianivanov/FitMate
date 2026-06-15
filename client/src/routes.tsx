@@ -6,7 +6,7 @@ import { Login, Register, ForgotPassword, ResetPassword } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount, MyExercises } from "./pages/Profile";
 import AdminPanel, { ErrorGrid, ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
-import WorkoutBuilder from "./pages/WorkoutBuilder";
+import WorkoutBuilderRoute from "./pages/WorkoutBuilder/WorkoutBuilderRoute";
 import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
 import Templates from "./pages/Templates";
@@ -99,7 +99,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "new",
-            element: <WorkoutBuilder />,
+            element: <WorkoutBuilderRoute />,
           },
           {
             path: ":workoutId/summary",
@@ -107,7 +107,7 @@ export const router = createBrowserRouter([
           },
           {
             path: ":workoutId",
-            element: <WorkoutBuilder />,
+            element: <WorkoutBuilderRoute />,
           },
         ],
       },

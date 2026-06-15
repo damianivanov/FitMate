@@ -130,18 +130,38 @@ function getNextWorkoutClientGroupId(exercises: readonly WorkoutExerciseDraft[])
   return groupIds.length ? Math.max(...groupIds) + 1 : 1;
 }
 
-export function useTemplateWorkoutBuilderPage() {
+/**
+ * Sheet-mode options. When provided (the app-level mobile workout sheet), the hook reads
+ * identity from here instead of the URL and reports navigation intents back via callbacks.
+ * When omitted (the desktop route), the hook behaves exactly as before (URL-driven).
+ */
+export interface WorkoutBuilderHookOptions {
+  workoutId?: number | null;
+  templateId?: number | null;
+  onBack?: () => void;
+  onFinished?: (workoutId: number) => void;
+  onDeleted?: () => void;
+  onMetaChange?: (meta: { title: string; startedAt?: string }) => void;
+}
+
+export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOptions) {
+  const isSheetMode = options !== undefined;
+  // Latest-options ref so callbacks never depend on the (possibly inline) options object;
+  // keeps every callback's identity stable across renders.
+  const sheetOptionsRef = useRef(options);
+  sheetOptionsRef.current = options;
+
   const navigate = useNavigate();
   const { workoutId: workoutIdParam } = useParams<{ workoutId?: string }>();
   const [searchParams] = useSearchParams();
   const templateIdParam = searchParams.get("templateId");
   const workoutId = useMemo(
-    () => parseTemplateId(workoutIdParam),
-    [workoutIdParam],
+    () => (isSheetMode ? (options?.workoutId ?? null) : parseTemplateId(workoutIdParam)),
+    [isSheetMode, options?.workoutId, workoutIdParam],
   );
   const templateId = useMemo(
-    () => parseTemplateId(templateIdParam),
-    [templateIdParam],
+    () => (isSheetMode ? (options?.templateId ?? null) : parseTemplateId(templateIdParam)),
+    [isSheetMode, options?.templateId, templateIdParam],
   );
   const [draft, setDraft] = useState<WorkoutDraft | null>(null);
   const [previousSetsByExerciseId, setPreviousSetsByExerciseId] = useState<PreviousSetsByExerciseId>({});
@@ -395,7 +415,7 @@ export function useTemplateWorkoutBuilderPage() {
         saveWorkoutSessionState(nextDraft.workoutTemplateId, nextDraft.startedAt, existingWorkoutId);
       }
 
-      if (!workoutId) {
+      if (!isSheetMode && !workoutId) {
         navigate(`/workouts/${existingWorkoutId}`, { replace: true });
       }
 
@@ -461,7 +481,7 @@ export function useTemplateWorkoutBuilderPage() {
             : { ...nextDraft, workoutId: savedWorkoutId },
         );
 
-        if (!workoutId) {
+        if (!isSheetMode && !workoutId) {
           navigate(`/workouts/${savedWorkoutId}`, { replace: true });
         }
 
@@ -486,7 +506,7 @@ export function useTemplateWorkoutBuilderPage() {
     }
 
     return createdWorkoutId;
-  }, [draft, getPersistedWorkoutId, navigate, saveWorkoutToBackend, workoutId]);
+  }, [draft, getPersistedWorkoutId, isSheetMode, navigate, saveWorkoutToBackend, workoutId]);
 
   useEffect(() => {
     void loadTemplateWorkout();
@@ -538,6 +558,19 @@ export function useTemplateWorkoutBuilderPage() {
     };
   }, [draft?.startedAt]);
 
+  // Sheet mode: push title/startedAt to the store so the mini-bar (rendered outside this
+  // tree) can show them. These change rarely (not per second), so this is cheap.
+  useEffect(() => {
+    if (!isSheetMode) {
+      return;
+    }
+
+    sheetOptionsRef.current?.onMetaChange?.({
+      title: draft?.title?.trim() || "Untitled Workout",
+      startedAt: draft?.startedAt,
+    });
+  }, [isSheetMode, draft?.title, draft?.startedAt]);
+
   const summary = useMemo(
     () => (draft ? calculateWorkoutSummary(draft) : null),
     [draft],
@@ -581,10 +614,17 @@ export function useTemplateWorkoutBuilderPage() {
   }, [activeQuickSetPopoverContext, quickSetPopover]);
 
   const handleBackClick = useCallback(() => {
+    if (isSheetMode) {
+      // Sheet mode: "back" minimizes the sheet; the workout keeps running, so the
+      // session storage must NOT be cleared here.
+      sheetOptionsRef.current?.onBack?.();
+      return;
+    }
+
     clearWorkoutSessionStorage(draftRef.current ?? draft);
 
     navigate(templateId ? "/templates" : "/workouts");
-  }, [clearWorkoutSessionStorage, draft, navigate, templateId]);
+  }, [clearWorkoutSessionStorage, draft, isSheetMode, navigate, templateId]);
 
   const handleDeleteWorkoutRequest = useCallback(() => {
     const currentDraft = draftRef.current ?? draft;
@@ -627,7 +667,11 @@ export function useTemplateWorkoutBuilderPage() {
       clearWorkoutSessionStorage(latestDraft);
       setIsDeleteConfirmationOpen(false);
       toast.success("Workout deleted.");
-      navigate("/workouts", { replace: true });
+      if (isSheetMode) {
+        sheetOptionsRef.current?.onDeleted?.();
+      } else {
+        navigate("/workouts", { replace: true });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to delete workout.";
       toast.error(message);
@@ -635,7 +679,7 @@ export function useTemplateWorkoutBuilderPage() {
       isDeletingWorkoutRef.current = false;
       setIsDeletingWorkout(false);
     }
-  }, [clearWorkoutSessionStorage, draft, navigate, workoutId]);
+  }, [clearWorkoutSessionStorage, draft, isSheetMode, navigate, workoutId]);
 
   const handleTitleChange = useCallback((value: string) => {
     setDraft((current) => {
@@ -805,6 +849,65 @@ export function useTemplateWorkoutBuilderPage() {
     setScrollToExerciseId(nextExercise ? nextExercise.id : null);
   }, []);
 
+  // Card-level "done": marks every set complete (or clears them if already complete), then
+  // mirrors completing the last set — collapse this exercise and focus the next incomplete one.
+  const handleCompleteExercise = useCallback((exerciseDraftId: string) => {
+    const currentDraft = draftRef.current;
+    const targetExercise = currentDraft?.exercises.find((exercise) => exercise.id === exerciseDraftId);
+    if (!currentDraft || !targetExercise || targetExercise.sets.length === 0) {
+      return;
+    }
+
+    const isAlreadyComplete = targetExercise.sets.every((set) => set.isCompleted);
+
+    if (isAlreadyComplete) {
+      // Toggle off: clear completion and re-open the card for editing.
+      setDraft((current) =>
+        current
+          ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+              ...exercise,
+              sets: exercise.sets.map((set) => ({ ...set, isCompleted: false })),
+            }))
+          : current,
+      );
+      setCollapsedExerciseIds((collapsed) => {
+        const next = new Set(collapsed);
+        next.delete(exerciseDraftId);
+        return next;
+      });
+      return;
+    }
+
+    // Same guard as per-set completion: every set needs a logged metric to count as done.
+    if (targetExercise.sets.some((set) => !hasMainMetric(set))) {
+      toast.error("Add a weight, reps, or duration to every set before completing.");
+      return;
+    }
+
+    setDraft((current) =>
+      current
+        ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+            ...exercise,
+            sets: exercise.sets.map((set) => ({ ...set, isCompleted: true })),
+          }))
+        : current,
+    );
+
+    const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
+
+    setCollapsedExerciseIds((collapsed) => {
+      const next = new Set(collapsed);
+      next.add(exerciseDraftId);
+      if (nextExercise) {
+        next.delete(nextExercise.id);
+      }
+
+      return next;
+    });
+
+    setScrollToExerciseId(nextExercise ? nextExercise.id : null);
+  }, []);
+
   const handleExerciseScrolled = useCallback(() => {
     setScrollToExerciseId(null);
   }, []);
@@ -951,7 +1054,7 @@ export function useTemplateWorkoutBuilderPage() {
             : { ...nextDraft, workoutId: updatedWorkoutId },
         );
 
-        if (!workoutId) {
+        if (!isSheetMode && !workoutId) {
           navigate(`/workouts/${updatedWorkoutId}`, { replace: true });
         }
 
@@ -969,7 +1072,7 @@ export function useTemplateWorkoutBuilderPage() {
     const startedWorkoutId = await startPromise;
     startWorkoutPromiseRef.current = null;
     return startedWorkoutId;
-  }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, navigate, saveWorkoutToBackend, workoutId]);
+  }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, isSheetMode, navigate, saveWorkoutToBackend, workoutId]);
 
   const handleAddExerciseModalClose = useCallback(() => {
     setIsAddExerciseModalOpen(false);
@@ -1306,7 +1409,11 @@ export function useTemplateWorkoutBuilderPage() {
         `Workout saved: ${savedWorkout.exerciseCount} exercises, ${savedWorkout.setCount} sets.`,
       );
       clearWorkoutSessionState(latestDraft.workoutTemplateId);
-      navigate("/workouts", { replace: true });
+      if (isSheetMode) {
+        sheetOptionsRef.current?.onFinished?.(workoutIdToFinish);
+      } else {
+        navigate("/workouts", { replace: true });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to save workout.";
       toast.error(message);
@@ -1319,6 +1426,7 @@ export function useTemplateWorkoutBuilderPage() {
     getPersistedWorkoutId,
     isDeletingWorkout,
     isSavingWorkout,
+    isSheetMode,
     navigate,
     saveWorkoutToBackend,
   ]);
@@ -1385,6 +1493,7 @@ export function useTemplateWorkoutBuilderPage() {
       handleExerciseMetricModeChange,
       handleSetTypeChange,
       handleSetCompletedToggle,
+      handleCompleteExercise,
       handleAddSet,
       handleApplyPreviousSets,
       handleRemoveSet,
@@ -1420,6 +1529,7 @@ export function useTemplateWorkoutBuilderPage() {
       handleExerciseMetricModeChange,
       handleSetTypeChange,
       handleSetCompletedToggle,
+      handleCompleteExercise,
       handleAddSet,
       handleApplyPreviousSets,
       handleRemoveSet,

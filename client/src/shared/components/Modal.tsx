@@ -8,6 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { LuX } from "react-icons/lu";
+import { lockBodyScroll, unlockBodyScroll } from "@/shared/utils/bodyScrollLock";
 
 type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "default";
 
@@ -32,35 +33,6 @@ const sizeClasses: Record<ModalSize, string> = {
   "4xl": "max-w-4xl",
   default: "max-w-3xl",
 };
-
-let bodyScrollLockCount = 0;
-let previousBodyOverflowValue = "";
-
-function lockBodyScroll(): void {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  if (bodyScrollLockCount === 0) {
-    previousBodyOverflowValue = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-  }
-
-  bodyScrollLockCount += 1;
-}
-
-function unlockBodyScroll(): void {
-  if (typeof document === "undefined" || bodyScrollLockCount === 0) {
-    return;
-  }
-
-  bodyScrollLockCount -= 1;
-
-  if (bodyScrollLockCount === 0) {
-    document.body.style.overflow = previousBodyOverflowValue;
-    previousBodyOverflowValue = "";
-  }
-}
 
 export function Modal({
   isOpen,
@@ -183,7 +155,7 @@ export function Modal({
   ].join(" ");
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 md:p-6">
       <div className={overlayClassName} onClick={onClose} aria-hidden="true" />
 
       <div

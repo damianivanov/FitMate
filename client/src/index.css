@@ -19,6 +19,18 @@
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
 
+  /* ── Easing (shared) ── */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* iOS-like drawer curve */
+
+  /* ── Semantic z-index scale (shared) ── */
+  --z-nav: 40;          /* mobile bottom nav */
+  --z-mini-bar: 45;     /* "now training" dock: above nav, below the open sheet */
+  --z-sheet: 60;        /* workout bottom sheet + its backdrop */
+  --z-modal: 70;        /* modals/popovers opened from inside the sheet */
+  --z-toast: 80;        /* sonner toasts always on top */
+
   /* ── Radius (shared) ── */
 
   /* ── Base colors ── */
@@ -642,6 +654,70 @@ textarea { resize: none; }
   }
 }
 
+/* ----------------------------------------------------------------
+   ACTIVE WORKOUT SHEET (mobile) — Strava-style draggable bottom sheet
+---------------------------------------------------------------- */
+
+/* Press feedback: subtle scale on tap (Emil — never scale(0)). */
+.liquid-press {
+  transition: transform 160ms var(--ease-out);
+  touch-action: manipulation;
+}
+.liquid-press:active {
+  transform: scale(0.97);
+}
+
+/* The sheet panel. translateY is driven inline by status/drag; CSS owns the curve + glass. */
+.liquid-workout-sheet {
+  background: var(--glass-bg-nav);
+  backdrop-filter: var(--glass-blur-nav);
+  -webkit-backdrop-filter: var(--glass-blur-nav);
+  border-top: 1px solid var(--glass-border-strong);
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  box-shadow: 0 -18px 48px rgba(8, 10, 18, 0.42);
+  transition: transform 360ms var(--ease-drawer);
+  will-change: transform;
+}
+
+/* Grab handle pill. */
+.liquid-sheet-handle {
+  height: 0.3125rem;
+  width: 2.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Dumbbell pulse while a workout is RUNNING. Infrequent but strong: a punchy ring + slight
+   swell, then it rests — so it reads as a deliberate heartbeat, not constant flicker. */
+@keyframes liquid-dumbbell-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.65); transform: scale(1); }
+  16%  { transform: scale(1.09); }
+  45%  { box-shadow: 0 0 0 13px rgba(var(--primary-rgb), 0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0); transform: scale(1); }
+}
+.liquid-dumbbell-active {
+  animation: liquid-dumbbell-pulse 2.6s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-workout-sheet { transition: opacity 200ms var(--ease-out); }
+  .liquid-press:active { transform: none; }
+  .liquid-dumbbell-active {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.55); /* static ring instead of pulse */
+  }
+}
+
+/* PWA status-bar blend: in standalone (apple status bar is translucent), push content below
+   the status bar so the .liquid-shell scene gradient shows through it. Scoped to standalone
+   so regular browser tabs are unaffected. */
+@media (display-mode: standalone) {
+  .pwa-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
 .liquid-page-header {
   border-bottom: 1px solid var(--glass-border);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
@@ -734,6 +810,10 @@ textarea { resize: none; }
   transform: translateY(-1px);
   border-color: var(--glass-border-hover);
   background: var(--glass-bg-pill-hover);
+}
+
+.liquid-pill:active {
+  transform: scale(0.97);
 }
 
 :where(.liquid-pill) { color: var(--text-secondary); }
@@ -1101,7 +1181,14 @@ input[type="number"] {
   box-shadow: var(--btn-primary-hover-shadow), 0 0 0 3px var(--accent-soft);
 }
 
+.liquid-primary-btn:active { transform: scale(0.97); }
+
 .liquid-primary-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-primary-btn:active,
+  .liquid-pill:active { transform: none; }
+}
 
 .liquid-secondary-btn {
   border: 1px solid var(--btn-secondary-border);
