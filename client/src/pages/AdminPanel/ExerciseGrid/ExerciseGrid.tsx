@@ -41,6 +41,7 @@ export default function ExerciseGrid() {
             rowCount={state.rowCount}
             paginationModel={state.paginationModel}
             onPaginationModelChange={actions.changePagination}
+            pageSizeOptions={[25, 50, 100]}
             getRowId={(row) => row.id}
             columnHeaderHeight={64}
           />
