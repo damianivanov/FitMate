@@ -324,7 +324,7 @@ export function ExerciseAddModal({
   const handleLibrarySearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setLibraryLookupSkip(0);
     setLibraryExercises([]);
-    setLibrarySearchTerm(event.target.value);
+    setLibrarySearchTerm(event.target.value.toLowerCase());
   };
 
   const handleMuscleFilterSelectionChange = (nextSelectedMuscleGroupIds: number[]) => {

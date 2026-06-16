@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { compressImageForUpload } from "@/lib/imageCompression";
 import type {
   Exercise,
   ExerciseLookupModel,
@@ -37,7 +38,7 @@ export const exerciseService = {
     }
 
     if (file) {
-      formData.append("file", file);
+      formData.append("file", await compressImageForUpload(file));
     }
 
     return api.post<JsonData<Exercise>>("exercises", formData);
@@ -53,7 +54,7 @@ export const exerciseService = {
 
   async uploadImage(id: number, file: File) {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", await compressImageForUpload(file));
     return api.post<JsonData<Exercise>>(`exercises/${id}/image`, formData);
   },
 };

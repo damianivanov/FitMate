@@ -10,6 +10,13 @@ namespace FitMate.Web.Attributes;
 
 public class LogApiErrorAttribute : ExceptionFilterAttribute
 {
+    private readonly ILogger<LogApiErrorAttribute> logger;
+
+    public LogApiErrorAttribute(ILogger<LogApiErrorAttribute> logger)
+    {
+        this.logger = logger;
+    }
+
     public override void OnException(ExceptionContext context)
     {
         if (context.ExceptionHandled)
@@ -17,8 +24,19 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
             return;
         }
 
+        var requestDescriptor =
+            $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}{context.HttpContext.Request.QueryString}";
+
         if (context.Exception is FitMateException)
         {
+            // Expected business/validation failure. It is intentionally not persisted to the
+            // Errors table, so log it at warning level to keep it traceable in stdout/aggregated logs.
+            logger.LogWarning(
+                context.Exception,
+                "Handled business error on {Request}: {Message}",
+                requestDescriptor,
+                context.Exception.Message);
+
             context.ExceptionHandled = true;
             context.Result = new JsonResult(new CommonJsonModel<object?>(error: context.Exception.Message, data: null))
             {
@@ -26,6 +44,9 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
             };
             return;
         }
+
+        // Emit to ILogger first so the failure is captured even if the Errors-table write below fails.
+        logger.LogError(context.Exception, "Unhandled error on {Request}", requestDescriptor);
 
         try
         {
@@ -42,7 +63,7 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
             {
                 Source = context.Exception.Source,
                 Action = context.ActionDescriptor.DisplayName,
-                RequestUrl = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}{context.HttpContext.Request.QueryString}",
+                RequestUrl = requestDescriptor,
                 UserAgent = context.HttpContext.Request.Headers.UserAgent.ToString(),
                 Message = context.Exception.Message,
                 Exception = context.Exception.ToString(),
@@ -51,8 +72,9 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
             dbContext.Errors.Add(error);
             dbContext.SaveChanges(userId);
         }
-        catch
+        catch (Exception loggingException)
         {
+            logger.LogError(loggingException, "Failed to persist API error to the Errors table.");
         }
 
         context.ExceptionHandled = true;

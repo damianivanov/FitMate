@@ -97,8 +97,9 @@ export function ExerciseSearchHeader({ onChange }: { onChange: (value: string) =
       <input
         value={value}
         onChange={(event) => {
-          setValue(event.target.value);
-          onChange(event.target.value);
+          const lowered = event.target.value.toLowerCase();
+          setValue(lowered);
+          onChange(lowered);
         }}
         onKeyDown={(event) => event.stopPropagation()}
         placeholder="Search name or slug"

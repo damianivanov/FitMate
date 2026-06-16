@@ -65,7 +65,10 @@ public class ExerciseService : IExerciseService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(x => x.Name.Contains(search) || x.Slug.Contains(search));
+            var loweredSearch = search.ToLower();
+            query = query.Where(x =>
+                x.Name.ToLower().Contains(loweredSearch)
+                || x.Slug.ToLower().Contains(loweredSearch));
         }
 
         query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
@@ -228,11 +231,12 @@ public class ExerciseService : IExerciseService
 
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
+                var loweredSearch = normalizedSearch.ToLower();
                 query = query.Where(x =>
-                    x.Name.Contains(normalizedSearch)
-                    || x.Slug.Contains(normalizedSearch)
-                    || x.PrimaryMuscleGroup.Name.Contains(normalizedSearch)
-                    || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
+                    x.Name.ToLower().Contains(loweredSearch)
+                    || x.Slug.ToLower().Contains(loweredSearch)
+                    || x.PrimaryMuscleGroup.Name.ToLower().Contains(loweredSearch)
+                    || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch)));
             }
 
             cachedItems = (await query
@@ -281,11 +285,12 @@ public class ExerciseService : IExerciseService
 
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
+            var loweredSearch = normalizedSearch.ToLower();
             query = query.Where(x =>
-                x.Name.Contains(normalizedSearch)
-                || x.Slug.Contains(normalizedSearch)
-                || x.PrimaryMuscleGroup.Name.Contains(normalizedSearch)
-                || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.Contains(normalizedSearch)));
+                x.Name.ToLower().Contains(loweredSearch)
+                || x.Slug.ToLower().Contains(loweredSearch)
+                || x.PrimaryMuscleGroup.Name.ToLower().Contains(loweredSearch)
+                || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch)));
         }
 
         var skip = request.Skip < 0 ? 0 : request.Skip;

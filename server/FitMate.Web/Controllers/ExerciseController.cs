@@ -54,8 +54,27 @@ public class ExerciseController : BaseApiController
 
         if (file is { Length: > 0 })
         {
-            await using var stream = file.OpenReadStream();
-            created = await exerciseService.UploadImageAsync(created.Id, stream, file.FileName);
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                created = await exerciseService.UploadImageAsync(created.Id, stream, file.FileName);
+            }
+            catch
+            {
+                // The exercise row is already committed, so a failed image upload would
+                // otherwise leave an orphaned, imageless exercise (and a retry would create
+                // a duplicate). Remove it best-effort and surface the original failure.
+                try
+                {
+                    await exerciseService.DeleteAsync(created.Id);
+                }
+                catch
+                {
+                    // Ignore cleanup failures; the original upload error is what matters.
+                }
+
+                throw;
+            }
         }
 
         return this.ReturnJson(created);
