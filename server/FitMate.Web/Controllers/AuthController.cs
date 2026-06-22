@@ -422,7 +422,10 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            var tokens = await authService.IssueTokensAsync(user, [.. roles]);
+
+            // Rotate only this session's pair so the user's other devices stay signed in.
+            var oldAccessToken = Request.Cookies["Token"];
+            var tokens = await authService.IssueTokensAsync(user, [.. roles], oldAccessToken, refreshToken);
             SetAuthCookies(tokens);
 
             var response = new AuthResponse

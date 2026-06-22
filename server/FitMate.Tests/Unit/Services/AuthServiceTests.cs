@@ -117,33 +117,37 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task IssueTokensAsync_RevokesPreviouslyActiveTokens()
+    public async Task IssueTokensAsync_Login_LeavesExistingSessionsActive()
     {
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
-        long oldTokenId;
-        long oldRefreshTokenId;
+        long deviceAccessId;
+        long deviceRefreshId;
 
         using (var arrange = db.CreateContext())
         {
-            oldTokenId = SeedToken(arrange, SqliteTestDatabase.UserId, "old-access", DateTime.UtcNow.AddMinutes(30));
-            oldRefreshTokenId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "old-refresh", DateTime.UtcNow.AddDays(3));
+            deviceAccessId = SeedToken(arrange, SqliteTestDatabase.UserId, "device-a-access", DateTime.UtcNow.AddMinutes(30));
+            deviceRefreshId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "device-a-refresh", DateTime.UtcNow.AddDays(3));
         }
 
+        // A fresh login (no rotated tokens) adds a new session and must not disturb the existing one.
         var issued = await new AuthService(db.CreateContext(), settings)
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
 
-        var oldToken = await assert.Tokens.SingleAsync(x => x.Id == oldTokenId);
-        var oldRefreshToken = await assert.RefreshTokens.SingleAsync(x => x.Id == oldRefreshTokenId);
-        Assert.NotNull(oldToken.RevokedAtUtc);
-        Assert.NotNull(oldRefreshToken.RevokedAtUtc);
+        var deviceAccess = await assert.Tokens.SingleAsync(x => x.Id == deviceAccessId);
+        var deviceRefresh = await assert.RefreshTokens.SingleAsync(x => x.Id == deviceRefreshId);
+        Assert.Null(deviceAccess.RevokedAtUtc);
+        Assert.Null(deviceRefresh.RevokedAtUtc);
 
-        var newToken = await assert.Tokens.SingleAsync(x => x.Value == issued.AccessToken);
-        var newRefreshToken = await assert.RefreshTokens.SingleAsync(x => x.Value == issued.RefreshToken);
-        Assert.Null(newToken.RevokedAtUtc);
-        Assert.Null(newRefreshToken.RevokedAtUtc);
+        var activeRefreshTokens = await assert.RefreshTokens
+            .Where(x => x.UserId == SqliteTestDatabase.UserId && x.RevokedAtUtc == null)
+            .ToListAsync();
+
+        Assert.Equal(2, activeRefreshTokens.Count);
+        Assert.Contains(activeRefreshTokens, x => x.Value == "device-a-refresh");
+        Assert.Contains(activeRefreshTokens, x => x.Value == issued.RefreshToken);
     }
 
     [Fact]
@@ -168,7 +172,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task IssueTokensAsync_RevokesActiveButLeavesAlreadyExpiredTokenUntouched()
+    public async Task IssueTokensAsync_RemovesExpiredAccessTokensButKeepsActiveOnes()
     {
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
@@ -186,10 +190,107 @@ public class AuthServiceTests
 
         using var assert = db.CreateContext();
 
+        // Active access tokens from other sessions are left alone; expired rows are pruned away.
         var activeToken = await assert.Tokens.SingleAsync(x => x.Id == activeTokenId);
-        var expiredToken = await assert.Tokens.SingleAsync(x => x.Id == expiredTokenId);
-        Assert.NotNull(activeToken.RevokedAtUtc);
-        Assert.Null(expiredToken.RevokedAtUtc);
+        Assert.Null(activeToken.RevokedAtUtc);
+        Assert.False(await assert.Tokens.AnyAsync(x => x.Id == expiredTokenId));
+    }
+
+    [Fact]
+    public async Task IssueTokensAsync_CapsActiveRefreshTokensAtMaximum()
+    {
+        using var db = new SqliteTestDatabase();
+        var settings = BuildSettings();
+        long oldestRefreshId;
+
+        using (var arrange = db.CreateContext())
+        {
+            // Fill the cap (5) with active sessions; the first seeded row is the oldest.
+            oldestRefreshId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "refresh-1", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "refresh-2", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "refresh-3", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "refresh-4", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "refresh-5", DateTime.UtcNow.AddDays(3));
+        }
+
+        // A sixth device login evicts the oldest session; the total stays capped at 5.
+        var issued = await new AuthService(db.CreateContext(), settings)
+            .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
+
+        using var assert = db.CreateContext();
+
+        var refreshTokens = await assert.RefreshTokens
+            .Where(x => x.UserId == SqliteTestDatabase.UserId)
+            .ToListAsync();
+
+        Assert.Equal(5, refreshTokens.Count);
+        Assert.DoesNotContain(refreshTokens, x => x.Id == oldestRefreshId);
+        Assert.Contains(refreshTokens, x => x.Value == issued.RefreshToken);
+    }
+
+    [Fact]
+    public async Task IssueTokensAsync_Refresh_RotatesPresentedPairAndKeepsOtherSessions()
+    {
+        using var db = new SqliteTestDatabase();
+        var settings = BuildSettings();
+        long rotatedAccessId;
+        long rotatedRefreshId;
+        long otherRefreshId;
+
+        using (var arrange = db.CreateContext())
+        {
+            rotatedAccessId = SeedToken(arrange, SqliteTestDatabase.UserId, "this-access", DateTime.UtcNow.AddMinutes(30));
+            rotatedRefreshId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "this-refresh", DateTime.UtcNow.AddDays(3));
+            otherRefreshId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "other-device-refresh", DateTime.UtcNow.AddDays(3));
+        }
+
+        var issued = await new AuthService(db.CreateContext(), settings)
+            .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User }, "this-access", "this-refresh");
+
+        using var assert = db.CreateContext();
+
+        // The presented access token is revoked (kept as a deny-list row) and the presented refresh
+        // token is deleted, so a replay of either fails.
+        var rotatedAccess = await assert.Tokens.SingleAsync(x => x.Id == rotatedAccessId);
+        Assert.NotNull(rotatedAccess.RevokedAtUtc);
+        Assert.False(await assert.RefreshTokens.AnyAsync(x => x.Id == rotatedRefreshId));
+
+        // The other device's session is untouched and the freshly issued pair is active.
+        var otherRefresh = await assert.RefreshTokens.SingleAsync(x => x.Id == otherRefreshId);
+        Assert.Null(otherRefresh.RevokedAtUtc);
+        Assert.True(await assert.RefreshTokens.AnyAsync(x => x.Value == issued.RefreshToken && x.RevokedAtUtc == null));
+    }
+
+    [Fact]
+    public async Task IssueTokensAsync_DeadRefreshTokensDoNotConsumeCapSlots()
+    {
+        using var db = new SqliteTestDatabase();
+        var settings = BuildSettings();
+
+        using (var arrange = db.CreateContext())
+        {
+            // 4 active + 1 already-revoked. The revoked row must be cleaned out rather than counted,
+            // so the new login does not evict one of the active sessions.
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "active-1", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "active-2", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "active-3", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "active-4", DateTime.UtcNow.AddDays(3));
+            SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "revoked", DateTime.UtcNow.AddDays(3), DateTime.UtcNow.AddMinutes(-5));
+        }
+
+        var issued = await new AuthService(db.CreateContext(), settings)
+            .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
+
+        using var assert = db.CreateContext();
+
+        var refreshTokens = await assert.RefreshTokens
+            .Where(x => x.UserId == SqliteTestDatabase.UserId)
+            .ToListAsync();
+
+        Assert.Equal(5, refreshTokens.Count);
+        Assert.All(refreshTokens, x => Assert.Null(x.RevokedAtUtc));
+        Assert.Contains(refreshTokens, x => x.Value == "active-1");
+        Assert.Contains(refreshTokens, x => x.Value == issued.RefreshToken);
     }
 
     [Fact]

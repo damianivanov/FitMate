@@ -6,7 +6,17 @@ namespace FitMate.Services.Auth;
 
 public interface IAuthService
 {
-    Task<IssuedTokens> IssueTokensAsync(User user, IReadOnlyCollection<string> roles);
+    /// <summary>
+    /// Issues a fresh access/refresh token pair for one device session. Pass the presented tokens as
+    /// <paramref name="rotatedAccessToken"/>/<paramref name="rotatedRefreshToken"/> on a refresh to
+    /// rotate just that session; leave them null on login to add a new session. Other sessions are
+    /// left intact, capped at a per-user maximum of concurrent refresh tokens.
+    /// </summary>
+    Task<IssuedTokens> IssueTokensAsync(
+        User user,
+        IReadOnlyCollection<string> roles,
+        string? rotatedAccessToken = null,
+        string? rotatedRefreshToken = null);
     bool TryValidateRefreshToken(string refreshToken, out ClaimsPrincipal principal);
     Task RevokeTokensAsync(string? accessToken, string? refreshToken, long? actingUserId);
 
