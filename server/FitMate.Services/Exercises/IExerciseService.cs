@@ -11,5 +11,7 @@ public interface IExerciseService
     Task<ExerciseModel> CreateAsync(CreateExerciseRequest request);
     Task<ExerciseModel> UpdateAsync(long id, CreateExerciseRequest request);
     Task<ExerciseModel> UploadImageAsync(long id, Stream content, string fileName);
+    Task<ImageUploadTicketModel> CreateImageUploadTicketAsync(long id, ImageUploadTicketRequest request);
+    Task<ExerciseModel> ConfirmImageUploadAsync(long id, ConfirmImageUploadRequest request);
     Task<bool> DeleteAsync(long id);
 }

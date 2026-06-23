@@ -41,42 +41,11 @@ public class ExerciseController : BaseApiController
     }
 
     [HttpPost]
-    [RequestSizeLimit(UploadConstraints.MaxBytes)]
-    public async Task<ActionResult> Create([FromForm] CreateExerciseRequest request, [FromForm] IFormFile? file)
+    public async Task<ActionResult> Create([FromBody] CreateExerciseRequest request)
     {
-        var imageError = ValidateImage(file);
-        if (imageError != null)
-        {
-            return this.ReturnJsonError(imageError);
-        }
-
+        // The image (if any) is attached separately by the client via the direct-to-storage flow
+        // below, so create stays a small JSON POST that survives the serverless ingress.
         var created = await exerciseService.CreateAsync(request);
-
-        if (file is { Length: > 0 })
-        {
-            try
-            {
-                await using var stream = file.OpenReadStream();
-                created = await exerciseService.UploadImageAsync(created.Id, stream, file.FileName);
-            }
-            catch
-            {
-                // The exercise row is already committed, so a failed image upload would
-                // otherwise leave an orphaned, imageless exercise (and a retry would create
-                // a duplicate). Remove it best-effort and surface the original failure.
-                try
-                {
-                    await exerciseService.DeleteAsync(created.Id);
-                }
-                catch
-                {
-                    // Ignore cleanup failures; the original upload error is what matters.
-                }
-
-                throw;
-            }
-        }
-
         return this.ReturnJson(created);
     }
 
@@ -112,6 +81,23 @@ public class ExerciseController : BaseApiController
         await using var stream = file.OpenReadStream();
         var updated = await exerciseService.UploadImageAsync(id, stream, file.FileName);
 
+        return this.ReturnJson(updated);
+    }
+
+    // Two-step direct-to-storage upload: the browser asks for a short-lived write URL, PUTs the image
+    // bytes straight to blob storage (bypassing the ingress, which resets streaming multipart POSTs on
+    // the scale-to-zero serverless runtime), then confirms so the server validates and finalizes it.
+    [HttpPost("{id}/image/upload-url")]
+    public async Task<ActionResult> CreateImageUploadUrl(long id, [FromBody] ImageUploadTicketRequest request)
+    {
+        var ticket = await exerciseService.CreateImageUploadTicketAsync(id, request);
+        return this.ReturnJson(ticket);
+    }
+
+    [HttpPost("{id}/image/confirm")]
+    public async Task<ActionResult> ConfirmImageUpload(long id, [FromBody] ConfirmImageUploadRequest request)
+    {
+        var updated = await exerciseService.ConfirmImageUploadAsync(id, request);
         return this.ReturnJson(updated);
     }
 

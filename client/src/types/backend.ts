@@ -282,6 +282,10 @@ export namespace JsonModels.MuscleGroups {
 	}
 }
 export namespace JsonModels.Exercises {
+	export interface ConfirmImageUploadRequest
+	{
+		blobName: string;
+	}
 	export interface CreateExerciseRequest
 	{
 		name: string;
@@ -338,6 +342,16 @@ export namespace JsonModels.Exercises {
 		search?: string;
 		isGlobal?: boolean;
 		userId?: number;
+	}
+	export interface ImageUploadTicketModel
+	{
+		uploadUrl: string;
+		blobName: string;
+	}
+	export interface ImageUploadTicketRequest
+	{
+		fileName: string;
+		contentType: string;
 	}
 }
 export namespace JsonModels.Errors {

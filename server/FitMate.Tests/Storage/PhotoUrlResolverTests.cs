@@ -15,12 +15,22 @@ public class PhotoUrlResolverTests
 
         public Task DeleteByPrefixAsync(string prefix) => throw new NotSupportedException();
 
+        public Task DeleteAsync(string path) => throw new NotSupportedException();
+
         public Task<string> GetReadUrlAsync(string path)
         {
             ReadUrlCallCount++;
             LastRequestedPath = path;
             return Task.FromResult($"https://account.blob.core.windows.net/media/{path}?sv=2024&sig=fake&sp=r");
         }
+
+        public Task<string> GetWriteUrlAsync(string path, string contentType)
+            => throw new NotSupportedException();
+
+        public Task<Stream?> DownloadAsync(string path) => throw new NotSupportedException();
+
+        public Task EnsureCorsAsync(IReadOnlyCollection<string> allowedOrigins)
+            => throw new NotSupportedException();
     }
 
     // Null стойност връща null без сигниране

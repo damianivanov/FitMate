@@ -136,16 +136,7 @@ public class ExerciseService : IExerciseService
 
     public async Task<ExerciseModel> UploadImageAsync(long id, Stream content, string fileName)
     {
-        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
-        if (exercise == null)
-        {
-            throw new FitMateException("Exercise not found.");
-        }
-
-        if (!userService.LoggedInUserIsAdmin && exercise.UserId != userService.LoggedInUserId)
-        {
-            throw new FitMateException("You can only change images for your own exercises.");
-        }
+        var exercise = await LoadImageEditableExerciseAsync(id);
 
         var processed = await imageProcessor.ProcessAsync(content);
         if (processed == null)
@@ -167,6 +158,71 @@ public class ExerciseService : IExerciseService
         InvalidateLookupCache();
 
         return await ResolveModelUrlsAsync(MapToModel(exercise));
+    }
+
+    public async Task<ImageUploadTicketModel> CreateImageUploadTicketAsync(long id, ImageUploadTicketRequest request)
+    {
+        // Authorize before issuing any SAS so we never hand out a write URL for someone else's exercise.
+        await LoadImageEditableExerciseAsync(id);
+
+        var contentType = request.ContentType?.Trim() ?? string.Empty;
+        if (!UploadConstraints.AllowedContentTypes.Contains(contentType))
+        {
+            throw new FitMateException("Unsupported file type. Upload a JPEG, PNG, WebP, or GIF image.");
+        }
+
+        // Staging blobs live under exercises/{id}/incoming/ so they stay isolated from the live image
+        // and are swept by the same exercises/{id}/ prefix delete on the next successful upload.
+        var stagingPath =
+            $"{StorageModule.Exercises.ToFolder()}/{id}/{IncomingFolder}/{Guid.NewGuid():N}.{ExtensionForContentType(contentType)}";
+
+        var uploadUrl = await blobStorage.GetWriteUrlAsync(stagingPath, contentType);
+
+        return new ImageUploadTicketModel
+        {
+            UploadUrl = uploadUrl,
+            BlobName = stagingPath,
+        };
+    }
+
+    public async Task<ExerciseModel> ConfirmImageUploadAsync(long id, ConfirmImageUploadRequest request)
+    {
+        var exercise = await LoadImageEditableExerciseAsync(id);
+
+        var blobName = request.BlobName?.Trim() ?? string.Empty;
+        var expectedPrefix = $"{StorageModule.Exercises.ToFolder()}/{id}/{IncomingFolder}/";
+        if (!blobName.StartsWith(expectedPrefix, StringComparison.Ordinal) || blobName.Contains("..", StringComparison.Ordinal))
+        {
+            throw new FitMateException("Invalid upload reference.");
+        }
+
+        var staging = await blobStorage.DownloadAsync(blobName);
+        if (staging == null)
+        {
+            throw new FitMateException("Upload not found. Please try uploading the image again.");
+        }
+
+        try
+        {
+            await using (staging)
+            {
+                // The browser PUT bypassed app-side checks, so re-validate and normalize server-side
+                // through the same pipeline (ImageSharp -> final blob) the legacy multipart upload used.
+                return await UploadImageAsync(id, staging, exercise.Slug);
+            }
+        }
+        finally
+        {
+            // The finalized image now lives at its own path; drop the raw staging blob best-effort.
+            try
+            {
+                await blobStorage.DeleteAsync(blobName);
+            }
+            catch
+            {
+                // Ignore cleanup failures; the live image is already in place.
+            }
+        }
     }
 
     public async Task<bool> DeleteAsync(long id)
@@ -200,6 +256,33 @@ public class ExerciseService : IExerciseService
 
         return exercise;
     }
+
+    private async Task<Exercise> LoadImageEditableExerciseAsync(long id)
+    {
+        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
+        if (exercise == null)
+        {
+            throw new FitMateException("Exercise not found.");
+        }
+
+        if (!userService.LoggedInUserIsAdmin && exercise.UserId != userService.LoggedInUserId)
+        {
+            throw new FitMateException("You can only change images for your own exercises.");
+        }
+
+        return exercise;
+    }
+
+    private const string IncomingFolder = "incoming";
+
+    private static string ExtensionForContentType(string contentType) => contentType.ToLowerInvariant() switch
+    {
+        "image/jpeg" or "image/jpg" => "jpg",
+        "image/png" => "png",
+        "image/webp" => "webp",
+        "image/gif" => "gif",
+        _ => "img",
+    };
 
     public async Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request)
     {

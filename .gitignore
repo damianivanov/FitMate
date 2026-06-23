@@ -43,3 +43,4 @@ server/**/appsettings.Local.json
 coverage/
 server/FitMate.Web/appsettings.Development.json
 # appsettings.json is committed with non-secret defaults; secrets live in appsettings.Local.json (above) or environment variables
+server/FitMate.Tools/appsettings.json

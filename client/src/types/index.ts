@@ -10,6 +10,7 @@ export type Exercise = JsonModels.Exercises.ExerciseModel;
 export type ExerciseLookup = JsonModels.Exercises.ExerciseLookupModel;
 export type ExerciseProgression = JsonModels.Analytics.ExerciseProgressionModel;
 export type ExerciseProgressionPoint = JsonModels.Analytics.ExerciseProgressionPointModel;
+export type ImageUploadTicket = JsonModels.Exercises.ImageUploadTicketModel;
 export type MuscleGroup = JsonModels.MuscleGroups.MuscleGroupModel;
 export type MuscleGroupVolume = JsonModels.Analytics.MuscleGroupVolumeModel;
 export type PersonalRecordSummary = JsonModels.Analytics.PersonalRecordSummaryModel;

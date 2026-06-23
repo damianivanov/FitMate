@@ -8,6 +8,7 @@ export type { AnalyticsQueryRequest } from "./Analytics/AnalyticsQueryRequest";
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { BodyMetricEntryModel } from "./BodyMetrics/BodyMetricEntryModel";
 export type { ChangePasswordRequest } from "./Auth/ChangePasswordRequest";
+export type { ConfirmImageUploadRequest } from "./Exercises/ConfirmImageUploadRequest";
 export type { CreateExerciseRequest } from "./Exercises/CreateExerciseRequest";
 export type { CreateMuscleGroupRequest } from "./MuscleGroups/CreateMuscleGroupRequest";
 export type { CreateTemplateFromWorkoutRequest } from "./WorkoutTemplates/CreateTemplateFromWorkoutRequest";
@@ -26,6 +27,8 @@ export type { ExerciseProgressionPointModel } from "./Analytics/ExerciseProgress
 export type { ExerciseQueryRequest } from "./Exercises/ExerciseQueryRequest";
 export type { ForgotPasswordRequest } from "./Auth/ForgotPasswordRequest";
 export type { GoogleLoginRequest } from "./Auth/GoogleLoginRequest";
+export type { ImageUploadTicketModel } from "./Exercises/ImageUploadTicketModel";
+export type { ImageUploadTicketRequest } from "./Exercises/ImageUploadTicketRequest";
 export type { JsonData } from "./JsonData";
 export type { LogBodyMetricRequest } from "./BodyMetrics/LogBodyMetricRequest";
 export type { LoginRequest } from "./Auth/LoginRequest";

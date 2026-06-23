@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
@@ -48,6 +49,12 @@ public class AzureBlobStorageService : IBlobStorageService
         }
     }
 
+    public async Task DeleteAsync(string path)
+    {
+        var blob = GetContainerClient().GetBlobClient(path);
+        await blob.DeleteIfExistsAsync();
+    }
+
     public Task<string> GetReadUrlAsync(string path)
     {
         var container = GetContainerClient();
@@ -70,6 +77,72 @@ public class AzureBlobStorageService : IBlobStorageService
         }
 
         return Task.FromResult(blob.GenerateSasUri(sasBuilder).ToString());
+    }
+
+    public async Task<string> GetWriteUrlAsync(string path, string contentType)
+    {
+        var container = GetContainerClient();
+        // The browser PUTs straight to the blob, so the container must exist beforehand.
+        await container.CreateIfNotExistsAsync(PublicAccessType.None);
+
+        var blob = container.GetBlobClient(path);
+
+        var sasBuilder = new BlobSasBuilder
+        {
+            BlobContainerName = settings.AzureStorageContainerName,
+            BlobName = path,
+            Resource = "b",
+            StartsOn = DateTimeOffset.UtcNow.AddMinutes(-2),
+            ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(settings.AzureStorageSasMinutes),
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Create | BlobSasPermissions.Write);
+
+        if (!blob.CanGenerateSasUri)
+        {
+            throw new InvalidOperationException(
+                "Blob client cannot generate a SAS. Ensure the storage connection string includes an account key.");
+        }
+
+        return blob.GenerateSasUri(sasBuilder).ToString();
+    }
+
+    public async Task<Stream?> DownloadAsync(string path)
+    {
+        var blob = GetContainerClient().GetBlobClient(path);
+
+        try
+        {
+            var stream = new MemoryStream();
+            await blob.DownloadToAsync(stream);
+            stream.Position = 0;
+            return stream;
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            return null;
+        }
+    }
+
+    public async Task EnsureCorsAsync(IReadOnlyCollection<string> allowedOrigins)
+    {
+        var serviceClient = GetBlobServiceClient();
+        var properties = await serviceClient.GetPropertiesAsync();
+
+        var origins = allowedOrigins.Count > 0 ? string.Join(",", allowedOrigins) : "*";
+
+        properties.Value.Cors = new List<BlobCorsRule>
+        {
+            new()
+            {
+                AllowedOrigins = origins,
+                AllowedMethods = "PUT,GET,HEAD,OPTIONS",
+                AllowedHeaders = "*",
+                ExposedHeaders = "*",
+                MaxAgeInSeconds = 3600,
+            },
+        };
+
+        await serviceClient.SetPropertiesAsync(properties.Value);
     }
 
     private BlobContainerClient GetContainerClient()
