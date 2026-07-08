@@ -160,9 +160,19 @@ public sealed class ImportExerciseImagesCommand
 
         // Persist only the file name; the {module}/{id}/ prefix is rebuilt on read via BlobPathBuilder.Compose.
         exercise.ImageUrl = Path.GetFileName(blobPath);
-        await dbContext.SaveChangesAsync();
+        var rows = await dbContext.SaveChangesAsync();
 
-        logger.LogInformation("Uploaded {File} -> exercise {Id} '{Name}'.", fileName, exercise.Id, exercise.Name);
+        // Read the value straight back from the database to prove the write actually landed here
+        // (distinguishes a no-op SaveChanges from writing to a different database than expected).
+        var persisted = await dbContext.Exercises
+            .AsNoTracking()
+            .Where(x => x.Id == exercise.Id)
+            .Select(x => x.ImageUrl)
+            .FirstOrDefaultAsync();
+
+        logger.LogInformation(
+            "Uploaded {File} -> exercise {Id} '{Name}': set ImageUrl='{ImageUrl}', SaveChanges rows={Rows}, DB read-back='{Persisted}'.",
+            fileName, exercise.Id, exercise.Name, exercise.ImageUrl, rows, persisted);
         return ImportResult.Uploaded;
     }
 

@@ -43,11 +43,11 @@ api.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        })
-          .then(() => api(originalRequest))
-          .catch((err) => Promise.reject(err));
+        });
+
+        return api(originalRequest);
       }
 
       if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {

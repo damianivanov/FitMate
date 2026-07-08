@@ -802,6 +802,10 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     );
   }, []);
 
+  // Mirrors startWorkoutSession (declared below) so the completion handlers can auto-start the
+  // session without hitting its temporal-dead-zone from inside their dependency-free closures.
+  const startWorkoutSessionRef = useRef<(() => void) | null>(null);
+
   const handleSetCompletedToggle = useCallback((exerciseDraftId: string, setDraftId: string) => {
     const currentDraft = draftRef.current;
     const targetExercise = currentDraft?.exercises.find((exercise) => exercise.id === exerciseDraftId);
@@ -825,6 +829,11 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
     if (!currentDraft || !targetExercise || !targetSet || targetSet.isCompleted) {
       return;
+    }
+
+    // Auto-start the session the first time any set is marked done.
+    if (!currentDraft.startedAt) {
+      startWorkoutSessionRef.current?.();
     }
 
     const willCompleteExercise = targetExercise.sets.every(
@@ -892,6 +901,11 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
           }))
         : current,
     );
+
+    // Auto-start the session the first time an exercise is marked done.
+    if (!currentDraft.startedAt) {
+      startWorkoutSessionRef.current?.();
+    }
 
     const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
 
@@ -1074,6 +1088,12 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     return startedWorkoutId;
   }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, isSheetMode, navigate, saveWorkoutToBackend, workoutId]);
 
+  useEffect(() => {
+    startWorkoutSessionRef.current = () => {
+      void startWorkoutSession();
+    };
+  }, [startWorkoutSession]);
+
   const handleAddExerciseModalClose = useCallback(() => {
     setIsAddExerciseModalOpen(false);
     setGroupAddContext(null);
@@ -1096,6 +1116,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     let wasAdded = false;
     let nextGroupAddContext: GroupAddContext | null = null;
     let nextDraftToPersist: WorkoutDraft | null = null;
+    let addedExerciseDraftId: string | null = null;
 
     setDraft((current) => {
       if (!current) {
@@ -1109,6 +1130,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
       wasAdded = true;
       const nextExercise = createWorkoutExerciseDraftFromLookup(exercise, current.exercises.length + 1);
+      addedExerciseDraftId = nextExercise.id;
       let nextExercises: WorkoutExerciseDraft[];
 
       if (groupAddContext) {
@@ -1123,7 +1145,34 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
           nextExercises.splice(anchorIndex + 1, 0, nextExercise);
         }
       } else {
-        nextExercises = [...current.exercises, nextExercise];
+        // Drop the new exercise at the user's progress frontier: right after the last exercise
+        // that has a completed set, instead of at the bottom of the list.
+        const lastDoneIndex = current.exercises.reduce(
+          (lastIndex, item, index) =>
+            item.sets.some((set) => set.isCompleted) ? index : lastIndex,
+          -1,
+        );
+
+        if (lastDoneIndex < 0) {
+          // Nothing logged yet — keep the previous behaviour of appending to the bottom.
+          nextExercises = [...current.exercises, nextExercise];
+        } else {
+          // Skip past the rest of the anchor's superset/circuit block so a standalone exercise
+          // never splits a contiguous group (buildWorkoutExerciseGroups relies on that contiguity).
+          let insertIndex = lastDoneIndex + 1;
+          const anchorGroupId = current.exercises[lastDoneIndex].clientGroupId;
+          if (anchorGroupId !== undefined) {
+            while (
+              insertIndex < current.exercises.length
+              && current.exercises[insertIndex].clientGroupId === anchorGroupId
+            ) {
+              insertIndex += 1;
+            }
+          }
+
+          nextExercises = [...current.exercises];
+          nextExercises.splice(insertIndex, 0, nextExercise);
+        }
       }
 
       const normalizedExercises = normalizeWorkoutExerciseOrderIndexes(nextExercises);
@@ -1149,7 +1198,9 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         void createWorkoutFromDraft(nextDraftToPersist);
       }
 
-      void workoutService.getPreviousSets([exercise.id]).then((response) => {
+      const targetExerciseDraftId = addedExerciseDraftId;
+      void (async () => {
+        const response = await workoutService.getPreviousSets([exercise.id]);
         const result = response.data;
         if (!result.success || !result.data) {
           return;
@@ -1164,7 +1215,41 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
           ...current,
           [previousSets.exerciseId]: previousSets,
         }));
-      });
+
+        // Auto-fill the freshly added exercise's sets from the last-performed values, unless the
+        // user has already started logging into it (entered a metric or completed a set).
+        if (!targetExerciseDraftId || previousSets.sets.length === 0) {
+          return;
+        }
+
+        setDraft((current) => {
+          if (!current) {
+            return current;
+          }
+
+          const target = current.exercises.find((item) => item.id === targetExerciseDraftId);
+          if (!target) {
+            return current;
+          }
+
+          const isPristine = target.sets.every(
+            (set) =>
+              set.weightKg === undefined
+              && set.durationSeconds === undefined
+              && !set.isCompleted,
+          );
+          if (!isPristine) {
+            return current;
+          }
+
+          return updateDraftExercise(current, targetExerciseDraftId, (item) => ({
+            ...item,
+            sets: previousSets.sets.map((previousSet, index) =>
+              createWorkoutSetDraftFromPreviousSet(previousSet, index),
+            ),
+          }));
+        });
+      })();
 
       if (nextGroupAddContext) {
         setGroupAddContext(nextGroupAddContext);

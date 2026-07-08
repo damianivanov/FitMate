@@ -22,6 +22,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Events;
 using System.Security.Claims;
 using System.Text;
 
@@ -33,6 +35,29 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
+// Route all ILogger output through Serilog. Console is captured by the (serverless) host's log
+// stream; the custom database sink persists Warning+ events to the Errors table so the admin error
+// grid sees model-validation failures, service-level warnings/errors and background work — not just
+// the unhandled 500s the exception filter writes directly. No file sink: the host FS is read-only.
+builder.Logging.ClearProviders();
+builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfiguration
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    // UseHttpsRedirection warns on every request when no HTTPS port is resolvable (e.g. behind a
+    // TLS-terminating proxy). Keep that per-request noise out of the Errors table.
+    .MinimumLevel.Override("Microsoft.AspNetCore.HttpsRedirection", LogEventLevel.Error)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.With(new SerilogHttpContextDataEnricher(services.GetRequiredService<IHttpContextAccessor>()))
+    .WriteTo.Console()
+    .WriteTo.Sink(
+        new SerilogDatabaseSink(services.GetRequiredService<IServiceScopeFactory>()),
+        restrictedToMinimumLevel: LogEventLevel.Warning),
+    // Keep the logger scoped to this host instead of assigning the process-global Log.Logger. The app
+    // only ever logs through ILogger<T>, and not touching global state keeps parallel test hosts (each
+    // WebApplicationFactory spins up its own host in-process) from routing each other's logs.
+    preserveStaticLogger: true);
 
 var configuredOrigins = builder.Configuration
     .GetSection("Application:AllowedOrigins")
@@ -61,6 +86,18 @@ builder.Services
                 .Select(modelError => modelError.ErrorMessage)
                 .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message))
                 ?? "One or more validation errors occurred.";
+
+            // Model-validation 400s never reach the exception filter (they short-circuit before the
+            // action runs), so log them here at Warning to make them visible in the Errors table via
+            // the Serilog database sink — these usually signal a malformed request or a client bug.
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("FitMate.Web.ModelValidation");
+            logger.LogWarning(
+                "Model validation failed on {Method} {Path}: {Error}",
+                context.HttpContext.Request.Method,
+                context.HttpContext.Request.Path,
+                error);
 
             return new JsonResult(new CommonJsonModel<object?>(error: error, data: null))
             {

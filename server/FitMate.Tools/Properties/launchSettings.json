@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FitMate.Tools": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
+    }
+  }
+}

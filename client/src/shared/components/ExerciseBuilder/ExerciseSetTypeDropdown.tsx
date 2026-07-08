@@ -150,7 +150,7 @@ export function ExerciseSetTypeDropdown({
       ? createPortal(
           <div
             ref={menuRef}
-            className="liquid-user-menu fixed z-50 w-32 rounded-2xl p-2"
+            className="liquid-user-menu fixed z-420 w-32 rounded-2xl p-2"
             style={{ top: menuPosition.top, left: menuPosition.left }}
           >
             {SET_TYPE_OPTIONS.map((option) => (
