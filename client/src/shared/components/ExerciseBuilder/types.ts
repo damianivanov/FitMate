@@ -1,4 +1,4 @@
-import type { ExerciseGroupType, ExerciseSetType, PreviousExerciseSets } from "@/types";
+import type { ExerciseGroupType, ExerciseHistory, ExerciseSetType } from "@/types";
 
 export type QuickSetFieldKey =
   | "weightKg"
@@ -31,7 +31,7 @@ export interface ExerciseBuilderExerciseVM {
   collapsed: boolean;
   metricMode: ExerciseMetricMode;
   sets: ExerciseBuilderSetVM[];
-  previousSets?: PreviousExerciseSets;
+  history?: ExerciseHistory;
 }
 
 export interface ExerciseBuilderCapabilities {

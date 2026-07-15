@@ -76,7 +76,7 @@ export default function WorkoutBuilder({
     summary,
     elapsedSeconds,
     isWorkoutStarted,
-    previousSetsByExerciseId,
+    exerciseHistoryByExerciseId,
     isLoadingTemplate,
     templateError,
     isSavingWorkout,
@@ -97,7 +97,7 @@ export default function WorkoutBuilder({
     }
 
     return draft.exercises.map((exercise) => {
-      const previousSets = previousSetsByExerciseId[exercise.exerciseId];
+      const history = exerciseHistoryByExerciseId[exercise.exerciseId];
 
       return {
         id: exercise.id,
@@ -118,10 +118,10 @@ export default function WorkoutBuilder({
           setType: set.setType,
           isCompleted: set.isCompleted,
         })),
-        previousSets,
+        history,
       };
     });
-  }, [draft, previousSetsByExerciseId, collapsedExerciseIds]);
+  }, [draft, exerciseHistoryByExerciseId, collapsedExerciseIds]);
 
   // Derived from `draft` only (not the per-second elapsed timer) so the add
   // modal does not re-render on every tick or background autosave.

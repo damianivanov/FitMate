@@ -19,6 +19,10 @@ export type { CreateWorkoutTemplateExerciseSetRequest } from "./WorkoutTemplates
 export type { CreateWorkoutTemplateRequest } from "./WorkoutTemplates/CreateWorkoutTemplateRequest";
 export type { ErrorModel } from "./Errors/ErrorModel";
 export type { ErrorQueryRequest } from "./Errors/ErrorQueryRequest";
+export type { ExerciseHistoryModel } from "./Workouts/ExerciseHistoryModel";
+export type { ExerciseHistoryQueryRequest } from "./Workouts/ExerciseHistoryQueryRequest";
+export type { ExerciseHistoryResponse } from "./Workouts/ExerciseHistoryResponse";
+export type { ExerciseHistorySessionModel } from "./Workouts/ExerciseHistorySessionModel";
 export type { ExerciseLookupModel } from "./Exercises/ExerciseLookupModel";
 export type { ExerciseLookupRequest } from "./Exercises/ExerciseLookupRequest";
 export type { ExerciseModel } from "./Exercises/ExerciseModel";

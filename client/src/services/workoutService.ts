@@ -1,7 +1,7 @@
 import api from "@/lib/api";
 import type {
+  ExerciseHistoryResponse,
   JsonData,
-  PreviousExerciseSetsResponse,
   SaveWorkoutRequest,
   WorkoutCalendarDayModel,
   WorkoutCreatedModel,
@@ -47,12 +47,13 @@ export const workoutService = {
     return api.delete<JsonData<boolean>>(`workouts/${id}`);
   },
 
-  async getPreviousSets(exerciseIds: number[]) {
+  async getExerciseHistory(exerciseIds: number[], take = 3) {
     const params = new URLSearchParams();
     exerciseIds.forEach((id) => {
       params.append("exerciseIds", String(id));
     });
+    params.append("take", String(take));
 
-    return api.get<JsonData<PreviousExerciseSetsResponse>>("workouts/previous-sets", { params });
+    return api.get<JsonData<ExerciseHistoryResponse>>("workouts/exercise-history", { params });
   },
 };

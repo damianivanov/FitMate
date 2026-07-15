@@ -133,6 +133,28 @@ export namespace JsonModels.Workouts {
 		rpe?: number;
 		notes?: string;
 	}
+	export interface ExerciseHistoryModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		sessions: JsonModels.Workouts.ExerciseHistorySessionModel[];
+	}
+	export interface ExerciseHistoryQueryRequest
+	{
+		exerciseIds: number[];
+		take: number;
+	}
+	export interface ExerciseHistoryResponse
+	{
+		items: JsonModels.Workouts.ExerciseHistoryModel[];
+	}
+	export interface ExerciseHistorySessionModel
+	{
+		workoutId: number;
+		workoutTitle: string;
+		workoutStartedAt: string;
+		sets: JsonModels.Workouts.PreviousExerciseSetModel[];
+	}
 	export interface PreviousExerciseSetModel
 	{
 		setNumber: number;

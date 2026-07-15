@@ -118,9 +118,9 @@ export function ExerciseCard({
 
   const showRest = capabilities.showRestColumn;
   const showRpe = capabilities.showRpeColumn;
-  const previousSets = exercise.previousSets;
+  const history = exercise.history;
   const showPreviousSets =
-    capabilities.showPreviousSets && previousSets != null && previousSets.sets.length > 0;
+    capabilities.showPreviousSets && history != null && history.sessions.length > 0;
 
   const noteButtonText = isNotesVisible
     ? "Hide Note"
@@ -451,9 +451,9 @@ export function ExerciseCard({
               </span>
             )}
             <div className="flex shrink-0 items-center gap-0.5">
-              {showPreviousSets && previousSets ? (
+              {showPreviousSets && history ? (
                 <PreviousSetsButton
-                  previousSets={previousSets}
+                  history={history}
                   exerciseName={exercise.displayName}
                   onFastAdd={() => callbacks.onApplyPreviousSets?.(exercise.id)}
                 />

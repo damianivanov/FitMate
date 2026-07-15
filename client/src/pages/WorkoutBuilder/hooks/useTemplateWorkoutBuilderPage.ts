@@ -9,7 +9,7 @@ import {
 import { workoutService } from "@/services/workoutService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
 import { getExerciseBlockDragOrderIndexes, type ExerciseMetricMode } from "@/shared/components";
-import { ExerciseGroupType, type ExerciseLookupModel, type ExerciseSetType, type PreviousExerciseSets } from "@/types";
+import { ExerciseGroupType, type ExerciseHistory, type ExerciseLookupModel, type ExerciseSetType } from "@/types";
 import {
   buildEmptyWorkoutDraft,
   buildWorkoutDraftFromWorkout,
@@ -31,7 +31,7 @@ import {
   type WorkoutSetMetricField,
 } from "../utils/workoutDraft";
 
-type PreviousSetsByExerciseId = Record<number, PreviousExerciseSets>;
+type ExerciseHistoryByExerciseId = Record<number, ExerciseHistory>;
 
 type ActiveQuickSetPopoverContext = {
   field: WorkoutSetMetricField;
@@ -164,7 +164,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     [isSheetMode, options?.templateId, templateIdParam],
   );
   const [draft, setDraft] = useState<WorkoutDraft | null>(null);
-  const [previousSetsByExerciseId, setPreviousSetsByExerciseId] = useState<PreviousSetsByExerciseId>({});
+  const [exerciseHistoryByExerciseId, setExerciseHistoryByExerciseId] = useState<ExerciseHistoryByExerciseId>({});
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(true);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [isSavingWorkout, setIsSavingWorkout] = useState(false);
@@ -196,19 +196,19 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     }
 
     try {
-      const previousSetsResponse = await workoutService.getPreviousSets(exerciseIds);
-      const previousSetsResult = previousSetsResponse.data;
-      if (!previousSetsResult.success || !previousSetsResult.data) {
+      const historyResponse = await workoutService.getExerciseHistory(exerciseIds);
+      const historyResult = historyResponse.data;
+      if (!historyResult.success || !historyResult.data) {
         return;
       }
 
-      const nextPreviousSetsByExerciseId: PreviousSetsByExerciseId = {};
-      previousSetsResult.data.items.forEach((item) => {
-        nextPreviousSetsByExerciseId[item.exerciseId] = item;
+      const nextExerciseHistoryByExerciseId: ExerciseHistoryByExerciseId = {};
+      historyResult.data.items.forEach((item) => {
+        nextExerciseHistoryByExerciseId[item.exerciseId] = item;
       });
-      setPreviousSetsByExerciseId(nextPreviousSetsByExerciseId);
+      setExerciseHistoryByExerciseId(nextExerciseHistoryByExerciseId);
     } catch {
-      setPreviousSetsByExerciseId({});
+      setExerciseHistoryByExerciseId({});
     }
   }, []);
 
@@ -226,7 +226,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       setIsLoadingTemplate(true);
       setTemplateError(null);
       setDraft(null);
-      setPreviousSetsByExerciseId({});
+      setExerciseHistoryByExerciseId({});
       setQuickSetPopover(null);
       setQuickSetPopoverAnchorElement(null);
       draftWorkoutIdRef.current = undefined;
@@ -254,7 +254,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     }
 
     if (!templateId) {
-      setPreviousSetsByExerciseId({});
+      setExerciseHistoryByExerciseId({});
       setTemplateError(null);
       setIsLoadingTemplate(false);
       draftWorkoutIdRef.current = undefined;
@@ -265,7 +265,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     setIsLoadingTemplate(true);
     setTemplateError(null);
     setDraft(null);
-    setPreviousSetsByExerciseId({});
+    setExerciseHistoryByExerciseId({});
     setQuickSetPopover(null);
     setQuickSetPopoverAnchorElement(null);
     draftWorkoutIdRef.current = undefined;
@@ -804,7 +804,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
   // Mirrors startWorkoutSession (declared below) so the completion handlers can auto-start the
   // session without hitting its temporal-dead-zone from inside their dependency-free closures.
-  const startWorkoutSessionRef = useRef<(() => void) | null>(null);
+  const startWorkoutSessionRef = useRef<((draftOverride?: WorkoutDraft) => void) | null>(null);
 
   const handleSetCompletedToggle = useCallback((exerciseDraftId: string, setDraftId: string) => {
     const currentDraft = draftRef.current;
@@ -816,24 +816,39 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       return;
     }
 
-    setDraft((current) =>
-      current
-        ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
-            ...exercise,
-            sets: exercise.sets.map((set) =>
-              set.id === setDraftId ? { ...set, isCompleted: !set.isCompleted } : set,
-            ),
-          }))
-        : current,
-    );
+    let autoStartDraft: WorkoutDraft | null = null;
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const nextDraft = updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+        ...exercise,
+        sets: exercise.sets.map((set) =>
+          set.id === setDraftId ? { ...set, isCompleted: !set.isCompleted } : set,
+        ),
+      }));
+
+      // Decide auto-start from the fresh state: draftRef lags a render behind, and for a set on a
+      // just-added ad-hoc exercise that lag would otherwise skip the start entirely.
+      const toggledSet = nextDraft.exercises
+        .find((exercise) => exercise.id === exerciseDraftId)
+        ?.sets.find((set) => set.id === setDraftId);
+      if (!current.startedAt && toggledSet?.isCompleted) {
+        autoStartDraft = nextDraft;
+      }
+
+      return nextDraft;
+    });
+
+    // Auto-start the first time a set is marked done. Pass the fresh draft so the session starts
+    // even when draftRef has not synced yet.
+    if (autoStartDraft) {
+      startWorkoutSessionRef.current?.(autoStartDraft);
+    }
 
     if (!currentDraft || !targetExercise || !targetSet || targetSet.isCompleted) {
       return;
-    }
-
-    // Auto-start the session the first time any set is marked done.
-    if (!currentDraft.startedAt) {
-      startWorkoutSessionRef.current?.();
     }
 
     const willCompleteExercise = targetExercise.sets.every(
@@ -893,18 +908,28 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       return;
     }
 
-    setDraft((current) =>
-      current
-        ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
-            ...exercise,
-            sets: exercise.sets.map((set) => ({ ...set, isCompleted: true })),
-          }))
-        : current,
-    );
+    let autoStartDraft: WorkoutDraft | null = null;
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
 
-    // Auto-start the session the first time an exercise is marked done.
-    if (!currentDraft.startedAt) {
-      startWorkoutSessionRef.current?.();
+      const nextDraft = updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+        ...exercise,
+        sets: exercise.sets.map((set) => ({ ...set, isCompleted: true })),
+      }));
+
+      if (!current.startedAt) {
+        autoStartDraft = nextDraft;
+      }
+
+      return nextDraft;
+    });
+
+    // Auto-start the first time an exercise is marked done. Pass the fresh draft so the session
+    // starts even when draftRef has not synced yet.
+    if (autoStartDraft) {
+      startWorkoutSessionRef.current?.(autoStartDraft);
     }
 
     const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
@@ -944,19 +969,20 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       }
 
       const exercise = current.exercises.find((item) => item.id === exerciseDraftId);
-      const previousSets = exercise ? previousSetsByExerciseId[exercise.exerciseId] : undefined;
-      if (!exercise || !previousSets || previousSets.sets.length === 0) {
+      const history = exercise ? exerciseHistoryByExerciseId[exercise.exerciseId] : undefined;
+      const latestSessionSets = history?.sessions[0]?.sets ?? [];
+      if (!exercise || latestSessionSets.length === 0) {
         return current;
       }
 
       return updateDraftExercise(current, exerciseDraftId, (item) => ({
         ...item,
-        sets: previousSets.sets.map((previousSet, index) =>
+        sets: latestSessionSets.map((previousSet, index) =>
           createWorkoutSetDraftFromPreviousSet(previousSet, index),
         ),
       }));
     });
-  }, [previousSetsByExerciseId]);
+  }, [exerciseHistoryByExerciseId]);
 
   const handleRemoveSet = useCallback((exerciseDraftId: string, setDraftId: string) => {
     const exercise = draft?.exercises.find((item) => item.id === exerciseDraftId);
@@ -1089,8 +1115,8 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
   }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, isSheetMode, navigate, saveWorkoutToBackend, workoutId]);
 
   useEffect(() => {
-    startWorkoutSessionRef.current = () => {
-      void startWorkoutSession();
+    startWorkoutSessionRef.current = (draftOverride) => {
+      void startWorkoutSession(draftOverride);
     };
   }, [startWorkoutSession]);
 
@@ -1200,25 +1226,26 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
       const targetExerciseDraftId = addedExerciseDraftId;
       void (async () => {
-        const response = await workoutService.getPreviousSets([exercise.id]);
+        const response = await workoutService.getExerciseHistory([exercise.id]);
         const result = response.data;
         if (!result.success || !result.data) {
           return;
         }
 
-        const previousSets = result.data.items[0];
-        if (!previousSets) {
+        const history = result.data.items[0];
+        if (!history) {
           return;
         }
 
-        setPreviousSetsByExerciseId((current) => ({
+        setExerciseHistoryByExerciseId((current) => ({
           ...current,
-          [previousSets.exerciseId]: previousSets,
+          [history.exerciseId]: history,
         }));
 
-        // Auto-fill the freshly added exercise's sets from the last-performed values, unless the
+        // Auto-fill the freshly added exercise's sets from the most recent session, unless the
         // user has already started logging into it (entered a metric or completed a set).
-        if (!targetExerciseDraftId || previousSets.sets.length === 0) {
+        const latestSessionSets = history.sessions[0]?.sets ?? [];
+        if (!targetExerciseDraftId || latestSessionSets.length === 0) {
           return;
         }
 
@@ -1244,7 +1271,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
           return updateDraftExercise(current, targetExerciseDraftId, (item) => ({
             ...item,
-            sets: previousSets.sets.map((previousSet, index) =>
+            sets: latestSessionSets.map((previousSet, index) =>
               createWorkoutSetDraftFromPreviousSet(previousSet, index),
             ),
           }));
@@ -1523,7 +1550,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       summary,
       elapsedSeconds,
       isWorkoutStarted: Boolean(draft?.startedAt),
-      previousSetsByExerciseId,
+      exerciseHistoryByExerciseId,
       isLoadingTemplate,
       templateError,
       isSavingWorkout,
@@ -1542,7 +1569,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       groups,
       summary,
       elapsedSeconds,
-      previousSetsByExerciseId,
+      exerciseHistoryByExerciseId,
       isLoadingTemplate,
       templateError,
       isSavingWorkout,
