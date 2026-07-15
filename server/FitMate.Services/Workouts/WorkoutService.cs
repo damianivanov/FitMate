@@ -478,6 +478,143 @@ public class WorkoutService : IWorkoutService
         return response;
     }
 
+    public async Task<ExerciseHistoryResponse> GetExerciseHistoryAsync(
+        long userId,
+        IReadOnlyCollection<long> exerciseIds,
+        int take)
+    {
+        var response = new ExerciseHistoryResponse();
+        if (userId <= 0 || exerciseIds.Count == 0)
+        {
+            return response;
+        }
+
+        var normalizedExerciseIds = exerciseIds
+            .Where(x => x > 0)
+            .Distinct()
+            .ToList();
+
+        if (normalizedExerciseIds.Count == 0)
+        {
+            return response;
+        }
+
+        var normalizedTake = take <= 0 ? 3 : Math.Min(take, 10);
+
+        var candidates = await dbContext.WorkoutExercises
+            .AsNoTracking()
+            .Where(x =>
+                normalizedExerciseIds.Contains(x.ExerciseId)
+                && x.WorkoutExerciseGroup.Workout.UserId == userId
+                && x.WorkoutExerciseGroup.Workout.FinishedAt.HasValue)
+            .Select(x => new PreviousWorkoutExerciseCandidate
+            {
+                WorkoutExerciseId = x.Id,
+                ExerciseId = x.ExerciseId,
+                ExerciseName = x.Exercise.Name,
+                WorkoutId = x.WorkoutExerciseGroup.WorkoutId,
+                WorkoutTitle = x.WorkoutExerciseGroup.Workout.Title,
+                WorkoutStartedAt = x.WorkoutExerciseGroup.Workout.StartedAt
+                    ?? x.WorkoutExerciseGroup.Workout.FinishedAt!.Value,
+            })
+            .OrderByDescending(x => x.WorkoutStartedAt)
+            .ThenByDescending(x => x.WorkoutId)
+            .ThenByDescending(x => x.WorkoutExerciseId)
+            .ToListAsync();
+
+        if (candidates.Count == 0)
+        {
+            return response;
+        }
+
+        // Per exercise, keep the most recent N distinct workouts (one WorkoutExercise per workout).
+        var sessionsByExercise = candidates
+            .GroupBy(x => x.ExerciseId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .GroupBy(x => x.WorkoutId)
+                    .Select(workoutGroup => workoutGroup.First())
+                    .OrderByDescending(x => x.WorkoutStartedAt)
+                    .ThenByDescending(x => x.WorkoutId)
+                    .Take(normalizedTake)
+                    .ToList());
+
+        var workoutExerciseIds = sessionsByExercise.Values
+            .SelectMany(sessions => sessions.Select(session => session.WorkoutExerciseId))
+            .Distinct()
+            .ToList();
+
+        var historySets = await dbContext.ExerciseSets
+            .AsNoTracking()
+            .Where(x => workoutExerciseIds.Contains(x.WorkoutExerciseId) && x.IsCompleted)
+            .OrderBy(x => x.OrderIndex)
+            .Select(x => new PreviousSetProjection
+            {
+                WorkoutExerciseId = x.WorkoutExerciseId,
+                SetNumber = x.OrderIndex,
+                SetType = x.SetType,
+                WeightKg = x.WeightKg,
+                Reps = x.Reps,
+                DurationSeconds = x.DurationSeconds,
+                DistanceMeters = x.DistanceMeters,
+                Rpe = x.Rpe,
+                Notes = x.Notes,
+            })
+            .ToListAsync();
+
+        var setsByWorkoutExerciseId = historySets
+            .GroupBy(x => x.WorkoutExerciseId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(x => x.SetNumber)
+                    .Select(x => new PreviousExerciseSetModel
+                    {
+                        SetNumber = x.SetNumber,
+                        SetType = x.SetType,
+                        WeightKg = x.WeightKg,
+                        Reps = x.Reps,
+                        DurationSeconds = x.DurationSeconds,
+                        DistanceMeters = x.DistanceMeters,
+                        Rpe = x.Rpe,
+                        Notes = x.Notes,
+                    })
+                    .ToList());
+
+        response.Items = normalizedExerciseIds
+            .Where(sessionsByExercise.ContainsKey)
+            .Select(exerciseId =>
+            {
+                var sessions = sessionsByExercise[exerciseId];
+
+                return new ExerciseHistoryModel
+                {
+                    ExerciseId = exerciseId,
+                    ExerciseName = sessions[0].ExerciseName,
+                    Sessions = sessions
+                        .Select(session =>
+                        {
+                            setsByWorkoutExerciseId.TryGetValue(session.WorkoutExerciseId, out var sets);
+
+                            return new ExerciseHistorySessionModel
+                            {
+                                WorkoutId = session.WorkoutId,
+                                WorkoutTitle = session.WorkoutTitle,
+                                WorkoutStartedAt = EnsureUtcKind(session.WorkoutStartedAt),
+                                Sets = sets ?? [],
+                            };
+                        })
+                        .Where(session => session.Sets.Count > 0)
+                        .ToList(),
+                };
+            })
+            .Where(model => model.Sessions.Count > 0)
+            .ToList();
+
+        return response;
+    }
+
     private IQueryable<Workout> BuildWorkoutDetailsQuery(bool asNoTracking)
     {
         var query = dbContext.Workouts.AsQueryable();

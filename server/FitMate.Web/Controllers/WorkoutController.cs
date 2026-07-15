@@ -54,6 +54,23 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(response);
     }
 
+    [HttpGet("exercise-history")]
+    public async Task<ActionResult> GetExerciseHistory([FromQuery] ExerciseHistoryQueryRequest request)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        var response = await workoutService.GetExerciseHistoryAsync(
+            userId.Value,
+            request.ExerciseIds,
+            request.Take);
+
+        return this.ReturnJson(response);
+    }
+
     [HttpGet("calendar")]
     public async Task<ActionResult> GetCalendar([FromQuery] WorkoutCalendarQueryRequest request)
     {

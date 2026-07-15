@@ -14,4 +14,6 @@ public interface IWorkoutService
     Task<WorkoutCreatedModel> FinishAsync(long workoutId, SaveWorkoutRequest request, long userId);
     Task<bool> DeleteAsync(long workoutId, long userId);
     Task<PreviousExerciseSetsResponse> GetPreviousSetsAsync(long userId, IReadOnlyCollection<long> exerciseIds);
+
+    Task<ExerciseHistoryResponse> GetExerciseHistoryAsync(long userId, IReadOnlyCollection<long> exerciseIds, int take);
 }
