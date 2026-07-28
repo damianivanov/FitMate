@@ -2,6 +2,7 @@ using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.Exercises;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.DB.Enums;
 using FitMate.Services.Exercises;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -85,6 +86,150 @@ public class ExerciseServiceTests
 
         var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(NewRequest()));
         Assert.Equal("Unauthorized.", ex.Message);
+    }
+
+    // Метаданните се записват при създаване
+    [Fact]
+    public async Task CreateAsync_WithMetadata_PersistsMetadata()
+    {
+        using var db = new SqliteTestDatabase();
+
+        ExerciseModel created;
+        using (var context = db.CreateContext())
+        {
+            var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+            var request = NewRequest();
+            request.Equipment = ExerciseEquipment.Barbell;
+            request.MovementPattern = ExerciseMovementPattern.HorizontalPush;
+            request.Difficulty = ExerciseDifficulty.Intermediate;
+            request.Category = ExerciseCategory.Strength;
+            created = await service.CreateAsync(request);
+        }
+
+        Assert.Equal(ExerciseEquipment.Barbell, created.Equipment);
+        using var assert = db.CreateContext();
+        var stored = await assert.Exercises.SingleAsync(x => x.Id == created.Id);
+        Assert.Equal(ExerciseEquipment.Barbell, stored.Equipment);
+        Assert.Equal(ExerciseMovementPattern.HorizontalPush, stored.MovementPattern);
+        Assert.Equal(ExerciseDifficulty.Intermediate, stored.Difficulty);
+        Assert.Equal(ExerciseCategory.Strength, stored.Category);
+    }
+
+    // Update променя и изчиства метаданните
+    [Fact]
+    public async Task UpdateAsync_ChangesAndClearsMetadata()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+        var request = NewRequest();
+        request.Equipment = ExerciseEquipment.Dumbbell;
+        var created = await service.CreateAsync(request);
+
+        var update = NewRequest();
+        update.Slug = created.Slug;
+        update.Equipment = null;                          // clear
+        update.Difficulty = ExerciseDifficulty.Advanced;  // set
+        var updated = await service.UpdateAsync(created.Id, update);
+
+        Assert.Null(updated.Equipment);
+        Assert.Equal(ExerciseDifficulty.Advanced, updated.Difficulty);
+    }
+
+    // Aliases се записват нормализирани и дедупликирани
+    [Fact]
+    public async Task CreateAsync_WithAliases_PersistsNormalizedDeduplicatedAliases()
+    {
+        using var db = new SqliteTestDatabase();
+
+        ExerciseModel created;
+        using (var context = db.CreateContext())
+        {
+            var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+            var request = NewRequest(name: "Overhead Press");
+            request.Aliases = ["Military Press", "military-press", "OHP", "  "];
+            created = await service.CreateAsync(request);
+        }
+
+        using var assert = db.CreateContext();
+        var aliases = await assert.ExerciseAliases
+            .Where(x => x.ExerciseId == created.Id)
+            .OrderBy(x => x.NormalizedAlias)
+            .ToListAsync();
+        // "Military Press" and "military-press" normalize identically -> one row
+        Assert.Equal(2, aliases.Count);
+        Assert.Equal("military press", aliases[0].NormalizedAlias);
+        Assert.Equal("Military Press", aliases[0].Alias);
+        Assert.Equal("ohp", aliases[1].NormalizedAlias);
+    }
+
+    // Update заменя изцяло списъка с aliases
+    [Fact]
+    public async Task UpdateAsync_ReplacesAliases()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+        var request = NewRequest(name: "Overhead Press");
+        request.Aliases = ["Military Press"];
+        var created = await service.CreateAsync(request);
+
+        var update = NewRequest(name: "Overhead Press");
+        update.Slug = created.Slug;
+        update.Aliases = ["OHP", "Shoulder Press"];
+        var updated = await service.UpdateAsync(created.Id, update);
+
+        Assert.Equal(2, updated.Aliases.Count);
+        Assert.DoesNotContain("Military Press", updated.Aliases);
+        Assert.Equal(2, await context.ExerciseAliases.CountAsync(x => x.ExerciseId == created.Id));
+    }
+
+    // Търсенето намира упражнение по alias
+    [Fact]
+    public async Task GetAllAsync_SearchByAlias_ReturnsExercise()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+        var request = NewRequest(name: "Overhead Press");
+        request.Aliases = ["Military Press"];
+        var created = await service.CreateAsync(request);
+
+        var results = await service.GetAllAsync(new ExerciseLookupRequest { Search = "military" });
+
+        Assert.Contains(results, x => x.Id == created.Id);
+    }
+
+    // Търсене само с пунктуация не връща всички упражнения с aliases
+    [Fact]
+    public async Task GetAllAsync_PunctuationOnlySearch_DoesNotReturnEveryAliasedExercise()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+        var request = NewRequest(name: "Overhead Press");
+        request.Aliases = ["Military Press"];
+        await service.CreateAsync(request);
+
+        var results = await service.GetAllAsync(new ExerciseLookupRequest { Search = "!!!" });
+
+        Assert.Empty(results);
+    }
+
+    // Изтриване на упражнение изтрива и aliases (cascade)
+    [Fact]
+    public async Task DeleteAsync_CascadesAliases()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+        var request = NewRequest(name: "Overhead Press");
+        request.Aliases = ["OHP"];
+        var created = await service.CreateAsync(request);
+
+        await service.DeleteAsync(created.Id);
+
+        Assert.Equal(0, await context.ExerciseAliases.CountAsync());
     }
 
     // Празно име хвърля грешка че името е задължително

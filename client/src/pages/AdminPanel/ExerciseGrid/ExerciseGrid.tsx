@@ -56,6 +56,7 @@ export default function ExerciseGrid() {
         values={state.formValues}
         muscleGroups={state.muscleGroups}
         error={state.editorError}
+        showMetadataFields
         onClose={actions.closeEditor}
         onSubmit={actions.save}
       />

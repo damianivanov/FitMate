@@ -7,7 +7,7 @@ public interface IWorkoutService
     Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId);
     Task<IReadOnlyList<WorkoutCalendarDayModel>> GetCalendarMonthAsync(long userId, int year, int month);
     Task<WorkoutModel?> GetByIdAsync(long workoutId, long userId);
-    Task<long> StartFromTemplateAsync(long templateId, long userId);
+    Task<long> StartFromTemplateAsync(long templateId, long userId, long? programPlanDayId = null);
     Task<long> DuplicateAsync(long workoutId, long userId);
     Task<WorkoutCreatedModel> CreateAsync(SaveWorkoutRequest request, long userId);
     Task<WorkoutCreatedModel> UpdateAsync(long workoutId, SaveWorkoutRequest request, long userId);

@@ -66,9 +66,11 @@ public class ExerciseService : IExerciseService
         if (!string.IsNullOrWhiteSpace(search))
         {
             var loweredSearch = search.ToLower();
+            var aliasSearch = ExerciseAliasNormalizer.Normalize(search);
             query = query.Where(x =>
                 x.Name.ToLower().Contains(loweredSearch)
-                || x.Slug.ToLower().Contains(loweredSearch));
+                || x.Slug.ToLower().Contains(loweredSearch)
+                || (aliasSearch != "" && x.Aliases.Any(a => a.NormalizedAlias.Contains(aliasSearch))));
         }
 
         query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
@@ -97,10 +99,41 @@ public class ExerciseService : IExerciseService
     public async Task<ExerciseModel> CreateAsync(CreateExerciseRequest request)
     {
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+        var isAdmin = userService.LoggedInUserIsAdmin;
 
-        return userService.LoggedInUserIsAdmin
-            ? await CreateInternalAsync(request, exerciseOwnerUserId: null, isPublic: true)
-            : await CreateInternalAsync(request, exerciseOwnerUserId: userId, isPublic: request.IsPublic);
+        var normalized = NormalizeRequest(request);
+
+        normalized.Slug = await GenerateUniqueSlugAsync(normalized.Name);
+
+        var validationError = await ValidateRequestAsync(normalized, null);
+        if (validationError != null)
+        {
+            throw new FitMateException(validationError);
+        }
+
+        var exercise = new Exercise
+        {
+            // Admins curate the shared catalogue: anything they create is global and public.
+            UserId = isAdmin ? null : userId,
+            IsPublic = isAdmin || normalized.IsPublic,
+            Name = normalized.Name,
+            Slug = normalized.Slug,
+            Description = normalized.Description,
+            VideoUrl = normalized.VideoUrl,
+            PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId,
+            SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId,
+            Equipment = normalized.Equipment,
+            MovementPattern = normalized.MovementPattern,
+            Difficulty = normalized.Difficulty,
+            Category = normalized.Category,
+            Aliases = BuildAliases(normalized.Aliases),
+        };
+
+        dbContext.Exercises.Add(exercise);
+        await dbContext.SaveChangesAsync();
+        InvalidateLookupCache();
+
+        return await ResolveModelUrlsAsync(MapToModel(exercise));
     }
 
     public async Task<ExerciseModel> UpdateAsync(
@@ -122,6 +155,13 @@ public class ExerciseService : IExerciseService
         exercise.VideoUrl = normalized.VideoUrl;
         exercise.PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId;
         exercise.SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId;
+        exercise.Equipment = normalized.Equipment;
+        exercise.MovementPattern = normalized.MovementPattern;
+        exercise.Difficulty = normalized.Difficulty;
+        exercise.Category = normalized.Category;
+
+        dbContext.ExerciseAliases.RemoveRange(exercise.Aliases);
+        exercise.Aliases = BuildAliases(normalized.Aliases);
 
         if (exercise.UserId == userService.LoggedInUserId)
         {
@@ -248,7 +288,9 @@ public class ExerciseService : IExerciseService
     {
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
 
-        var exercise = await dbContext.Exercises.FirstOrDefaultAsync(x => x.Id == id);
+        var exercise = await dbContext.Exercises
+            .Include(x => x.Aliases)
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (exercise == null || (!userService.LoggedInUserIsAdmin && exercise.UserId != userId))
         {
             throw new FitMateException("Exercise not found.");
@@ -315,11 +357,15 @@ public class ExerciseService : IExerciseService
             if (!string.IsNullOrWhiteSpace(normalizedSearch))
             {
                 var loweredSearch = normalizedSearch.ToLower();
+                // A pure-punctuation search normalizes to "", and Contains("") matches every alias —
+                // the guard keeps such a search from returning every aliased exercise.
+                var aliasSearch = ExerciseAliasNormalizer.Normalize(normalizedSearch);
                 query = query.Where(x =>
                     x.Name.ToLower().Contains(loweredSearch)
                     || x.Slug.ToLower().Contains(loweredSearch)
                     || x.PrimaryMuscleGroup.Name.ToLower().Contains(loweredSearch)
-                    || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch)));
+                    || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch))
+                    || (aliasSearch != "" && x.Aliases.Any(a => a.NormalizedAlias.Contains(aliasSearch))));
             }
 
             cachedItems = (await query
@@ -369,11 +415,13 @@ public class ExerciseService : IExerciseService
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
             var loweredSearch = normalizedSearch.ToLower();
+            var aliasSearch = ExerciseAliasNormalizer.Normalize(normalizedSearch);
             query = query.Where(x =>
                 x.Name.ToLower().Contains(loweredSearch)
                 || x.Slug.ToLower().Contains(loweredSearch)
                 || x.PrimaryMuscleGroup.Name.ToLower().Contains(loweredSearch)
-                || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch)));
+                || (x.SecondaryMuscleGroup != null && x.SecondaryMuscleGroup.Name.ToLower().Contains(loweredSearch))
+                || (aliasSearch != "" && x.Aliases.Any(a => a.NormalizedAlias.Contains(aliasSearch))));
         }
 
         var skip = request.Skip < 0 ? 0 : request.Skip;
@@ -388,40 +436,6 @@ public class ExerciseService : IExerciseService
             .ToListAsync();
 
         return await ResolveLookupUrlsAsync(items);
-    }
-
-    private async Task<ExerciseModel> CreateInternalAsync(
-        CreateExerciseRequest request,
-        long? exerciseOwnerUserId,
-        bool isPublic)
-    {
-        var normalized = NormalizeRequest(request);
-
-        normalized.Slug = await GenerateUniqueSlugAsync(normalized.Name);
-
-        var validationError = await ValidateRequestAsync(normalized, null);
-        if (validationError != null)
-        {
-            throw new FitMateException(validationError);
-        }
-
-        var exercise = new Exercise
-        {
-            UserId = exerciseOwnerUserId,
-            IsPublic = isPublic,
-            Name = normalized.Name,
-            Slug = normalized.Slug,
-            Description = normalized.Description,
-            VideoUrl = normalized.VideoUrl,
-            PrimaryMuscleGroupId = normalized.PrimaryMuscleGroupId,
-            SecondaryMuscleGroupId = normalized.SecondaryMuscleGroupId,
-        };
-
-        dbContext.Exercises.Add(exercise);
-        await dbContext.SaveChangesAsync();
-        InvalidateLookupCache();
-
-        return await ResolveModelUrlsAsync(MapToModel(exercise));
     }
 
     private async Task<string> GenerateUniqueSlugAsync(string name)
@@ -514,6 +528,11 @@ public class ExerciseService : IExerciseService
                 PrimaryMuscleGroupName = item.PrimaryMuscleGroupName,
                 SecondaryMuscleGroupId = item.SecondaryMuscleGroupId,
                 SecondaryMuscleGroupName = item.SecondaryMuscleGroupName,
+                Equipment = item.Equipment,
+                MovementPattern = item.MovementPattern,
+                Difficulty = item.Difficulty,
+                Category = item.Category,
+                Aliases = item.Aliases,
                 CreatorUserId = item.CreatorUserId,
                 CreatorDisplayName = item.CreatorDisplayName,
                 DateCreated = item.DateCreated,
@@ -535,7 +554,32 @@ public class ExerciseService : IExerciseService
             PrimaryMuscleGroupId = request.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = request.SecondaryMuscleGroupId,
             IsPublic = request.IsPublic,
+            Equipment = request.Equipment,
+            MovementPattern = request.MovementPattern,
+            Difficulty = request.Difficulty,
+            Category = request.Category,
+            Aliases = request.Aliases,
         };
+    }
+
+    private static List<ExerciseAlias> BuildAliases(IEnumerable<string>? aliases)
+    {
+        var result = new List<ExerciseAlias>();
+        var seenNormalized = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var raw in aliases ?? [])
+        {
+            var alias = (raw ?? string.Empty).Trim();
+            var normalized = ExerciseAliasNormalizer.Normalize(alias);
+            if (alias.Length == 0 || alias.Length > 200 || normalized.Length == 0 || !seenNormalized.Add(normalized))
+            {
+                continue;
+            }
+
+            result.Add(new ExerciseAlias { Alias = alias, NormalizedAlias = normalized });
+        }
+
+        return result;
     }
 
     private async Task<string?> ValidateRequestAsync(
@@ -613,6 +657,11 @@ public class ExerciseService : IExerciseService
             VideoUrl = entity.VideoUrl,
             PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            Equipment = entity.Equipment,
+            MovementPattern = entity.MovementPattern,
+            Difficulty = entity.Difficulty,
+            Category = entity.Category,
+            Aliases = entity.Aliases.OrderBy(a => a.Alias).Select(a => a.Alias).ToList(),
             CreatorDisplayName = ResolveCreatorName(entity.User),
             DateCreated = entity.DateCreated,
             DateModified = entity.DateModified,
@@ -633,6 +682,11 @@ public class ExerciseService : IExerciseService
             VideoUrl = entity.VideoUrl,
             PrimaryMuscleGroupId = entity.PrimaryMuscleGroupId,
             SecondaryMuscleGroupId = entity.SecondaryMuscleGroupId,
+            Equipment = entity.Equipment,
+            MovementPattern = entity.MovementPattern,
+            Difficulty = entity.Difficulty,
+            Category = entity.Category,
+            Aliases = entity.Aliases.Select(a => a.Alias).ToList(),
             CreatorDisplayName =
                 entity.User == null
                     ? null
@@ -689,6 +743,11 @@ public class ExerciseService : IExerciseService
             PrimaryMuscleGroupName = x.PrimaryMuscleGroup.Name,
             SecondaryMuscleGroupId = x.SecondaryMuscleGroupId,
             SecondaryMuscleGroupName = x.SecondaryMuscleGroup != null ? x.SecondaryMuscleGroup.Name : null,
+            Equipment = x.Equipment,
+            MovementPattern = x.MovementPattern,
+            Difficulty = x.Difficulty,
+            Category = x.Category,
+            Aliases = x.Aliases.Select(a => a.Alias).ToList(),
             CreatorUserId = x.UserId,
             CreatorDisplayName =
                 x.User == null

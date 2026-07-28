@@ -186,6 +186,31 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
   const draftWorkoutIdRef = useRef<number | undefined>(undefined);
   const startWorkoutPromiseRef = useRef<Promise<number | null> | null>(null);
 
+  // React only runs a setState updater synchronously via its eager-state fast path, and that path
+  // is skipped whenever the fiber already has a pending update — during a running session the
+  // elapsed timer ticks every second, so that is most of the time. Handlers that need the new
+  // draft in the same tick must therefore compute it here instead of reading a variable assigned
+  // inside the updater, which would still be unset. draftRef is written eagerly so it mirrors what
+  // was just queued.
+  const commitDraft = useCallback((
+    recipe: (current: WorkoutDraft) => WorkoutDraft | null,
+  ): WorkoutDraft | null => {
+    const current = draftRef.current;
+    if (!current) {
+      return null;
+    }
+
+    const nextDraft = recipe(current);
+    if (!nextDraft || nextDraft === current) {
+      return null;
+    }
+
+    draftRef.current = nextDraft;
+    setDraft(nextDraft);
+
+    return nextDraft;
+  }, []);
+
   const loadPreviousSetsForDraft = useCallback(async (nextDraft: WorkoutDraft) => {
     const exerciseIds = Array.from(
       new Set(nextDraft.exercises.map((exercise) => exercise.exerciseId)),
@@ -816,35 +841,22 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       return;
     }
 
-    let autoStartDraft: WorkoutDraft | null = null;
-    setDraft((current) => {
-      if (!current) {
-        return current;
-      }
-
-      const nextDraft = updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+    const nextDraft = commitDraft((current) =>
+      updateDraftExercise(current, exerciseDraftId, (exercise) => ({
         ...exercise,
         sets: exercise.sets.map((set) =>
           set.id === setDraftId ? { ...set, isCompleted: !set.isCompleted } : set,
         ),
-      }));
-
-      // Decide auto-start from the fresh state: draftRef lags a render behind, and for a set on a
-      // just-added ad-hoc exercise that lag would otherwise skip the start entirely.
-      const toggledSet = nextDraft.exercises
-        .find((exercise) => exercise.id === exerciseDraftId)
-        ?.sets.find((set) => set.id === setDraftId);
-      if (!current.startedAt && toggledSet?.isCompleted) {
-        autoStartDraft = nextDraft;
-      }
-
-      return nextDraft;
-    });
+      })),
+    );
 
     // Auto-start the first time a set is marked done. Pass the fresh draft so the session starts
-    // even when draftRef has not synced yet.
-    if (autoStartDraft) {
-      startWorkoutSessionRef.current?.(autoStartDraft);
+    // before React has committed it.
+    const toggledSet = nextDraft?.exercises
+      .find((exercise) => exercise.id === exerciseDraftId)
+      ?.sets.find((set) => set.id === setDraftId);
+    if (nextDraft && !nextDraft.startedAt && toggledSet?.isCompleted) {
+      startWorkoutSessionRef.current?.(nextDraft);
     }
 
     if (!currentDraft || !targetExercise || !targetSet || targetSet.isCompleted) {
@@ -871,7 +883,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     });
 
     setScrollToExerciseId(nextExercise ? nextExercise.id : null);
-  }, []);
+  }, [commitDraft]);
 
   // Card-level "done": marks every set complete (or clears them if already complete), then
   // mirrors completing the last set — collapse this exercise and focus the next incomplete one.
@@ -886,13 +898,11 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
     if (isAlreadyComplete) {
       // Toggle off: clear completion and re-open the card for editing.
-      setDraft((current) =>
-        current
-          ? updateDraftExercise(current, exerciseDraftId, (exercise) => ({
-              ...exercise,
-              sets: exercise.sets.map((set) => ({ ...set, isCompleted: false })),
-            }))
-          : current,
+      commitDraft((current) =>
+        updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+          ...exercise,
+          sets: exercise.sets.map((set) => ({ ...set, isCompleted: false })),
+        })),
       );
       setCollapsedExerciseIds((collapsed) => {
         const next = new Set(collapsed);
@@ -908,28 +918,17 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       return;
     }
 
-    let autoStartDraft: WorkoutDraft | null = null;
-    setDraft((current) => {
-      if (!current) {
-        return current;
-      }
-
-      const nextDraft = updateDraftExercise(current, exerciseDraftId, (exercise) => ({
+    const nextDraft = commitDraft((current) =>
+      updateDraftExercise(current, exerciseDraftId, (exercise) => ({
         ...exercise,
         sets: exercise.sets.map((set) => ({ ...set, isCompleted: true })),
-      }));
-
-      if (!current.startedAt) {
-        autoStartDraft = nextDraft;
-      }
-
-      return nextDraft;
-    });
+      })),
+    );
 
     // Auto-start the first time an exercise is marked done. Pass the fresh draft so the session
-    // starts even when draftRef has not synced yet.
-    if (autoStartDraft) {
-      startWorkoutSessionRef.current?.(autoStartDraft);
+    // starts before React has committed it.
+    if (nextDraft && !nextDraft.startedAt) {
+      startWorkoutSessionRef.current?.(nextDraft);
     }
 
     const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
@@ -945,7 +944,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     });
 
     setScrollToExerciseId(nextExercise ? nextExercise.id : null);
-  }, []);
+  }, [commitDraft]);
 
   const handleExerciseScrolled = useCallback(() => {
     setScrollToExerciseId(null);
@@ -1139,30 +1138,30 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
   }, []);
 
   const handleAddExercise = useCallback((exercise: ExerciseLookupModel) => {
-    let wasAdded = false;
-    let nextGroupAddContext: GroupAddContext | null = null;
-    let nextDraftToPersist: WorkoutDraft | null = null;
-    let addedExerciseDraftId: string | null = null;
+    const currentDraft = draftRef.current;
+    if (!currentDraft) {
+      return false;
+    }
 
-    setDraft((current) => {
-      if (!current) {
-        return current;
-      }
+    if (currentDraft.exercises.some((item) => item.exerciseId === exercise.id)) {
+      toast.error("Exercise is already in this workout.");
+      return false;
+    }
 
-      if (current.exercises.some((item) => item.exerciseId === exercise.id)) {
-        toast.error("Exercise is already in this workout.");
-        return current;
-      }
+    // Built outside the updater: createLocalId is impure, and the follow-up work below needs this
+    // draft id in the same tick.
+    const nextExercise = createWorkoutExerciseDraftFromLookup(exercise, currentDraft.exercises.length + 1);
+    const addedExerciseDraftId = nextExercise.id;
 
-      wasAdded = true;
-      const nextExercise = createWorkoutExerciseDraftFromLookup(exercise, current.exercises.length + 1);
-      addedExerciseDraftId = nextExercise.id;
+    if (groupAddContext) {
+      nextExercise.groupType = groupAddContext.groupType;
+      nextExercise.clientGroupId = groupAddContext.clientGroupId;
+    }
+
+    const nextDraftToPersist = commitDraft((current) => {
       let nextExercises: WorkoutExerciseDraft[];
 
       if (groupAddContext) {
-        nextExercise.groupType = groupAddContext.groupType;
-        nextExercise.clientGroupId = groupAddContext.clientGroupId;
-
         const anchorIndex = current.exercises.findIndex((item) => item.id === groupAddContext.insertAfterExerciseId);
         nextExercises = [...current.exercises];
         if (anchorIndex < 0) {
@@ -1201,28 +1200,14 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         }
       }
 
-      const normalizedExercises = normalizeWorkoutExerciseOrderIndexes(nextExercises);
-
-      if (groupAddContext) {
-        nextGroupAddContext = {
-          ...groupAddContext,
-          insertAfterExerciseId: nextExercise.id,
-        };
-      }
-
-      nextDraftToPersist = {
+      return {
         ...current,
-        exercises: normalizedExercises,
+        exercises: normalizeWorkoutExerciseOrderIndexes(nextExercises),
       };
-      draftRef.current = nextDraftToPersist;
-
-      return nextDraftToPersist;
     });
 
-    if (wasAdded) {
-      if (nextDraftToPersist) {
-        void createWorkoutFromDraft(nextDraftToPersist);
-      }
+    if (nextDraftToPersist) {
+      void createWorkoutFromDraft(nextDraftToPersist);
 
       const targetExerciseDraftId = addedExerciseDraftId;
       void (async () => {
@@ -1249,14 +1234,10 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
           return;
         }
 
-        setDraft((current) => {
-          if (!current) {
-            return current;
-          }
-
+        commitDraft((current) => {
           const target = current.exercises.find((item) => item.id === targetExerciseDraftId);
           if (!target) {
-            return current;
+            return null;
           }
 
           const isPristine = target.sets.every(
@@ -1266,7 +1247,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
               && !set.isCompleted,
           );
           if (!isPristine) {
-            return current;
+            return null;
           }
 
           return updateDraftExercise(current, targetExerciseDraftId, (item) => ({
@@ -1278,13 +1259,18 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         });
       })();
 
-      if (nextGroupAddContext) {
-        setGroupAddContext(nextGroupAddContext);
+      if (groupAddContext) {
+        setGroupAddContext({
+          ...groupAddContext,
+          insertAfterExerciseId: addedExerciseDraftId,
+        });
       }
+
+      return true;
     }
 
-    return wasAdded;
-  }, [createWorkoutFromDraft, groupAddContext]);
+    return false;
+  }, [commitDraft, createWorkoutFromDraft, groupAddContext]);
 
   const handleExerciseGroupingChange = useCallback((exerciseDraftId: string, groupType: ExerciseGroupType) => {
     setDraft((current) => {

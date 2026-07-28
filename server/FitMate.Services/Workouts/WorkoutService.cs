@@ -98,7 +98,7 @@ public class WorkoutService : IWorkoutService
             : await ResolveImageUrlsAsync(MapWorkout(workout), new Dictionary<string, string?>());
     }
 
-    public async Task<long> StartFromTemplateAsync(long templateId, long userId)
+    public async Task<long> StartFromTemplateAsync(long templateId, long userId, long? programPlanDayId = null)
     {
         if (userId <= 0)
         {
@@ -107,6 +107,7 @@ public class WorkoutService : IWorkoutService
 
         var template = await LoadWorkoutTemplateForStartAsync(templateId, userId);
         var workout = BuildWorkoutFromTemplate(template, userId, DateTime.UtcNow);
+        workout.ProgramPlanDayId = programPlanDayId;
 
         dbContext.Workouts.Add(workout);
         await dbContext.SaveChangesAsync(userId);
@@ -347,6 +348,19 @@ public class WorkoutService : IWorkoutService
         if (isNewWorkout)
         {
             dbContext.Workouts.Add(workout);
+        }
+
+        if (isFinishing && workout.ProgramPlanDayId.HasValue)
+        {
+            // A workout finished on a later date still completes the day it was started from (spec §26).
+            var programDay = await dbContext.ProgramPlanDays
+                .FirstOrDefaultAsync(x => x.Id == workout.ProgramPlanDayId.Value);
+            if (programDay != null && programDay.Status != ProgramPlanDayStatus.Completed)
+            {
+                programDay.Status = ProgramPlanDayStatus.Completed;
+                programDay.CompletedWorkoutId = workout.Id;
+                programDay.CompletedAt = DateTime.UtcNow;
+            }
         }
 
         await dbContext.SaveChangesAsync(userId);

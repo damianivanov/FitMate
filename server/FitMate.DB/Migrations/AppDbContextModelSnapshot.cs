@@ -86,6 +86,9 @@ namespace FitMate.DB.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("Category")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp without time zone");
 
@@ -96,6 +99,12 @@ namespace FitMate.DB.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<int?>("Difficulty")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Equipment")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
@@ -104,6 +113,9 @@ namespace FitMate.DB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
+
+                    b.Property<int?>("MovementPattern")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -142,6 +154,43 @@ namespace FitMate.DB.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Exercises");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ExerciseAlias", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Alias")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<long>("ExerciseId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NormalizedAlias")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedAlias");
+
+                    b.HasIndex("ExerciseId", "NormalizedAlias")
+                        .IsUnique();
+
+                    b.ToTable("ExerciseAliases");
                 });
 
             modelBuilder.Entity("FitMate.DB.Entities.ExerciseSet", b =>
@@ -279,6 +328,189 @@ namespace FitMate.DB.Migrations
                     b.HasIndex("UserId", "ExerciseId", "RecordType", "IsCurrent");
 
                     b.ToTable("PersonalRecords");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlan", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ScheduleType")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("SourceAiActionId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetWorkoutsPerWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EndDate");
+
+                    b.HasIndex("StartDate");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("ProgramPlans");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlanDay", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<long?>("CompletedWorkoutId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("DayType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("OriginalScheduledDate")
+                        .HasColumnType("date");
+
+                    b.Property<long>("ProgramPlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly>("ScheduledDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<long?>("StartedWorkoutId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("WorkoutTemplateId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletedWorkoutId");
+
+                    b.HasIndex("StartedWorkoutId");
+
+                    b.HasIndex("WorkoutTemplateId");
+
+                    b.HasIndex("ProgramPlanId", "Status");
+
+                    b.HasIndex("ProgramPlanId", "ScheduledDate", "OrderIndex")
+                        .IsUnique();
+
+                    b.ToTable("ProgramPlanDays");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlanScheduleRule", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DayType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOptional")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("ProgramPlanId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("RotationDayIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WeekInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("WorkoutTemplateId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProgramPlanId");
+
+                    b.HasIndex("WorkoutTemplateId");
+
+                    b.ToTable("ProgramPlanScheduleRules");
                 });
 
             modelBuilder.Entity("FitMate.DB.Entities.RefreshToken", b =>
@@ -694,6 +926,63 @@ namespace FitMate.DB.Migrations
                     b.ToTable("UserBodyMetrics");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.UserTrainingProfile", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AdditionalPreferences")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("AllowAiPersonalization")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("AvailableEquipmentJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ExerciseRestrictions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ExperienceLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Goal")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreferredTrainingDaysJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("PreferredTrainingDaysPerWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PreferredWorkoutDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("WeightUnit")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserTrainingProfiles");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.Workout", b =>
                 {
                     b.Property<long>("Id")
@@ -722,6 +1011,9 @@ namespace FitMate.DB.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<long?>("ProgramPlanDayId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -741,6 +1033,8 @@ namespace FitMate.DB.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProgramPlanDayId");
 
                     b.HasIndex("StartedAt");
 
@@ -1021,6 +1315,17 @@ namespace FitMate.DB.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.ExerciseAlias", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.Exercise", "Exercise")
+                        .WithMany("Aliases")
+                        .HasForeignKey("ExerciseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exercise");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.ExerciseSet", b =>
                 {
                     b.HasOne("FitMate.DB.Entities.WorkoutExercise", "WorkoutExercise")
@@ -1056,6 +1361,67 @@ namespace FitMate.DB.Migrations
                     b.Navigation("ExerciseSet");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlan", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlanDay", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.Workout", "CompletedWorkout")
+                        .WithMany()
+                        .HasForeignKey("CompletedWorkoutId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FitMate.DB.Entities.ProgramPlan", "ProgramPlan")
+                        .WithMany("Days")
+                        .HasForeignKey("ProgramPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitMate.DB.Entities.Workout", "StartedWorkout")
+                        .WithMany()
+                        .HasForeignKey("StartedWorkoutId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FitMate.DB.Entities.WorkoutTemplate", "WorkoutTemplate")
+                        .WithMany()
+                        .HasForeignKey("WorkoutTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CompletedWorkout");
+
+                    b.Navigation("ProgramPlan");
+
+                    b.Navigation("StartedWorkout");
+
+                    b.Navigation("WorkoutTemplate");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlanScheduleRule", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.ProgramPlan", "ProgramPlan")
+                        .WithMany("ScheduleRules")
+                        .HasForeignKey("ProgramPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitMate.DB.Entities.WorkoutTemplate", "WorkoutTemplate")
+                        .WithMany()
+                        .HasForeignKey("WorkoutTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ProgramPlan");
+
+                    b.Navigation("WorkoutTemplate");
                 });
 
             modelBuilder.Entity("FitMate.DB.Entities.RefreshToken", b =>
@@ -1160,8 +1526,24 @@ namespace FitMate.DB.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.UserTrainingProfile", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.Workout", b =>
                 {
+                    b.HasOne("FitMate.DB.Entities.ProgramPlanDay", "ProgramPlanDay")
+                        .WithMany()
+                        .HasForeignKey("ProgramPlanDayId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("FitMate.DB.Entities.User", "User")
                         .WithMany("Workouts")
                         .HasForeignKey("UserId")
@@ -1172,6 +1554,8 @@ namespace FitMate.DB.Migrations
                         .WithMany("Workouts")
                         .HasForeignKey("WorkoutTemplateId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ProgramPlanDay");
 
                     b.Navigation("User");
 
@@ -1275,6 +1659,8 @@ namespace FitMate.DB.Migrations
 
             modelBuilder.Entity("FitMate.DB.Entities.Exercise", b =>
                 {
+                    b.Navigation("Aliases");
+
                     b.Navigation("PersonalRecords");
 
                     b.Navigation("TemplateExercises");
@@ -1292,6 +1678,13 @@ namespace FitMate.DB.Migrations
                     b.Navigation("PrimaryExercises");
 
                     b.Navigation("SecondaryExercises");
+                });
+
+            modelBuilder.Entity("FitMate.DB.Entities.ProgramPlan", b =>
+                {
+                    b.Navigation("Days");
+
+                    b.Navigation("ScheduleRules");
                 });
 
             modelBuilder.Entity("FitMate.DB.Entities.Role", b =>

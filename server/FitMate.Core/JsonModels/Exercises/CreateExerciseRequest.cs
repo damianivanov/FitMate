@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using FitMate.DB.Enums;
 
 namespace FitMate.Core.JsonModels.Exercises;
 
@@ -24,5 +25,10 @@ public class CreateExerciseRequest
     public long PrimaryMuscleGroupId { get; set; }
 
     public long? SecondaryMuscleGroupId { get; set; }
+    public ExerciseEquipment? Equipment { get; set; }
+    public ExerciseMovementPattern? MovementPattern { get; set; }
+    public ExerciseDifficulty? Difficulty { get; set; }
+    public ExerciseCategory? Category { get; set; }
+    public List<string>? Aliases { get; set; }
     public bool IsPublic { get; set; } = true;
 }

@@ -194,6 +194,7 @@ export default function MyExercises() {
         muscleGroups={state.muscleGroups}
         error={state.editorError}
         showVisibilityToggle
+        showMetadataFields
         onClose={actions.closeEditor}
         onSubmit={actions.save}
       />

@@ -1,5 +1,6 @@
 import type { IconType } from "react-icons";
 import {
+  LuCalendarCheck,
   LuCalendarDays,
   LuCircleUserRound,
   LuDumbbell,
@@ -31,6 +32,7 @@ export interface NavSection {
 export const trainingNavItems: DesktopNavItem[] = [
   { label: "Dashboard", to: "/workouts", icon: LuDumbbell, end: true },
   { label: "New workout", to: "/workouts/new", icon: LuDumbbell, end: false },
+  { label: "Program", to: "/program", icon: LuCalendarCheck, end: false },
   { label: "Templates", to: "/templates", icon: LuLayoutTemplate, end: false },
   { label: "Calendar", to: "/calendar", icon: LuCalendarDays, end: false },
 ];

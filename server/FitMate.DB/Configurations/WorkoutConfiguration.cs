@@ -41,5 +41,11 @@ internal class WorkoutConfiguration : BaseConfiguration<Workout>
             .HasForeignKey(x => x.WorkoutTemplateId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+
+        builder.HasOne(x => x.ProgramPlanDay)
+            .WithMany()
+            .HasForeignKey(x => x.ProgramPlanDayId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

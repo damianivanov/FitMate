@@ -6,6 +6,7 @@ import {
   PageHeader,
   SaveAsTemplateModal,
 } from "@/shared/components";
+import { ProgramTodayCard } from "./components/ProgramTodayCard";
 import { WorkoutListItem } from "./components/WorkoutListItem";
 import { useWorkoutsPage } from "./hooks/useWorkoutsPage";
 
@@ -30,6 +31,10 @@ export default function Workouts() {
       />
 
       <PageBody>
+        <section className="mx-auto mb-4 max-w-4xl">
+          <ProgramTodayCard />
+        </section>
+
         <AsyncSection
           isLoading={state.isLoading}
           error={state.error}

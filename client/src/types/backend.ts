@@ -18,6 +18,97 @@ export namespace Enums {
 		Dropset = 3,
 		Failure = 4
 	}
+	export enum TrainingGoal {
+		GeneralFitness = 1,
+		Hypertrophy = 2,
+		Strength = 3,
+		FatLoss = 4,
+		Endurance = 5,
+		Maintenance = 6
+	}
+	export enum TrainingExperienceLevel {
+		Beginner = 1,
+		Intermediate = 2,
+		Advanced = 3
+	}
+	export enum WeightUnit {
+		Kg = 1,
+		Lb = 2
+	}
+	export enum DayOfWeek {
+		Sunday = 0,
+		Monday = 1,
+		Tuesday = 2,
+		Wednesday = 3,
+		Thursday = 4,
+		Friday = 5,
+		Saturday = 6
+	}
+	export enum ProgramPlanDayType {
+		Workout = 1,
+		Rest = 2,
+		OptionalWorkout = 3,
+		Recovery = 4,
+		Deload = 5
+	}
+	export enum ProgramPlanDayStatus {
+		Scheduled = 1,
+		Started = 2,
+		Completed = 3,
+		Skipped = 4,
+		Missed = 5,
+		Rescheduled = 6,
+		Cancelled = 7
+	}
+	export enum ProgramPlanStatus {
+		Draft = 1,
+		Active = 2,
+		Paused = 3,
+		Completed = 4,
+		Cancelled = 5
+	}
+	export enum ProgramScheduleType {
+		FixedWeekdays = 1,
+		Rotation = 2,
+		CustomCalendar = 3
+	}
+	export enum ExerciseEquipment {
+		Barbell = 1,
+		Dumbbell = 2,
+		Kettlebell = 3,
+		Cable = 4,
+		Machine = 5,
+		Bodyweight = 6,
+		ResistanceBand = 7,
+		MedicineBall = 8,
+		Other = 9
+	}
+	export enum ExerciseMovementPattern {
+		HorizontalPush = 1,
+		HorizontalPull = 2,
+		VerticalPush = 3,
+		VerticalPull = 4,
+		Squat = 5,
+		Hinge = 6,
+		Lunge = 7,
+		Carry = 8,
+		Rotation = 9,
+		Isolation = 10,
+		Other = 11
+	}
+	export enum ExerciseDifficulty {
+		Beginner = 1,
+		Intermediate = 2,
+		Advanced = 3
+	}
+	export enum ExerciseCategory {
+		Strength = 1,
+		Cardio = 2,
+		Mobility = 3,
+		Plyometric = 4,
+		Olympic = 5,
+		Other = 6
+	}
 	export enum PersonalRecordType {
 		OneRepMax = 1,
 		MaxWeight = 2,
@@ -286,6 +377,136 @@ export namespace JsonModels.Users {
 		search?: string;
 	}
 }
+export namespace JsonModels.TrainingProfiles {
+	export interface SaveTrainingProfileRequest
+	{
+		goal: Enums.TrainingGoal;
+		experienceLevel: Enums.TrainingExperienceLevel;
+		preferredTrainingDaysPerWeek: number;
+		preferredWorkoutDurationMinutes?: number;
+		weightUnit: Enums.WeightUnit;
+		availableEquipment: string[];
+		preferredTrainingDays: Enums.DayOfWeek[];
+		exerciseRestrictions?: string;
+		additionalPreferences?: string;
+		allowAiPersonalization: boolean;
+	}
+	export interface TrainingProfileModel
+	{
+		goal: Enums.TrainingGoal;
+		experienceLevel: Enums.TrainingExperienceLevel;
+		preferredTrainingDaysPerWeek: number;
+		preferredWorkoutDurationMinutes?: number;
+		weightUnit: Enums.WeightUnit;
+		availableEquipment: string[];
+		preferredTrainingDays: Enums.DayOfWeek[];
+		exerciseRestrictions?: string;
+		additionalPreferences?: string;
+		allowAiPersonalization: boolean;
+		updatedAt: string;
+	}
+}
+export namespace JsonModels.ProgramPlans {
+	export interface CustomProgramDayRequest
+	{
+		date: string;
+		dayType: Enums.ProgramPlanDayType;
+		workoutTemplateId?: number;
+		notes?: string;
+	}
+	export interface MoveProgramDayRequest
+	{
+		newDate: string;
+	}
+	export interface ProgramPlanDayModel
+	{
+		id: number;
+		programPlanId: number;
+		scheduledDate: string;
+		originalScheduledDate?: string;
+		dayType: Enums.ProgramPlanDayType;
+		status: Enums.ProgramPlanDayStatus;
+		workoutTemplateId?: number;
+		workoutTemplateName?: string;
+		estimatedDurationMinutes?: number;
+		exerciseCount: number;
+		startedWorkoutId?: number;
+		completedWorkoutId?: number;
+		notes?: string;
+	}
+	export interface ProgramPlanModel
+	{
+		id: number;
+		name: string;
+		description?: string;
+		goal: Enums.TrainingGoal;
+		status: Enums.ProgramPlanStatus;
+		scheduleType: Enums.ProgramScheduleType;
+		startDate: string;
+		endDate?: string;
+		targetWorkoutsPerWeek: number;
+		isAiGenerated: boolean;
+		activatedAt?: string;
+		completedAt?: string;
+		scheduleRules: JsonModels.ProgramPlans.ProgramPlanScheduleRuleModel[];
+	}
+	export interface ProgramPlanScheduleRuleModel
+	{
+		id: number;
+		dayOfWeek?: Enums.DayOfWeek;
+		rotationDayIndex?: number;
+		dayType: Enums.ProgramPlanDayType;
+		workoutTemplateId?: number;
+		workoutTemplateName?: string;
+		weekInterval: number;
+		orderIndex: number;
+		isOptional: boolean;
+	}
+	export interface ProgramProgressModel
+	{
+		scheduledWorkouts: number;
+		completedWorkouts: number;
+		startedWorkouts: number;
+		missedWorkouts: number;
+		skippedWorkouts: number;
+		remainingWorkouts: number;
+		completionPercentage?: number;
+		adherencePercentage: number;
+		currentStreak: number;
+	}
+	export interface ProgramScheduleRuleRequest
+	{
+		dayOfWeek?: Enums.DayOfWeek;
+		rotationDayIndex?: number;
+		dayType: Enums.ProgramPlanDayType;
+		workoutTemplateId?: number;
+		weekInterval: number;
+		orderIndex: number;
+		isOptional: boolean;
+	}
+	export interface ProgramTodayModel
+	{
+		date: string;
+		hasActiveProgram: boolean;
+		programId?: number;
+		programName?: string;
+		today?: JsonModels.ProgramPlans.ProgramPlanDayModel;
+		missedWorkout?: JsonModels.ProgramPlans.ProgramPlanDayModel;
+		nextWorkout?: JsonModels.ProgramPlans.ProgramPlanDayModel;
+	}
+	export interface SaveProgramPlanRequest
+	{
+		name: string;
+		description?: string;
+		goal: Enums.TrainingGoal;
+		scheduleType: Enums.ProgramScheduleType;
+		startDate: string;
+		endDate?: string;
+		targetWorkoutsPerWeek: number;
+		scheduleRules: JsonModels.ProgramPlans.ProgramScheduleRuleRequest[];
+		customDays: JsonModels.ProgramPlans.CustomProgramDayRequest[];
+	}
+}
 export namespace JsonModels.MuscleGroups {
 	export interface CreateMuscleGroupRequest
 	{
@@ -317,6 +538,11 @@ export namespace JsonModels.Exercises {
 		videoUrl?: string;
 		primaryMuscleGroupId: number;
 		secondaryMuscleGroupId?: number;
+		equipment?: Enums.ExerciseEquipment;
+		movementPattern?: Enums.ExerciseMovementPattern;
+		difficulty?: Enums.ExerciseDifficulty;
+		category?: Enums.ExerciseCategory;
+		aliases?: string[];
 		isPublic: boolean;
 	}
 	export interface ExerciseLookupModel
@@ -334,6 +560,11 @@ export namespace JsonModels.Exercises {
 		primaryMuscleGroupName: string;
 		secondaryMuscleGroupId?: number;
 		secondaryMuscleGroupName?: string;
+		equipment?: Enums.ExerciseEquipment;
+		movementPattern?: Enums.ExerciseMovementPattern;
+		difficulty?: Enums.ExerciseDifficulty;
+		category?: Enums.ExerciseCategory;
+		aliases: string[];
 		creatorUserId?: number;
 		creatorDisplayName?: string;
 		dateCreated: string;
@@ -355,6 +586,11 @@ export namespace JsonModels.Exercises {
 		videoUrl?: string;
 		primaryMuscleGroupId: number;
 		secondaryMuscleGroupId?: number;
+		equipment?: Enums.ExerciseEquipment;
+		movementPattern?: Enums.ExerciseMovementPattern;
+		difficulty?: Enums.ExerciseDifficulty;
+		category?: Enums.ExerciseCategory;
+		aliases: string[];
 		creatorDisplayName?: string;
 		dateCreated: string;
 		dateModified?: string;

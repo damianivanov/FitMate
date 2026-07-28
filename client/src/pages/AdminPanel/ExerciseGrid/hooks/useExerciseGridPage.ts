@@ -7,7 +7,15 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { adminService } from "@/services/adminService";
 import { exerciseService } from "@/services/exerciseService";
-import type { CreateExerciseRequest, Exercise, PagedResponse } from "@/types";
+import type {
+  CreateExerciseRequest,
+  Exercise,
+  ExerciseCategory,
+  ExerciseDifficulty,
+  ExerciseEquipment,
+  ExerciseMovementPattern,
+  PagedResponse,
+} from "@/types";
 import { emptyExerciseFormValues, type ExerciseFormValues } from "@/shared/components";
 import { createExerciseGridColumns } from "../columns";
 
@@ -19,6 +27,11 @@ function toFormValues(item: Exercise): ExerciseFormValues {
     primaryMuscleGroupId: String(item.primaryMuscleGroupId),
     secondaryMuscleGroupId: item.secondaryMuscleGroupId ? String(item.secondaryMuscleGroupId) : "",
     isPublic: item.isPublic,
+    equipment: item.equipment != null ? String(item.equipment) : "",
+    movementPattern: item.movementPattern != null ? String(item.movementPattern) : "",
+    difficulty: item.difficulty != null ? String(item.difficulty) : "",
+    category: item.category != null ? String(item.category) : "",
+    aliases: item.aliases ?? [],
   };
 }
 
@@ -32,6 +45,13 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
       ? Number(values.secondaryMuscleGroupId)
       : undefined,
     isPublic: values.isPublic,
+    equipment: values.equipment ? (Number(values.equipment) as ExerciseEquipment) : undefined,
+    movementPattern: values.movementPattern
+      ? (Number(values.movementPattern) as ExerciseMovementPattern)
+      : undefined,
+    difficulty: values.difficulty ? (Number(values.difficulty) as ExerciseDifficulty) : undefined,
+    category: values.category ? (Number(values.category) as ExerciseCategory) : undefined,
+    aliases: values.aliases,
   };
 }
 

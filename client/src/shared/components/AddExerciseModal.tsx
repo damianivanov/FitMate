@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { LuX } from "react-icons/lu";
+import {
+  ExerciseCategory,
+  ExerciseDifficulty,
+  ExerciseEquipment,
+  ExerciseMovementPattern,
+} from "@/types";
 import type { MuscleGroup } from "@/types";
 import { Modal } from "./Modal";
 import {
+  Dropdown,
   ImageFileInput,
   MuscleGroupDropdown,
   SegmentControl,
@@ -16,6 +24,21 @@ const visibilityOptions = [
   { label: "Private", value: false },
 ] as const;
 
+/** Turns a numeric TS enum object into dropdown options with spaced labels ("HorizontalPush" → "Horizontal Push"). */
+function toEnumOptions(source: Record<string, string | number>): { label: string; value: string }[] {
+  return Object.entries(source)
+    .filter((entry): entry is [string, number] => typeof entry[1] === "number")
+    .map(([name, value]) => ({
+      label: name.replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
+      value: String(value),
+    }));
+}
+
+const equipmentOptions = toEnumOptions(ExerciseEquipment);
+const movementPatternOptions = toEnumOptions(ExerciseMovementPattern);
+const difficultyOptions = toEnumOptions(ExerciseDifficulty);
+const categoryOptions = toEnumOptions(ExerciseCategory);
+
 type AddExerciseModalProps = {
   isOpen: boolean;
   isSaving: boolean;
@@ -25,6 +48,7 @@ type AddExerciseModalProps = {
   error: string | null;
   maxWidth?: ComponentProps<typeof Modal>["maxWidth"];
   showVisibilityToggle?: boolean;
+  showMetadataFields?: boolean;
   onClose: () => void;
   onSubmit: (values: ExerciseFormValues, file?: File) => Promise<void> | void;
 };
@@ -38,6 +62,7 @@ export function AddExerciseModal({
   error,
   maxWidth = "2xl",
   showVisibilityToggle = false,
+  showMetadataFields = false,
   onClose,
   onSubmit,
 }: AddExerciseModalProps) {
@@ -48,6 +73,12 @@ export function AddExerciseModal({
   const [primaryMuscleGroupId, setPrimaryMuscleGroupId] = useState(values.primaryMuscleGroupId);
   const [secondaryMuscleGroupId, setSecondaryMuscleGroupId] = useState(values.secondaryMuscleGroupId);
   const [isPublic, setIsPublic] = useState(values.isPublic);
+  const [equipment, setEquipment] = useState(values.equipment);
+  const [movementPattern, setMovementPattern] = useState(values.movementPattern);
+  const [difficulty, setDifficulty] = useState(values.difficulty);
+  const [category, setCategory] = useState(values.category);
+  const [aliases, setAliases] = useState<string[]>(values.aliases);
+  const [aliasDraft, setAliasDraft] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -62,9 +93,29 @@ export function AddExerciseModal({
 
   const handleSave = () => {
     onSubmit(
-      { ...values, name, description, primaryMuscleGroupId, secondaryMuscleGroupId, isPublic },
+      {
+        ...values,
+        name,
+        description,
+        primaryMuscleGroupId,
+        secondaryMuscleGroupId,
+        isPublic,
+        equipment,
+        movementPattern,
+        difficulty,
+        category,
+        aliases,
+      },
       file ?? undefined,
     );
+  };
+
+  const commitAliasDraft = () => {
+    const alias = aliasDraft.trim().replace(/,+$/, "");
+    if (alias && !aliases.includes(alias)) {
+      setAliases((current) => [...current, alias]);
+    }
+    setAliasDraft("");
   };
 
   const fieldContainerClassName = "space-y-1.5 text-sm font-medium text-foreground";
@@ -127,6 +178,91 @@ export function AddExerciseModal({
           labelClassName={labelClassName}
           placeholder="None"
         />
+
+        {showMetadataFields && (
+          <>
+            <Dropdown
+              id="exercise-equipment"
+              label="Equipment"
+              value={equipment || null}
+              onChange={(value) => setEquipment(value ?? "")}
+              options={equipmentOptions}
+              containerClassName={dropdownContainerClassName}
+              labelClassName={labelClassName}
+              placeholder="Not set"
+              clearable
+            />
+            <Dropdown
+              id="exercise-movement-pattern"
+              label="Movement Pattern"
+              value={movementPattern || null}
+              onChange={(value) => setMovementPattern(value ?? "")}
+              options={movementPatternOptions}
+              containerClassName={dropdownContainerClassName}
+              labelClassName={labelClassName}
+              placeholder="Not set"
+              clearable
+            />
+            <Dropdown
+              id="exercise-difficulty"
+              label="Difficulty"
+              value={difficulty || null}
+              onChange={(value) => setDifficulty(value ?? "")}
+              options={difficultyOptions}
+              containerClassName={dropdownContainerClassName}
+              labelClassName={labelClassName}
+              placeholder="Not set"
+              clearable
+            />
+            <Dropdown
+              id="exercise-category"
+              label="Category"
+              value={category || null}
+              onChange={(value) => setCategory(value ?? "")}
+              options={categoryOptions}
+              containerClassName={dropdownContainerClassName}
+              labelClassName={labelClassName}
+              placeholder="Not set"
+              clearable
+            />
+            <div className={`${fieldContainerClassName} md:col-span-2`}>
+              <label htmlFor="exercise-aliases" className={labelClassName}>
+                Aliases
+              </label>
+              {aliases.length > 0 && (
+                <div className="flex flex-wrap gap-2 pb-2">
+                  {aliases.map((alias) => (
+                    <button
+                      key={alias}
+                      type="button"
+                      aria-label={`Remove alias ${alias}`}
+                      className="liquid-pill inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                      onClick={() => setAliases((current) => current.filter((a) => a !== alias))}
+                    >
+                      {alias}
+                      <LuX className="h-3 w-3" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <input
+                id="exercise-aliases"
+                value={aliasDraft}
+                onChange={(event) => setAliasDraft(event.target.value)}
+                onBlur={commitAliasDraft}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== ",") {
+                    return;
+                  }
+                  event.preventDefault();
+                  commitAliasDraft();
+                }}
+                className="liquid-input w-full rounded-full px-3 py-2.5"
+                placeholder="Type an alias and press Enter (e.g. Military Press)"
+              />
+            </div>
+          </>
+        )}
 
         {mode === "create" && (
           <div className={`${fieldContainerClassName} md:col-span-2`}>

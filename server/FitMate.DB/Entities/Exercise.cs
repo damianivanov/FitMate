@@ -1,4 +1,5 @@
 using FitMate.DB.Entities.Base;
+using FitMate.DB.Enums;
 
 namespace FitMate.DB.Entities;
 
@@ -13,6 +14,10 @@ public class Exercise : BaseEntity
     public string? VideoUrl { get; set; }
     public long PrimaryMuscleGroupId { get; set; }
     public long? SecondaryMuscleGroupId { get; set; }
+    public ExerciseEquipment? Equipment { get; set; }
+    public ExerciseMovementPattern? MovementPattern { get; set; }
+    public ExerciseDifficulty? Difficulty { get; set; }
+    public ExerciseCategory? Category { get; set; }
 
     public User? User { get; set; }
     public MuscleGroup PrimaryMuscleGroup { get; set; } = null!;
@@ -20,4 +25,5 @@ public class Exercise : BaseEntity
     public ICollection<TemplateExercise> TemplateExercises { get; set; } = [];
     public ICollection<WorkoutExercise> WorkoutExercises { get; set; } = [];
     public ICollection<PersonalRecord> PersonalRecords { get; set; } = [];
+    public ICollection<ExerciseAlias> Aliases { get; set; } = [];
 }

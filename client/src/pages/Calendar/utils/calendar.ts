@@ -1,24 +1,15 @@
 import { normalizeUtcIsoString } from "@/lib/helpers";
+import { startOfDay, toDayKey } from "@/shared/utils/monthGrid";
 import type { WorkoutCalendarDayModel } from "@/types";
 
-export const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-export const MONTH_LABELS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-const DAYS_PER_WEEK = 7;
+export {
+  WEEKDAY_LABELS,
+  MONTH_LABELS,
+  buildMonthMatrix,
+  isFutureDate,
+  toDayKey,
+  type CalendarCell,
+} from "@/shared/utils/monthGrid";
 
 const DAY_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
@@ -37,18 +28,6 @@ const SELECTED_DAY_FORMATTER = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
   month: "short",
 });
-
-export type CalendarCell = {
-  date: Date;
-  dayKey: string;
-  dayOfMonth: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-};
-
-function toDayKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
 
 export function getWorkoutDayKey(workout: WorkoutCalendarDayModel): string {
   return toDayKey(new Date(normalizeUtcIsoString(workout.date)));
@@ -69,30 +48,6 @@ export function groupWorkoutsByDay(
   }
 
   return grouped;
-}
-
-export function buildMonthMatrix(year: number, month: number): CalendarCell[] {
-  const firstOfMonth = new Date(year, month - 1, 1);
-  const mondayOffset = (firstOfMonth.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const cellCount = Math.ceil((mondayOffset + daysInMonth) / DAYS_PER_WEEK) * DAYS_PER_WEEK;
-  const start = new Date(year, month - 1, 1 - mondayOffset);
-  const todayKey = toDayKey(new Date());
-
-  const cells: CalendarCell[] = [];
-  for (let index = 0; index < cellCount; index += 1) {
-    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
-    const dayKey = toDayKey(date);
-    cells.push({
-      date,
-      dayKey,
-      dayOfMonth: date.getDate(),
-      isCurrentMonth: date.getMonth() === month - 1 && date.getFullYear() === year,
-      isToday: dayKey === todayKey,
-    });
-  }
-
-  return cells;
 }
 
 export function formatMonthDuration(totalSeconds: number | null | undefined): string {
@@ -123,14 +78,6 @@ export function formatDayLabel(iso: string): string {
 export function formatWorkoutTime(iso: string): string {
   const date = new Date(normalizeUtcIsoString(iso));
   return Number.isNaN(date.getTime()) ? "" : TIME_FORMATTER.format(date);
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-export function isFutureDate(date: Date): boolean {
-  return startOfDay(date).getTime() > startOfDay(new Date()).getTime();
 }
 
 export function formatSelectedDayLabel(date: Date): string {

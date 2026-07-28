@@ -1,3 +1,5 @@
+using FitMate.DB.Enums;
+
 namespace FitMate.Core.JsonModels.Exercises;
 
 public class ExerciseLookupModel
@@ -15,6 +17,11 @@ public class ExerciseLookupModel
     public string PrimaryMuscleGroupName { get; set; } = string.Empty;
     public long? SecondaryMuscleGroupId { get; set; }
     public string? SecondaryMuscleGroupName { get; set; }
+    public ExerciseEquipment? Equipment { get; set; }
+    public ExerciseMovementPattern? MovementPattern { get; set; }
+    public ExerciseDifficulty? Difficulty { get; set; }
+    public ExerciseCategory? Category { get; set; }
+    public List<string> Aliases { get; set; } = [];
     public long? CreatorUserId { get; set; }
     public string? CreatorDisplayName { get; set; }
     public DateTime DateCreated { get; set; }

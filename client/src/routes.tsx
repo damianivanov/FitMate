@@ -4,11 +4,14 @@ import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
 import { Login, Register, ForgotPassword, ResetPassword } from "./pages/Auth";
 import Home from "./pages/Home";
-import Profile, { ProfileAccount, MyExercises } from "./pages/Profile";
+import Profile, { ProfileAccount, MyExercises, TrainingProfile } from "./pages/Profile";
 import AdminPanel, { ErrorGrid, ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
 import WorkoutBuilderRoute from "./pages/WorkoutBuilder/WorkoutBuilderRoute";
 import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
+import Program, { ProgramDetail } from "./pages/Program";
+import ProgramBuilder from "./pages/ProgramBuilder";
+import ProgramCalendar from "./pages/ProgramCalendar";
 import Templates from "./pages/Templates";
 import TemplateBuilder from "./pages/TemplateBuilder";
 import TemplatePreview from "./pages/TemplatePreview";
@@ -79,6 +82,10 @@ export const router = createBrowserRouter([
             element: <ProfileAccount />,
           },
           {
+            path: "training",
+            element: <TrainingProfile />,
+          },
+          {
             path: "exercises",
             element: <MyExercises />,
           },
@@ -135,6 +142,37 @@ export const router = createBrowserRouter([
           {
             path: ":templateId",
             element: <TemplateBuilder />,
+          },
+        ],
+      },
+
+      {
+        path: "program",
+        element: (
+          <AccessGate requireAuthenticated>
+            <Outlet />
+          </AccessGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <Program />,
+          },
+          {
+            path: "new",
+            element: <ProgramBuilder />,
+          },
+          {
+            path: ":planId",
+            element: <ProgramDetail />,
+          },
+          {
+            path: ":planId/edit",
+            element: <ProgramBuilder />,
+          },
+          {
+            path: ":planId/calendar",
+            element: <ProgramCalendar />,
           },
         ],
       },

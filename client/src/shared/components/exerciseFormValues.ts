@@ -5,6 +5,12 @@ export type ExerciseFormValues = {
   primaryMuscleGroupId: string;
   secondaryMuscleGroupId: string;
   isPublic: boolean;
+  /** "" or the numeric enum value as a string. */
+  equipment: string;
+  movementPattern: string;
+  difficulty: string;
+  category: string;
+  aliases: string[];
 };
 
 export const emptyExerciseFormValues: ExerciseFormValues = {
@@ -14,4 +20,9 @@ export const emptyExerciseFormValues: ExerciseFormValues = {
   primaryMuscleGroupId: "",
   secondaryMuscleGroupId: "",
   isPublic: true,
+  equipment: "",
+  movementPattern: "",
+  difficulty: "",
+  category: "",
+  aliases: [],
 };

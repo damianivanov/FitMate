@@ -1,3 +1,5 @@
+using FitMate.DB.Enums;
+
 namespace FitMate.Core.JsonModels.Exercises;
 
 public class ExerciseModel
@@ -12,6 +14,11 @@ public class ExerciseModel
     public string? VideoUrl { get; set; }
     public long PrimaryMuscleGroupId { get; set; }
     public long? SecondaryMuscleGroupId { get; set; }
+    public ExerciseEquipment? Equipment { get; set; }
+    public ExerciseMovementPattern? MovementPattern { get; set; }
+    public ExerciseDifficulty? Difficulty { get; set; }
+    public ExerciseCategory? Category { get; set; }
+    public List<string> Aliases { get; set; } = [];
     public string? CreatorDisplayName { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }
