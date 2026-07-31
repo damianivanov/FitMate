@@ -1,3 +1,4 @@
+using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.ProgramPlans;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
@@ -36,11 +37,14 @@ public class ProgramPlanServiceTests
         ],
     };
 
-    private static ProgramPlanService CreateService(SqliteTestDatabase db)
+    private static ProgramPlanService CreateService(
+        SqliteTestDatabase db,
+        FakeEntitlementService? entitlements = null)
     {
         var context = db.CreateContext();
-        var dayService = new ProgramPlanDayService(context, new WorkoutService(context, new FakePhotoUrlResolver()), new ProgramPlanScheduleService());
-        return new ProgramPlanService(context, new ProgramPlanScheduleService(), dayService);
+        entitlements ??= new FakeEntitlementService();
+        var dayService = new ProgramPlanDayService(context, new WorkoutService(context, new FakePhotoUrlResolver(), entitlements), new ProgramPlanScheduleService());
+        return new ProgramPlanService(context, new ProgramPlanScheduleService(), dayService, entitlements);
     }
 
     [Fact]
@@ -177,17 +181,39 @@ public class ProgramPlanServiceTests
         Assert.True(context.ProgramPlanDays.Any(d => d.ProgramPlanId == created.Id));
     }
 
+    // Активните планове са ограничени от абонамента, а не от фиксирано число в услугата
     [Fact]
-    public async Task Activate_SecondActivePlan_Throws()
+    public async Task Activate_SecondActivePlan_ThrowsWhenEntitlementAllowsOne()
     {
         using var db = new SqliteTestDatabase();
         var templateId = await SeedTemplateAsync(db, SqliteTestDatabase.UserId, "Upper A");
-        var service = CreateService(db);
+        var entitlements = new FakeEntitlementService();
+        entitlements.HardLimits[SubscriptionFeature.ActiveProgramPlans] = 1;
+        var service = CreateService(db, entitlements);
         var first = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
         await service.ActivateAsync(first.Id, SqliteTestDatabase.UserId);
         var second = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
 
-        await Assert.ThrowsAnyAsync<Exception>(() => service.ActivateAsync(second.Id, SqliteTestDatabase.UserId));
+        await Assert.ThrowsAsync<SubscriptionLimitExceededException>(() =>
+            service.ActivateAsync(second.Id, SqliteTestDatabase.UserId));
+    }
+
+    // По-висок план позволява втори активен план
+    [Fact]
+    public async Task Activate_SecondActivePlan_SucceedsWhenEntitlementAllowsMore()
+    {
+        using var db = new SqliteTestDatabase();
+        var templateId = await SeedTemplateAsync(db, SqliteTestDatabase.UserId, "Upper A");
+        var entitlements = new FakeEntitlementService();
+        entitlements.HardLimits[SubscriptionFeature.ActiveProgramPlans] = 3;
+        var service = CreateService(db, entitlements);
+        var first = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
+        await service.ActivateAsync(first.Id, SqliteTestDatabase.UserId);
+        var second = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
+
+        var activated = await service.ActivateAsync(second.Id, SqliteTestDatabase.UserId);
+
+        Assert.Equal(ProgramPlanStatus.Active, activated.Status);
     }
 
     [Fact]

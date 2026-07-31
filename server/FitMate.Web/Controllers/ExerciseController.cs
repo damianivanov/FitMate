@@ -45,7 +45,9 @@ public class ExerciseController : BaseApiController
     {
         // The image (if any) is attached separately by the client via the direct-to-storage flow
         // below, so create stays a small JSON POST that survives the serverless ingress.
-        var created = await exerciseService.CreateAsync(request);
+        // This endpoint always creates a personal exercise — administrators use the admin endpoint
+        // when they intend to add to the shared catalogue (scope is never inferred from the role).
+        var created = await exerciseService.CreatePersonalAsync(request);
         return this.ReturnJson(created);
     }
 

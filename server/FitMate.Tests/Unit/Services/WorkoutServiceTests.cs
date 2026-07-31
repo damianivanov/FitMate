@@ -123,7 +123,7 @@ public class WorkoutServiceTests
         SeedWorkout(db, SqliteTestDatabase.UserId, started, started.AddHours(1), exerciseId, true);
         SeedWorkout(db, SqliteTestDatabase.OtherUserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.ListAsync(SqliteTestDatabase.UserId);
 
         Assert.Single(result);
@@ -140,7 +140,7 @@ public class WorkoutServiceTests
         SeedWorkout(db, SqliteTestDatabase.UserId, earlier, earlier.AddHours(1), exerciseId, true);
         var laterWorkout = SeedWorkout(db, SqliteTestDatabase.UserId, later, later.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.ListAsync(SqliteTestDatabase.UserId);
 
         Assert.Equal(2, result.Count);
@@ -152,7 +152,7 @@ public class WorkoutServiceTests
     public async Task ListAsync_InvalidUserId_Throws()
     {
         using var db = new SqliteTestDatabase();
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(() => service.ListAsync(0));
         Assert.Equal("Unauthorized.", ex.Message);
@@ -167,7 +167,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         var workout = SeedWorkout(db, SqliteTestDatabase.OtherUserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.GetByIdAsync(workout.Id, SqliteTestDatabase.UserId);
 
         Assert.Null(result);
@@ -181,7 +181,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("   ", Exercise(exerciseId, Set(true, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
@@ -196,7 +196,7 @@ public class WorkoutServiceTests
         using var db = new SqliteTestDatabase();
         var request = BuildRequest("Leg Day");
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
@@ -211,7 +211,7 @@ public class WorkoutServiceTests
         using var db = new SqliteTestDatabase();
         var request = BuildRequest("Draft Day");
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
@@ -229,7 +229,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("   ", Exercise(exerciseId, Set(false, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
@@ -248,7 +248,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("Draft Day", Exercise(exerciseId));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.True(result.WorkoutId > 0);
@@ -276,7 +276,7 @@ public class WorkoutServiceTests
             Exercise(exerciseId, Set(true, 100m, 5)),
             Exercise(exerciseId, Set(true, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.CreateAsync(request, SqliteTestDatabase.UserId));
@@ -293,7 +293,7 @@ public class WorkoutServiceTests
         request.StartedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         request.FinishedAt = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
@@ -308,7 +308,7 @@ public class WorkoutServiceTests
         using var db = new SqliteTestDatabase();
         var request = BuildRequest("Ghost", Exercise(99999, Set(true, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.CreateAsync(request, SqliteTestDatabase.UserId));
@@ -332,7 +332,7 @@ public class WorkoutServiceTests
         request.StartedAt = started;
         request.FinishedAt = started.AddHours(1);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
         var result = await service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId);
 
@@ -355,7 +355,7 @@ public class WorkoutServiceTests
         request.StartedAt = moment;
         request.FinishedAt = moment;
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
         var result = await service.FinishAsync(workout.WorkoutId, request, SqliteTestDatabase.UserId);
 
@@ -372,7 +372,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("Incomplete", Exercise(exerciseId, Set(false, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
@@ -388,7 +388,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("No Metric", Exercise(exerciseId, Set(true)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workout = await service.CreateAsync(BuildRequest("In Progress"), SqliteTestDatabase.UserId);
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
@@ -407,7 +407,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         var source = SeedWorkout(db, SqliteTestDatabase.UserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var newId = await service.DuplicateAsync(source.Id, SqliteTestDatabase.UserId);
 
         Assert.NotEqual(source.Id, newId);
@@ -457,7 +457,7 @@ public class WorkoutServiceTests
             setCompleted: true,
             workoutTemplateId: templateId);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var newId = await service.DuplicateAsync(source.Id, SqliteTestDatabase.UserId);
 
         using var assertContext = db.CreateContext();
@@ -474,7 +474,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         var source = SeedWorkout(db, SqliteTestDatabase.OtherUserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.DuplicateAsync(source.Id, SqliteTestDatabase.UserId));
@@ -525,7 +525,7 @@ public class WorkoutServiceTests
             templateId = template.Id;
         }
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var workoutId = await service.StartFromTemplateAsync(templateId, SqliteTestDatabase.UserId);
 
         using var assertContext = db.CreateContext();
@@ -575,7 +575,7 @@ public class WorkoutServiceTests
             templateId = template.Id;
         }
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.StartFromTemplateAsync(templateId, SqliteTestDatabase.UserId));
@@ -591,7 +591,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         var workout = SeedWorkout(db, SqliteTestDatabase.OtherUserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.DeleteAsync(workout.Id, SqliteTestDatabase.UserId));
@@ -607,7 +607,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         var workout = SeedWorkout(db, SqliteTestDatabase.UserId, started, started.AddHours(1), exerciseId, true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.DeleteAsync(workout.Id, SqliteTestDatabase.UserId);
 
         Assert.True(result);
@@ -618,7 +618,7 @@ public class WorkoutServiceTests
     public async Task GetCalendarMonthAsync_InvalidMonth_Throws()
     {
         using var db = new SqliteTestDatabase();
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
 
         var ex = await Assert.ThrowsAsync<FitMateException>(
             () => service.GetCalendarMonthAsync(SqliteTestDatabase.UserId, 2026, 13));
@@ -633,7 +633,7 @@ public class WorkoutServiceTests
         var exerciseId = SeedExercise(db);
         var request = BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5)));
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.CreateAsync(request, SqliteTestDatabase.UserId);
 
         Assert.Null(result.StartedAt);
@@ -652,7 +652,7 @@ public class WorkoutServiceTests
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
 
-        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var created = await createService.CreateAsync(
             BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5))),
             SqliteTestDatabase.UserId);
@@ -662,7 +662,7 @@ public class WorkoutServiceTests
         startRequest.WorkoutId = created.WorkoutId;
         startRequest.StartedAt = startedAt;
 
-        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var started = await startService.UpdateAsync(created.WorkoutId, startRequest, SqliteTestDatabase.UserId);
 
         Assert.Equal(created.WorkoutId, started.WorkoutId);
@@ -685,12 +685,12 @@ public class WorkoutServiceTests
 
         var startRequest = BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5)));
         startRequest.StartedAt = startedAt;
-        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var startService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var started = await startService.CreateAsync(startRequest, SqliteTestDatabase.UserId);
 
         var updateRequest = BuildRequest("Workout Updated", Exercise(exerciseId, Set(false, 120m, 6)));
         updateRequest.WorkoutId = started.WorkoutId;
-        var updateService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var updateService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var updated = await updateService.UpdateAsync(started.WorkoutId, updateRequest, SqliteTestDatabase.UserId);
 
         Assert.Equal(startedAt, updated.StartedAt);
@@ -709,7 +709,7 @@ public class WorkoutServiceTests
         var started = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         SeedWorkout(db, SqliteTestDatabase.UserId, started, started.AddHours(1), exerciseId, setCompleted: true);
 
-        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var service = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var result = await service.GetPreviousSetsAsync(SqliteTestDatabase.UserId, new[] { exerciseId });
 
         var item = Assert.Single(result.Items);
@@ -727,7 +727,7 @@ public class WorkoutServiceTests
         using var db = new SqliteTestDatabase();
         var exerciseId = SeedExercise(db);
 
-        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var createService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var created = await createService.CreateAsync(
             BuildRequest("Workout", Exercise(exerciseId, Set(false, 100m, 5))),
             SqliteTestDatabase.UserId);
@@ -736,7 +736,7 @@ public class WorkoutServiceTests
 
         var finishRequest = BuildRequest("Finished", Exercise(exerciseId, Set(true, 100m, 5)));
         finishRequest.WorkoutId = created.WorkoutId;
-        var finishService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver());
+        var finishService = new WorkoutService(db.CreateContext(), new FakePhotoUrlResolver(), new FakeEntitlementService());
         var finished = await finishService.FinishAsync(created.WorkoutId, finishRequest, SqliteTestDatabase.UserId);
 
         Assert.Equal(created.WorkoutId, finished.WorkoutId);

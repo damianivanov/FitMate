@@ -44,6 +44,43 @@ export namespace Enums {
 		Friday = 5,
 		Saturday = 6
 	}
+	export enum EntitlementSource {
+		FreePlan = 1,
+		Subscription = 2,
+		AdminOverride = 3
+	}
+	export enum SubscriptionStatus {
+		Trialing = 1,
+		Active = 2,
+		PastDue = 3,
+		Cancelled = 4,
+		Unpaid = 5,
+		Incomplete = 6,
+		IncompleteExpired = 7,
+		Paused = 8
+	}
+	export enum SubscriptionFeature {
+		AIChat = 1,
+		AIWorkoutGeneration = 2,
+		AIProgramGeneration = 3,
+		AIExerciseRecognition = 4,
+		AIImageGeneration = 5,
+		AITrainingAnalysis = 6,
+		ActiveProgramPlans = 20,
+		ProgramPlanDurationMonths = 21,
+		CustomWorkoutTemplates = 22,
+		ExerciseHistoryMonths = 23
+	}
+	export enum BillingInterval {
+		Monthly = 1,
+		Yearly = 2
+	}
+	export enum UsageReservationStatus {
+		Active = 1,
+		Committed = 2,
+		Released = 3,
+		Expired = 4
+	}
 	export enum ProgramPlanDayType {
 		Workout = 1,
 		Rest = 2,
@@ -109,11 +146,68 @@ export namespace Enums {
 		Olympic = 5,
 		Other = 6
 	}
+	export enum AIConversationStatus {
+		Active = 1,
+		Archived = 2,
+		Deleted = 3
+	}
+	export enum AIMessageRole {
+		User = 1,
+		Assistant = 2,
+		ToolCall = 3,
+		ToolResult = 4,
+		System = 5
+	}
+	export enum AIActionType {
+		CreatePersonalExercise = 1,
+		CreateGlobalExercise = 2,
+		CreateWorkout = 3,
+		CreateWorkoutTemplate = 4,
+		CreateProgramPlan = 5,
+		UpdateProgramPlan = 6,
+		GenerateExerciseImage = 7
+	}
+	export enum AIActionStatus {
+		PendingConfirmation = 1,
+		Confirmed = 2,
+		Executing = 3,
+		Executed = 4,
+		Rejected = 5,
+		Expired = 6,
+		Failed = 7
+	}
+	export enum AIRunStatus {
+		Running = 1,
+		Completed = 2,
+		Failed = 3,
+		Cancelled = 4,
+		LimitExceeded = 5
+	}
+	export enum AIToolExecutionStatus {
+		Running = 1,
+		Completed = 2,
+		Failed = 3,
+		Rejected = 4
+	}
+	export enum UnsupportedRequestStatus {
+		New = 1,
+		Reviewed = 2,
+		Planned = 3,
+		Implemented = 4,
+		Rejected = 5
+	}
 	export enum PersonalRecordType {
 		OneRepMax = 1,
 		MaxWeight = 2,
 		MaxReps = 3,
 		MaxVolume = 4
+	}
+	export enum UsageEntryType {
+		Reservation = 1,
+		Commit = 2,
+		Release = 3,
+		ManualAdjustment = 4,
+		Refund = 5
 	}
 }
 export namespace JsonModels.WorkoutTemplates {
@@ -389,7 +483,7 @@ export namespace JsonModels.TrainingProfiles {
 		preferredTrainingDays: Enums.DayOfWeek[];
 		exerciseRestrictions?: string;
 		additionalPreferences?: string;
-		allowAiPersonalization: boolean;
+		allowAIPersonalization: boolean;
 	}
 	export interface TrainingProfileModel
 	{
@@ -402,8 +496,81 @@ export namespace JsonModels.TrainingProfiles {
 		preferredTrainingDays: Enums.DayOfWeek[];
 		exerciseRestrictions?: string;
 		additionalPreferences?: string;
-		allowAiPersonalization: boolean;
+		allowAIPersonalization: boolean;
 		updatedAt: string;
+	}
+}
+export namespace JsonModels.Subscriptions {
+	export interface CurrentSubscriptionModel
+	{
+		planId: number;
+		planCode: string;
+		planName: string;
+		source: Enums.EntitlementSource;
+		status?: Enums.SubscriptionStatus;
+		currentPeriodEnd?: string;
+		cancelAtPeriodEnd: boolean;
+		features: JsonModels.Subscriptions.FeatureAvailabilityModel[];
+	}
+	export interface EffectiveEntitlementsModel
+	{
+		planId: number;
+		planCode: string;
+		planName: string;
+		source: Enums.EntitlementSource;
+		features: JsonModels.Subscriptions.FeatureAvailabilityModel[];
+	}
+	export interface FeatureAvailabilityModel
+	{
+		feature: Enums.SubscriptionFeature;
+		isEnabled: boolean;
+		limit?: number;
+		used: number;
+		reserved: number;
+		remaining?: number;
+		resetsAt?: string;
+	}
+	export interface PlanFeatureModel
+	{
+		feature: Enums.SubscriptionFeature;
+		isEnabled: boolean;
+		monthlyLimit?: number;
+		hardLimit?: number;
+	}
+	export interface SubscriptionLimitErrorModel
+	{
+		code: string;
+		feature: Enums.SubscriptionFeature;
+		limit?: number;
+		used: number;
+		reserved: number;
+		resetsAt?: string;
+		upgradeAvailable: boolean;
+	}
+	export interface SubscriptionPlanModel
+	{
+		id: number;
+		code: string;
+		name: string;
+		description?: string;
+		sortOrder: number;
+		prices: JsonModels.Subscriptions.SubscriptionPlanPriceModel[];
+		features: JsonModels.Subscriptions.PlanFeatureModel[];
+	}
+	export interface SubscriptionPlanPriceModel
+	{
+		id: number;
+		currency: string;
+		amount: number;
+		billingInterval: Enums.BillingInterval;
+	}
+	export interface UsageReservationModel
+	{
+		id: number;
+		feature: Enums.SubscriptionFeature;
+		quantity: number;
+		status: Enums.UsageReservationStatus;
+		expiresAt: string;
 	}
 }
 export namespace JsonModels.ProgramPlans {
@@ -445,7 +612,7 @@ export namespace JsonModels.ProgramPlans {
 		startDate: string;
 		endDate?: string;
 		targetWorkoutsPerWeek: number;
-		isAiGenerated: boolean;
+		isAIGenerated: boolean;
 		activatedAt?: string;
 		completedAt?: string;
 		scheduleRules: JsonModels.ProgramPlans.ProgramPlanScheduleRuleModel[];
@@ -528,6 +695,20 @@ export namespace JsonModels.Exercises {
 	export interface ConfirmImageUploadRequest
 	{
 		blobName: string;
+	}
+	export interface CreateAdminExerciseRequest
+	{
+		name: string;
+		description?: string;
+		videoUrl?: string;
+		primaryMuscleGroupId: number;
+		secondaryMuscleGroupId?: number;
+		equipment?: Enums.ExerciseEquipment;
+		movementPattern?: Enums.ExerciseMovementPattern;
+		difficulty?: Enums.ExerciseDifficulty;
+		category?: Enums.ExerciseCategory;
+		aliases?: string[];
+		isPrivate: boolean;
 	}
 	export interface CreateExerciseRequest
 	{
@@ -678,6 +859,11 @@ export namespace JsonModels.Auth {
 		currentPassword: string;
 		newPassword: string;
 	}
+	export interface CookieConsentRequest
+	{
+		analytics: boolean;
+		marketing: boolean;
+	}
 	export interface ForgotPasswordRequest
 	{
 		email: string;
@@ -716,6 +902,9 @@ export namespace JsonModels.Auth {
 		firstName?: string;
 		lastName?: string;
 		roles: Enums.UserRole[];
+		cookieConsentAnalytics?: boolean;
+		cookieConsentMarketing?: boolean;
+		cookieConsentAt?: string;
 	}
 }
 export namespace JsonModels.Analytics {
@@ -772,6 +961,528 @@ export namespace JsonModels.Analytics {
 		periodStart: string;
 		totalVolumeKg: number;
 		workoutCount: number;
+	}
+}
+export namespace JsonModels.AI {
+	export interface AIConversationModel
+	{
+		id: number;
+		title?: string;
+		status: Enums.AIConversationStatus;
+		lastMessageAt: string;
+		messages: JsonModels.AI.AIMessageModel[];
+	}
+	export interface AIConversationSummaryModel
+	{
+		id: number;
+		title?: string;
+		status: Enums.AIConversationStatus;
+		lastMessageAt: string;
+		messageCount: number;
+	}
+	export interface AIMessageModel
+	{
+		id: number;
+		role: Enums.AIMessageRole;
+		content: string;
+		toolName?: string;
+		dateCreated: string;
+	}
+	export interface AIUsageSummaryModel
+	{
+		feature: string;
+		used: number;
+		limit?: number;
+		remaining?: number;
+	}
+	export interface CreateAIConversationRequest
+	{
+		title?: string;
+	}
+	export interface SendAIMessageRequest
+	{
+		content: string;
+	}
+	export interface SendAIMessageResponse
+	{
+		conversationId: number;
+		message: JsonModels.AI.AIMessageModel;
+		usedTools: string[];
+		actions: JsonModels.AIActions.AIActionModel[];
+		usage: JsonModels.AI.AIUsageSummaryModel;
+	}
+}
+export namespace JsonModels.AIActions {
+	export interface AIActionModel
+	{
+		id: number;
+		conversationId: number;
+		actionType: Enums.AIActionType;
+		status: Enums.AIActionStatus;
+		preview: JsonModels.AIActions.AIActionPreviewModel;
+		validationSummary: JsonModels.AIActions.AIActionValidationSummaryModel;
+		result?: JsonModels.AIActions.AIActionResultModel;
+		expiresAt?: string;
+		executedAt?: string;
+		failureReason?: string;
+		dateCreated: string;
+	}
+	export interface AIActionPreviewModel
+	{
+		title: string;
+		subtitle?: string;
+		lines: JsonModels.AIActions.AIActionPreviewLineModel[];
+	}
+	export interface AIActionPreviewLineModel
+	{
+		label: string;
+		value: string;
+	}
+	export interface AIActionResultModel
+	{
+		createdEntityId: number;
+		createdEntityName?: string;
+		entityKind?: string;
+	}
+	export interface AIActionValidationSummaryModel
+	{
+		warnings: string[];
+		errors: string[];
+		duplicateCandidates: JsonModels.AIActions.DuplicateCandidateModel[];
+	}
+	export interface DuplicateCandidateModel
+	{
+		id: number;
+		name: string;
+		reason?: string;
+	}
+	export interface ProposeExercisePayload
+	{
+		name: string;
+		description?: string;
+		primaryMuscleGroupId: number;
+		secondaryMuscleGroupId?: number;
+		equipment?: Enums.ExerciseEquipment;
+		movementPattern?: Enums.ExerciseMovementPattern;
+		difficulty?: Enums.ExerciseDifficulty;
+		category?: Enums.ExerciseCategory;
+		isPublic: boolean;
+		aliases: string[];
+		isGlobal: boolean;
+	}
+	export interface ProposeWorkoutPayload
+	{
+		title: string;
+		notes?: string;
+		exercises: JsonModels.AIActions.ProposedExercise[];
+	}
+	export interface ProposeWorkoutTemplatePayload
+	{
+		name: string;
+		description?: string;
+		estimatedDurationMinutes?: number;
+		isPublic: boolean;
+		exercises: JsonModels.AIActions.ProposedExercise[];
+	}
+	export interface ProposedExercise
+	{
+		exerciseId: number;
+		sets: JsonModels.AIActions.ProposedSet[];
+	}
+	export interface ProposedSet
+	{
+		setType: Enums.ExerciseSetType;
+		reps?: number;
+		weightKg?: number;
+		rpe?: number;
+		restSeconds?: number;
+	}
+	export interface ProposeProgramPlanPayload
+	{
+		name: string;
+		description?: string;
+		goal: Enums.TrainingGoal;
+		scheduleType: Enums.ProgramScheduleType;
+		startDate: string;
+		endDate?: string;
+		workoutsPerWeek: number;
+		schedule: JsonModels.AIActions.ProposedProgramScheduleItem[];
+		newTemplates: JsonModels.AIActions.ProposedProgramTemplate[];
+	}
+	export interface ProposedProgramScheduleItem
+	{
+		dayOfWeek?: Enums.DayOfWeek;
+		rotationDayIndex?: number;
+		dayType: Enums.ProgramPlanDayType;
+		existingWorkoutTemplateId?: number;
+		newWorkoutTemplateClientKey?: string;
+		isOptional: boolean;
+	}
+	export interface ProposedProgramTemplate
+	{
+		clientKey: string;
+		name: string;
+		description?: string;
+		estimatedDurationMinutes?: number;
+		exercises: JsonModels.AIActions.ProposedExercise[];
+	}
+	export interface ProposeProgramUpdatePayload
+	{
+		programPlanId: number;
+		reason: string;
+		workoutsPerWeek: number;
+		schedule: JsonModels.AIActions.ProposedProgramScheduleItem[];
+		newTemplates: JsonModels.AIActions.ProposedProgramTemplate[];
+	}
+}
+export namespace JsonModels.AdminSubscriptions {
+	export interface AssignPlanOverrideRequest
+	{
+		planCode: string;
+		reason: string;
+		endsAt?: string;
+	}
+	export interface SavePlanRequest
+	{
+		code: string;
+		name: string;
+		description?: string;
+		isActive: boolean;
+		isPublic: boolean;
+		sortOrder: number;
+		prices: JsonModels.AdminSubscriptions.PlanPriceRequest[];
+		entitlements: JsonModels.AdminSubscriptions.PlanEntitlementRequest[];
+	}
+	export interface PlanPriceRequest
+	{
+		currency: string;
+		amount: number;
+		billingInterval: Enums.BillingInterval;
+		stripePriceId: string;
+		isActive: boolean;
+	}
+	export interface PlanEntitlementRequest
+	{
+		feature: Enums.SubscriptionFeature;
+		isEnabled: boolean;
+		dailyLimit?: number;
+		monthlyLimit?: number;
+		maximumPerRequest?: number;
+		softLimit?: number;
+		hardLimit?: number;
+	}
+	export interface SubscriptionPlanAdminModel
+	{
+		id: number;
+		code: string;
+		name: string;
+		description?: string;
+		isActive: boolean;
+		isPublic: boolean;
+		sortOrder: number;
+		subscriberCount: number;
+		prices: JsonModels.AdminSubscriptions.PlanPriceAdminModel[];
+		entitlements: JsonModels.AdminSubscriptions.PlanEntitlementAdminModel[];
+	}
+	export interface PlanPriceAdminModel
+	{
+		id: number;
+		currency: string;
+		amount: number;
+		billingInterval: Enums.BillingInterval;
+		stripePriceId: string;
+		isActive: boolean;
+	}
+	export interface PlanEntitlementAdminModel
+	{
+		id: number;
+		feature: Enums.SubscriptionFeature;
+		isEnabled: boolean;
+		dailyLimit?: number;
+		monthlyLimit?: number;
+		maximumPerRequest?: number;
+		softLimit?: number;
+		hardLimit?: number;
+	}
+	export interface SubscriptionQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+		planCode?: string;
+		status?: Enums.SubscriptionStatus;
+		overriddenOnly: boolean;
+	}
+	export interface UsageQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+		userId?: number;
+		feature?: Enums.SubscriptionFeature;
+		periodStart?: string;
+		atLimitOnly: boolean;
+	}
+	export interface UserSubscriptionAdminModel
+	{
+		userId: number;
+		email?: string;
+		fullName?: string;
+		effectivePlanCode: string;
+		effectivePlanName: string;
+		source: Enums.EntitlementSource;
+		subscriptionId?: number;
+		subscriptionStatus?: Enums.SubscriptionStatus;
+		currentPeriodEnd?: string;
+		cancelAtPeriodEnd: boolean;
+		activeOverride?: JsonModels.AdminSubscriptions.PlanOverrideAdminModel;
+	}
+	export interface PlanOverrideAdminModel
+	{
+		id: number;
+		planCode: string;
+		reason: string;
+		createdByUserId: number;
+		startsAt: string;
+		endsAt?: string;
+	}
+	export interface UserUsageAdminModel
+	{
+		id: number;
+		userId: number;
+		email?: string;
+		feature: Enums.SubscriptionFeature;
+		periodStart: string;
+		periodEnd: string;
+		used: number;
+		reserved: number;
+		effectiveLimit?: number;
+	}
+}
+export namespace JsonModels.AdminAI {
+	export interface AIAdminOverviewModel
+	{
+		days: number;
+		from: string;
+		to: string;
+		totalRuns: number;
+		failedRuns: number;
+		activeUsers: number;
+		conversations: number;
+		messages: number;
+		toolCalls: number;
+		failedToolCalls: number;
+		proposedActions: number;
+		confirmedActions: number;
+		inputTokens: number;
+		outputTokens: number;
+		estimatedCost: number;
+		averageDurationMilliseconds: number;
+		p95DurationMilliseconds: number;
+		topTools: JsonModels.AdminAI.AIToolUsageModel[];
+		topUsersByCost: JsonModels.AdminAI.AIUserCostModel[];
+		costByDay: JsonModels.AdminAI.AICostByDayModel[];
+		topUnsupportedCategories: JsonModels.AdminAI.UnsupportedCategoryCountModel[];
+	}
+	export interface AIToolUsageModel
+	{
+		toolName: string;
+		callCount: number;
+		failureCount: number;
+		averageDurationMilliseconds: number;
+	}
+	export interface AIUserCostModel
+	{
+		userId: number;
+		email?: string;
+		runCount: number;
+		estimatedCost: number;
+	}
+	export interface AICostByDayModel
+	{
+		date: string;
+		runCount: number;
+		estimatedCost: number;
+	}
+	export interface UnsupportedCategoryCountModel
+	{
+		category: string;
+		groupCount: number;
+		occurrenceCount: number;
+	}
+	export interface AIAdminRunModel
+	{
+		id: number;
+		userId: number;
+		userEmail?: string;
+		conversationId: number;
+		status: Enums.AIRunStatus;
+		provider: string;
+		model: string;
+		promptVersion: string;
+		inputTokens: number;
+		outputTokens: number;
+		cachedInputTokens: number;
+		estimatedCost?: number;
+		toolCallCount: number;
+		durationMilliseconds: number;
+		errorCode?: string;
+		errorMessage?: string;
+		startedAt: string;
+		completedAt?: string;
+		toolExecutions: JsonModels.AdminAI.AIAdminToolExecutionModel[];
+	}
+	export interface AIAdminToolExecutionModel
+	{
+		id: number;
+		toolName: string;
+		status: Enums.AIToolExecutionStatus;
+		durationMilliseconds: number;
+		errorCode?: string;
+		errorMessage?: string;
+		startedAt: string;
+	}
+	export interface AIAdminUsageSummaryModel
+	{
+		period: string;
+		features: JsonModels.AdminAI.AIAdminFeatureUsageModel[];
+	}
+	export interface AIAdminFeatureUsageModel
+	{
+		feature: Enums.SubscriptionFeature;
+		userCount: number;
+		usedTotal: number;
+		atOrOverLimitCount: number;
+	}
+	export interface AIConversationDetailModel
+	{
+		id: number;
+		userId: number;
+		userEmail?: string;
+		title?: string;
+		status: Enums.AIConversationStatus;
+		lastMessageAt: string;
+		dateCreated: string;
+		contentVisible: boolean;
+		messages: JsonModels.AdminAI.AIAdminMessageModel[];
+		runs: JsonModels.AdminAI.AIAdminRunModel[];
+		actions: JsonModels.AdminAI.AIAdminActionModel[];
+	}
+	export interface AIAdminMessageModel
+	{
+		id: number;
+		role: Enums.AIMessageRole;
+		content: string;
+		toolName?: string;
+		dateCreated: string;
+	}
+	export interface AIAdminActionModel
+	{
+		id: number;
+		actionType: Enums.AIActionType;
+		status: Enums.AIActionStatus;
+		dateCreated: string;
+		executedAt?: string;
+		failureReason?: string;
+	}
+	export interface AIConversationListItemModel
+	{
+		id: number;
+		userId: number;
+		userEmail?: string;
+		title?: string;
+		status: Enums.AIConversationStatus;
+		messageCount: number;
+		runCount: number;
+		estimatedCost: number;
+		lastMessageAt: string;
+		dateCreated: string;
+	}
+	export interface AIConversationQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+		userId?: number;
+		status?: Enums.AIConversationStatus;
+		from?: string;
+		to?: string;
+	}
+	export interface AICostSummaryModel
+	{
+		from: string;
+		to: string;
+		estimatedCost: number;
+		inputTokens: number;
+		outputTokens: number;
+		cachedInputTokens: number;
+		byDay: JsonModels.AdminAI.AICostByDayModel[];
+		byModel: JsonModels.AdminAI.AICostByModelModel[];
+		byPlan: JsonModels.AdminAI.AICostByPlanModel[];
+	}
+	export interface AICostByModelModel
+	{
+		model: string;
+		runCount: number;
+		estimatedCost: number;
+	}
+	export interface AICostByPlanModel
+	{
+		planCode: string;
+		runCount: number;
+		estimatedCost: number;
+	}
+	export interface AIRunQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		userId?: number;
+		conversationId?: number;
+		status?: Enums.AIRunStatus;
+		model?: string;
+		from?: string;
+		to?: string;
+		failuresOnly: boolean;
+	}
+	export interface RecordUnsupportedRequestRequest
+	{
+		category: string;
+		requestedFunctionality: string;
+		userIntentSummary?: string;
+		suggestedFallback?: string;
+		conversationId: number;
+		messageId?: number;
+	}
+	export interface UnsupportedAIRequestModel
+	{
+		id: number;
+		category: string;
+		normalizedKey: string;
+		requestedFunctionality: string;
+		userIntentSummary?: string;
+		suggestedFallback?: string;
+		status: Enums.UnsupportedRequestStatus;
+		occurrenceCount: number;
+		distinctUserCount: number;
+		firstRequestedAt: string;
+		lastRequestedAt: string;
+		adminNotes?: string;
+		externalTrackingUrl?: string;
+		externalTrackingKey?: string;
+		recentOccurrences: JsonModels.AdminAI.UnsupportedRequestOccurrenceModel[];
+	}
+	export interface UnsupportedRequestOccurrenceModel
+	{
+		id: number;
+		userId: number;
+		userEmail?: string;
+		conversationId: number;
+		reportedAt: string;
+	}
+	export interface UnsupportedRequestQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		search?: string;
+		category?: string;
+		status?: Enums.UnsupportedRequestStatus;
+	}
+	export interface UpdateUnsupportedRequestRequest
+	{
+		status: Enums.UnsupportedRequestStatus;
+		adminNotes?: string;
+		externalTrackingUrl?: string;
+		externalTrackingKey?: string;
 	}
 }
 export interface JsonData<T>

@@ -7,4 +7,7 @@ export interface UserModel
 	firstName?: string;
 	lastName?: string;
 	roles: UserRole[];
+	cookieConsentAnalytics?: boolean;
+	cookieConsentMarketing?: boolean;
+	cookieConsentAt?: string;
 }

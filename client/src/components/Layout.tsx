@@ -1,6 +1,7 @@
 import { Outlet } from "react-router";
 import { useUserStore } from "@/stores/userStore";
 import { ActiveWorkoutSheetHost } from "./ActiveWorkoutSheetHost";
+import CookieConsentBanner from "./CookieConsentBanner";
 import Sidebar from "./Sidebar";
 
 export default function Layout() {
@@ -17,6 +18,7 @@ export default function Layout() {
           </main>
         </div>
         <ActiveWorkoutSheetHost />
+        <CookieConsentBanner />
       </div>
     );
   }
@@ -29,6 +31,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      <CookieConsentBanner />
     </div>
   );
 }

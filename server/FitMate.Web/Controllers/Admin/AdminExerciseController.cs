@@ -31,4 +31,19 @@ public class AdminExerciseController : BaseApiController
         var response = await exerciseService.ListAsync(request);
         return this.ReturnJson(response);
     }
+
+    /// <summary>
+    /// Creates an exercise on behalf of the catalogue. The admin UI decides the scope explicitly:
+    /// an exercise left unmarked as private becomes global (visible to everyone), while a private
+    /// one stays personal to the administrator.
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult> Create([FromBody] CreateAdminExerciseRequest request)
+    {
+        var created = request.IsPrivate
+            ? await exerciseService.CreatePersonalAsync(request.ToExerciseRequest(isPublic: false))
+            : await exerciseService.CreateGlobalAsync(request.ToExerciseRequest(isPublic: true));
+
+        return this.ReturnJson(created);
+    }
 }

@@ -5,18 +5,30 @@ import { UserRole } from "@/types";
 import { Login, Register, ForgotPassword, ResetPassword } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount, MyExercises, TrainingProfile } from "./pages/Profile";
-import AdminPanel, { ErrorGrid, ExerciseGrid, MuscleGroupGrid, UserGrid } from "./pages/AdminPanel";
+import AdminPanel, {
+  AIConversationGrid,
+  AIOverview,
+  ErrorGrid,
+  ExerciseGrid,
+  MuscleGroupGrid,
+  SubscriptionAdmin,
+  UnsupportedRequestGrid,
+  UserGrid,
+} from "./pages/AdminPanel";
 import WorkoutBuilderRoute from "./pages/WorkoutBuilder/WorkoutBuilderRoute";
 import WorkoutSummary from "./pages/WorkoutSummary";
 import Workouts from "./pages/Workouts";
+import AICoach from "./pages/AICoach";
 import Program, { ProgramDetail } from "./pages/Program";
 import ProgramBuilder from "./pages/ProgramBuilder";
 import ProgramCalendar from "./pages/ProgramCalendar";
+import Subscription from "./pages/Subscription";
 import Templates from "./pages/Templates";
 import TemplateBuilder from "./pages/TemplateBuilder";
 import TemplatePreview from "./pages/TemplatePreview";
 import Analytics from "./pages/Analytics";
 import Calendar from "./pages/Calendar";
+import Legal from "./pages/Legal";
 import WeightLog from "./pages/WeightLog";
 import ComponentTest from "./pages/ComponentTest";
 
@@ -68,6 +80,10 @@ export const router = createBrowserRouter([
       {
         path: "component-test",
         element: <ComponentTest />,
+      },
+      {
+        path: "legal",
+        element: <Legal />,
       },
       {
         path: "profile",
@@ -142,6 +158,34 @@ export const router = createBrowserRouter([
           {
             path: ":templateId",
             element: <TemplateBuilder />,
+          },
+        ],
+      },
+
+      {
+        path: "ai-coach",
+        element: (
+          <AccessGate requireAuthenticated>
+            <AICoach />
+          </AccessGate>
+        ),
+      },
+
+      {
+        path: "subscription",
+        element: (
+          <AccessGate requireAuthenticated>
+            <Outlet />
+          </AccessGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <Subscription />,
+          },
+          {
+            path: "usage",
+            element: <Subscription />,
           },
         ],
       },
@@ -231,6 +275,22 @@ export const router = createBrowserRouter([
           {
             path: "errors",
             element: <ErrorGrid />,
+          },
+          {
+            path: "ai",
+            element: <AIOverview />,
+          },
+          {
+            path: "ai/conversations",
+            element: <AIConversationGrid />,
+          },
+          {
+            path: "ai/unsupported-requests",
+            element: <UnsupportedRequestGrid />,
+          },
+          {
+            path: "subscriptions",
+            element: <SubscriptionAdmin />,
           },
         ],
       },

@@ -38,9 +38,9 @@ public class ExerciseServiceTests
         };
     }
 
-    // Потребител създава упражнение със своя UserId и зададена видимост
+    // Потребител създава лично упражнение със своя UserId и зададена видимост
     [Fact]
-    public async Task CreateAsync_UserCreatesExercise_AssignsUserIdAndKeepsRequestVisibility()
+    public async Task CreatePersonalAsync_UserCreatesExercise_AssignsUserIdAndKeepsRequestVisibility()
     {
         using var db = new SqliteTestDatabase();
 
@@ -48,7 +48,7 @@ public class ExerciseServiceTests
         using (var context = db.CreateContext())
         {
             var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
-            created = await service.CreateAsync(NewRequest(isPublic: false));
+            created = await service.CreatePersonalAsync(NewRequest(isPublic: false));
         }
 
         using var assert = db.CreateContext();
@@ -57,9 +57,9 @@ public class ExerciseServiceTests
         Assert.False(stored.IsPublic);
     }
 
-    // Admin създава глобално публично упражнение без собственик
+    // Admin, който създава ЛИЧНО упражнение, остава негов собственик (не става глобално)
     [Fact]
-    public async Task CreateAsync_AdminCreatesExercise_CreatesGlobalPublicExercise()
+    public async Task CreatePersonalAsync_AdminCreatesExercise_StaysPrivateToAdmin()
     {
         using var db = new SqliteTestDatabase();
 
@@ -67,7 +67,26 @@ public class ExerciseServiceTests
         using (var context = db.CreateContext())
         {
             var service = BuildService(context, FakeUserService.ForAdmin(SqliteTestDatabase.AdminUserId));
-            created = await service.CreateAsync(NewRequest(isPublic: false));
+            created = await service.CreatePersonalAsync(NewRequest(isPublic: false));
+        }
+
+        using var assert = db.CreateContext();
+        var stored = await assert.Exercises.SingleAsync(x => x.Id == created.Id);
+        Assert.Equal(SqliteTestDatabase.AdminUserId, stored.UserId);
+        Assert.False(stored.IsPublic);
+    }
+
+    // Admin изрично създава глобално упражнение: без собственик и видимо за всички
+    [Fact]
+    public async Task CreateGlobalAsync_Admin_CreatesGlobalPublicExercise()
+    {
+        using var db = new SqliteTestDatabase();
+
+        ExerciseModel created;
+        using (var context = db.CreateContext())
+        {
+            var service = BuildService(context, FakeUserService.ForAdmin(SqliteTestDatabase.AdminUserId));
+            created = await service.CreateGlobalAsync(NewRequest(isPublic: false));
         }
 
         using var assert = db.CreateContext();
@@ -76,15 +95,40 @@ public class ExerciseServiceTests
         Assert.True(stored.IsPublic);
     }
 
+    // Нормален потребител не може да създаде глобално упражнение
+    [Fact]
+    public async Task CreateGlobalAsync_NonAdmin_Throws()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
+
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateGlobalAsync(NewRequest()));
+        Assert.Equal("Only administrators can create global exercises.", ex.Message);
+        Assert.Empty(await context.Exercises.ToListAsync());
+    }
+
     // Без логнат потребител хвърля Unauthorized
     [Fact]
-    public async Task CreateAsync_NoLoggedInUser_ThrowsUnauthorized()
+    public async Task CreatePersonalAsync_NoLoggedInUser_ThrowsUnauthorized()
     {
         using var db = new SqliteTestDatabase();
         using var context = db.CreateContext();
         var service = BuildService(context, new FakeUserService { LoggedInUserId = null });
 
-        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(NewRequest()));
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreatePersonalAsync(NewRequest()));
+        Assert.Equal("Unauthorized.", ex.Message);
+    }
+
+    // Без логнат потребител глобалното създаване също хвърля Unauthorized
+    [Fact]
+    public async Task CreateGlobalAsync_NoLoggedInUser_ThrowsUnauthorized()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, new FakeUserService { LoggedInUserId = null });
+
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateGlobalAsync(NewRequest()));
         Assert.Equal("Unauthorized.", ex.Message);
     }
 
@@ -103,7 +147,7 @@ public class ExerciseServiceTests
             request.MovementPattern = ExerciseMovementPattern.HorizontalPush;
             request.Difficulty = ExerciseDifficulty.Intermediate;
             request.Category = ExerciseCategory.Strength;
-            created = await service.CreateAsync(request);
+            created = await service.CreatePersonalAsync(request);
         }
 
         Assert.Equal(ExerciseEquipment.Barbell, created.Equipment);
@@ -124,7 +168,7 @@ public class ExerciseServiceTests
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
         var request = NewRequest();
         request.Equipment = ExerciseEquipment.Dumbbell;
-        var created = await service.CreateAsync(request);
+        var created = await service.CreatePersonalAsync(request);
 
         var update = NewRequest();
         update.Slug = created.Slug;
@@ -148,7 +192,7 @@ public class ExerciseServiceTests
             var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
             var request = NewRequest(name: "Overhead Press");
             request.Aliases = ["Military Press", "military-press", "OHP", "  "];
-            created = await service.CreateAsync(request);
+            created = await service.CreatePersonalAsync(request);
         }
 
         using var assert = db.CreateContext();
@@ -172,7 +216,7 @@ public class ExerciseServiceTests
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
         var request = NewRequest(name: "Overhead Press");
         request.Aliases = ["Military Press"];
-        var created = await service.CreateAsync(request);
+        var created = await service.CreatePersonalAsync(request);
 
         var update = NewRequest(name: "Overhead Press");
         update.Slug = created.Slug;
@@ -193,7 +237,7 @@ public class ExerciseServiceTests
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
         var request = NewRequest(name: "Overhead Press");
         request.Aliases = ["Military Press"];
-        var created = await service.CreateAsync(request);
+        var created = await service.CreatePersonalAsync(request);
 
         var results = await service.GetAllAsync(new ExerciseLookupRequest { Search = "military" });
 
@@ -209,7 +253,7 @@ public class ExerciseServiceTests
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
         var request = NewRequest(name: "Overhead Press");
         request.Aliases = ["Military Press"];
-        await service.CreateAsync(request);
+        await service.CreatePersonalAsync(request);
 
         var results = await service.GetAllAsync(new ExerciseLookupRequest { Search = "!!!" });
 
@@ -225,7 +269,7 @@ public class ExerciseServiceTests
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
         var request = NewRequest(name: "Overhead Press");
         request.Aliases = ["OHP"];
-        var created = await service.CreateAsync(request);
+        var created = await service.CreatePersonalAsync(request);
 
         await service.DeleteAsync(created.Id);
 
@@ -240,7 +284,7 @@ public class ExerciseServiceTests
         using var context = db.CreateContext();
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
 
-        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(NewRequest(name: "")));
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreatePersonalAsync(NewRequest(name: "")));
         Assert.Equal("Name is required.", ex.Message);
     }
 
@@ -252,7 +296,7 @@ public class ExerciseServiceTests
         using var context = db.CreateContext();
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
 
-        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(NewRequest(primary: 0)));
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreatePersonalAsync(NewRequest(primary: 0)));
         Assert.Equal("Primary muscle group id is required.", ex.Message);
     }
 
@@ -264,7 +308,7 @@ public class ExerciseServiceTests
         using var context = db.CreateContext();
         var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
 
-        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(NewRequest(primary: 999)));
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreatePersonalAsync(NewRequest(primary: 999)));
         Assert.Equal("Primary muscle group does not exist.", ex.Message);
     }
 
@@ -278,7 +322,7 @@ public class ExerciseServiceTests
 
         var request = NewRequest(primary: SqliteTestDatabase.ChestId, secondary: SqliteTestDatabase.ChestId);
 
-        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreateAsync(request));
+        var ex = await Assert.ThrowsAsync<FitMateException>(() => service.CreatePersonalAsync(request));
         Assert.Equal("Primary and secondary muscle groups must be different.", ex.Message);
     }
 
@@ -293,13 +337,13 @@ public class ExerciseServiceTests
         using (var context = db.CreateContext())
         {
             var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
-            first = await service.CreateAsync(NewRequest(name: "Bench Press"));
+            first = await service.CreatePersonalAsync(NewRequest(name: "Bench Press"));
         }
 
         using (var context = db.CreateContext())
         {
             var service = BuildService(context, FakeUserService.ForUser(SqliteTestDatabase.UserId));
-            second = await service.CreateAsync(NewRequest(name: "Bench Press"));
+            second = await service.CreatePersonalAsync(NewRequest(name: "Bench Press"));
         }
 
         using var assert = db.CreateContext();

@@ -1,5 +1,6 @@
 using System.Text;
 using FitMate.DB;
+using FitMate.Integrations.AI.Abstractions;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,8 +27,19 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     private const string TestAudience = "FitMate";
 
     private readonly SqliteConnection connection;
+    private readonly bool ownsConnection;
 
     public TestWebApplicationFactory()
+        : this(null)
+    {
+    }
+
+    /// <summary>
+    /// Stands the host up over an existing test database instead of a fresh one. Passing another
+    /// factory's <see cref="Connection"/> reproduces what a redeploy looks like to persisted state:
+    /// a brand-new process reading data the previous one wrote.
+    /// </summary>
+    public TestWebApplicationFactory(SqliteConnection? sharedConnection)
     {
         Environment.SetEnvironmentVariable("Jwt__SigningKey", TestSigningKey);
         Environment.SetEnvironmentVariable("Jwt__Issuer", TestIssuer);
@@ -36,9 +48,17 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("RefreshToken__SigningKey", TestSigningKey);
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "DataSource=:memory:");
 
-        connection = new SqliteConnection("DataSource=:memory:");
-        connection.Open();
+        ownsConnection = sharedConnection is null;
+        connection = sharedConnection ?? new SqliteConnection("DataSource=:memory:");
+
+        if (ownsConnection)
+        {
+            connection.Open();
+        }
     }
+
+    /// <summary>The host's database connection, for handing to a second factory.</summary>
+    public SqliteConnection Connection => connection;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -61,6 +81,18 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection));
+
+            // Tests never talk to a real model provider: swap in the scripted fake.
+            var providerDescriptors = services
+                .Where(d => d.ServiceType == typeof(IAICompletionProvider))
+                .ToList();
+            foreach (var descriptor in providerDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<FakeAICompletionProvider>();
+            services.AddSingleton<IAICompletionProvider>(sp => sp.GetRequiredService<FakeAICompletionProvider>());
 
             services
                 .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
@@ -96,6 +128,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         var dbContext = sp.GetRequiredService<AppDbContext>();
         await dbContext.Database.EnsureCreatedAsync();
 
+        // Entitlement resolution falls back to the Free plan, so the plans must exist exactly as
+        // production seeds them.
+        SqliteTestDatabase.SeedPlans(dbContext);
+
         var roleManager = sp.GetRequiredService<RoleManager<Role>>();
         foreach (var roleName in RoleNames.All)
         {
@@ -128,7 +164,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing)
+
+        // A borrowed connection belongs to the factory that opened it; closing it here would drop the
+        // in-memory database out from under that one.
+        if (disposing && ownsConnection)
         {
             connection.Dispose();
         }

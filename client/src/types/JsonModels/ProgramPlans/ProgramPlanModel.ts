@@ -14,7 +14,7 @@ export interface ProgramPlanModel
 	startDate: string;
 	endDate?: string;
 	targetWorkoutsPerWeek: number;
-	isAiGenerated: boolean;
+	isAIGenerated: boolean;
 	activatedAt?: string;
 	completedAt?: string;
 	scheduleRules: JsonModels.ProgramPlans.ProgramPlanScheduleRuleModel[];

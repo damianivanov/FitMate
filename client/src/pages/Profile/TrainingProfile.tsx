@@ -147,8 +147,8 @@ export default function TrainingProfile() {
           <p className={labelClassName}>AI Personalization</p>
           <SegmentControl<boolean>
             id="training-ai-personalization"
-            value={formValues.allowAiPersonalization}
-            onChange={(value) => actions.setField("allowAiPersonalization", value)}
+            value={formValues.allowAIPersonalization}
+            onChange={(value) => actions.setField("allowAIPersonalization", value)}
             options={aiOptions}
             size={SegmentControlSize.Md}
             className="w-full"

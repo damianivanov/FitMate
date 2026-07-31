@@ -134,6 +134,9 @@ public class AuthService : IAuthService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Roles = MapRoles(roles),
+            CookieConsentAnalytics = user.CookieConsentAnalytics,
+            CookieConsentMarketing = user.CookieConsentMarketing,
+            CookieConsentAt = user.CookieConsentAt,
         };
     }
 

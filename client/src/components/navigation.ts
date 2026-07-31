@@ -3,10 +3,12 @@ import {
   LuCalendarCheck,
   LuCalendarDays,
   LuCircleUserRound,
+  LuCreditCard,
   LuDumbbell,
   LuLayoutDashboard,
   LuLayoutTemplate,
   LuScale,
+  LuSparkles,
 } from "react-icons/lu";
 
 export interface NavItem {
@@ -38,8 +40,13 @@ export const trainingNavItems: DesktopNavItem[] = [
 ];
 
 export const insightNavItems: DesktopNavItem[] = [
+  { label: "AI Coach", to: "/ai-coach", icon: LuSparkles, end: false },
   { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
   { label: "Weight", to: "/weight-log", icon: LuScale, end: false },
+];
+
+export const accountNavItems: DesktopNavItem[] = [
+  { label: "Subscription", to: "/subscription", icon: LuCreditCard, end: false },
 ];
 
 export const navSections: NavSection[] = [
@@ -50,6 +57,10 @@ export const navSections: NavSection[] = [
   {
     section: "Insights",
     items: insightNavItems,
+  },
+  {
+    section: "Account",
+    items: accountNavItems,
   },
 ];
 

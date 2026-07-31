@@ -6,6 +6,7 @@ import type {
   ExerciseLookupModel,
   ExerciseLookupRequest,
   JsonData,
+  CreateAdminExerciseRequest,
   CreateExerciseRequest,
   ImageUploadTicket,
   ImageUploadTicketRequest,
@@ -30,6 +31,31 @@ async function putToBlobStorage(uploadUrl: string, file: File): Promise<void> {
   }
 }
 
+// Keep create atomic: if the image step fails, remove the just-created exercise so a retry
+// doesn't leave an orphan or create a duplicate (mirrors the old server-side behavior).
+async function attachImage(
+  response: Awaited<ReturnType<typeof api.post<JsonData<Exercise>>>>,
+  file?: File,
+) {
+  if (!file) {
+    return response;
+  }
+
+  const created = unwrap(response.data, "Create failed.");
+
+  try {
+    return await exerciseService.uploadImage(created.id, file);
+  } catch (imageError) {
+    try {
+      await exerciseService.remove(created.id);
+    } catch {
+      // Ignore cleanup failures; surface the original image error.
+    }
+
+    throw imageError;
+  }
+}
+
 export const exerciseService = {
   async getAll(params: ExerciseLookupRequest) {
     return api.get<JsonData<ExerciseLookupModel[]>>("exercises/get-all", {
@@ -47,26 +73,14 @@ export const exerciseService = {
 
   async create(payload: CreateExerciseRequest, file?: File) {
     const response = await api.post<JsonData<Exercise>>("exercises", payload);
+    return attachImage(response, file);
+  },
 
-    if (!file) {
-      return response;
-    }
-
-    const created = unwrap(response.data, "Create failed.");
-
-    try {
-      return await exerciseService.uploadImage(created.id, file);
-    } catch (imageError) {
-      // Keep create atomic: if the image step fails, remove the just-created exercise so a retry
-      // doesn't leave an orphan or create a duplicate (mirrors the old server-side behavior).
-      try {
-        await exerciseService.remove(created.id);
-      } catch {
-        // Ignore cleanup failures; surface the original image error.
-      }
-
-      throw imageError;
-    }
+  // Admin-side create. Scope is explicit: isPrivate = false adds the exercise to the shared
+  // catalogue (visible to everyone), isPrivate = true keeps it on the administrator's account.
+  async createAsAdmin(payload: CreateAdminExerciseRequest, file?: File) {
+    const response = await api.post<JsonData<Exercise>>("admin/exercises", payload);
+    return attachImage(response, file);
   },
 
   async update(id: number, payload: CreateExerciseRequest) {

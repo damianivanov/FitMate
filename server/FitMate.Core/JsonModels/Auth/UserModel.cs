@@ -7,4 +7,7 @@ public class UserModel
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public List<UserRole> Roles { get; set; } = [];
+    public bool? CookieConsentAnalytics { get; set; }
+    public bool? CookieConsentMarketing { get; set; }
+    public DateTime? CookieConsentAt { get; set; }
 }

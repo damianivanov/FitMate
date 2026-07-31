@@ -96,11 +96,34 @@ public class ExerciseService : IExerciseService
         };
     }
 
-    public async Task<ExerciseModel> CreateAsync(CreateExerciseRequest request)
+    public async Task<ExerciseModel> CreatePersonalAsync(CreateExerciseRequest request)
     {
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
-        var isAdmin = userService.LoggedInUserIsAdmin;
+        return await CreateAsync(request, ownerUserId: userId, isPublicOverride: null);
+    }
 
+    public async Task<ExerciseModel> CreateGlobalAsync(CreateExerciseRequest request)
+    {
+        if (userService.LoggedInUserId == null)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        // Scope is explicit (the caller asked for a catalogue exercise), but only administrators
+        // are allowed to widen visibility beyond their own account.
+        if (!userService.LoggedInUserIsAdmin)
+        {
+            throw new FitMateException("Only administrators can create global exercises.");
+        }
+
+        return await CreateAsync(request, ownerUserId: null, isPublicOverride: true);
+    }
+
+    private async Task<ExerciseModel> CreateAsync(
+        CreateExerciseRequest request,
+        long? ownerUserId,
+        bool? isPublicOverride)
+    {
         var normalized = NormalizeRequest(request);
 
         normalized.Slug = await GenerateUniqueSlugAsync(normalized.Name);
@@ -113,9 +136,8 @@ public class ExerciseService : IExerciseService
 
         var exercise = new Exercise
         {
-            // Admins curate the shared catalogue: anything they create is global and public.
-            UserId = isAdmin ? null : userId,
-            IsPublic = isAdmin || normalized.IsPublic,
+            UserId = ownerUserId,
+            IsPublic = isPublicOverride ?? normalized.IsPublic,
             Name = normalized.Name,
             Slug = normalized.Slug,
             Description = normalized.Description,

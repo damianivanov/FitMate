@@ -1,12 +1,18 @@
 using FitMate.DB.Entities;
 using FitMate.DB.Entities.Base;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.DB;
 
-public class AppDbContext : IdentityDbContext<User, Role, long>
+public class AppDbContext : IdentityDbContext<User, Role, long>, IDataProtectionKeyContext
 {
+    // The data-protection key ring lives in the database, not on disk: the app runs in a container
+    // with an ephemeral filesystem, so file-backed keys are regenerated on every deploy and any
+    // payload protected with the previous ring (Identity password-reset tokens) stops validating.
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     public DbSet<Error> Errors => Set<Error>();
     public DbSet<Token> Tokens => Set<Token>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -27,6 +33,23 @@ public class AppDbContext : IdentityDbContext<User, Role, long>
     public DbSet<ProgramPlanScheduleRule> ProgramPlanScheduleRules => Set<ProgramPlanScheduleRule>();
     public DbSet<ProgramPlanDay> ProgramPlanDays => Set<ProgramPlanDay>();
     public DbSet<UserTrainingProfile> UserTrainingProfiles => Set<UserTrainingProfile>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<PlanPrice> PlanPrices => Set<PlanPrice>();
+    public DbSet<PlanEntitlement> PlanEntitlements => Set<PlanEntitlement>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<UserPlanOverride> UserPlanOverrides => Set<UserPlanOverride>();
+    public DbSet<UsageBucket> UsageBuckets => Set<UsageBucket>();
+    public DbSet<UsageEntry> UsageEntries => Set<UsageEntry>();
+    public DbSet<UsageReservation> UsageReservations => Set<UsageReservation>();
+    public DbSet<AIConversation> AIConversations => Set<AIConversation>();
+    public DbSet<AIMessage> AIMessages => Set<AIMessage>();
+    public DbSet<AIRun> AIRuns => Set<AIRun>();
+    public DbSet<AIToolExecution> AIToolExecutions => Set<AIToolExecution>();
+    public DbSet<UserAIPreferences> UserAIPreferences => Set<UserAIPreferences>();
+    public DbSet<AIModelPricing> AIModelPricings => Set<AIModelPricing>();
+    public DbSet<AIAction> AIActions => Set<AIAction>();
+    public DbSet<UnsupportedAIRequest> UnsupportedAIRequests => Set<UnsupportedAIRequest>();
+    public DbSet<UnsupportedAIRequestOccurrence> UnsupportedAIRequestOccurrences => Set<UnsupportedAIRequestOccurrence>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)

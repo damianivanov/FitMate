@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FitMate.Core\FitMate.Core.csproj" />
     <ProjectReference Include="..\FitMate.DB\FitMate.DB.csproj" />
+    <ProjectReference Include="..\FitMate.Integrations\FitMate.Integrations.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -13,6 +14,13 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Versioned prompts ship next to the assembly so AIRun.PromptVersion stays meaningful. -->
+    <None Update="AI\Prompts\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

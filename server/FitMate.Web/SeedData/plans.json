@@ -1,0 +1,59 @@
+[
+  {
+    "code": "free",
+    "name": "Free",
+    "description": "Everything you need to track your training.",
+    "isPublic": true,
+    "sortOrder": 1,
+    "entitlements": [
+      { "feature": "AIChat", "isEnabled": true, "monthlyLimit": 10 },
+      { "feature": "AIWorkoutGeneration", "isEnabled": true, "monthlyLimit": 2 },
+      { "feature": "AIProgramGeneration", "isEnabled": false },
+      { "feature": "AIExerciseRecognition", "isEnabled": false },
+      { "feature": "AIImageGeneration", "isEnabled": false },
+      { "feature": "AITrainingAnalysis", "isEnabled": true, "monthlyLimit": 1 },
+      { "feature": "ActiveProgramPlans", "isEnabled": true, "hardLimit": 1 },
+      { "feature": "ProgramPlanDurationMonths", "isEnabled": true, "hardLimit": 1 },
+      { "feature": "CustomWorkoutTemplates", "isEnabled": true, "hardLimit": 5 },
+      { "feature": "ExerciseHistoryMonths", "isEnabled": true, "hardLimit": 1 }
+    ]
+  },
+  {
+    "code": "plus",
+    "name": "Plus",
+    "description": "AI coaching and multi-month programs.",
+    "isPublic": true,
+    "sortOrder": 2,
+    "entitlements": [
+      { "feature": "AIChat", "isEnabled": true, "monthlyLimit": 100 },
+      { "feature": "AIWorkoutGeneration", "isEnabled": true, "monthlyLimit": 15 },
+      { "feature": "AIProgramGeneration", "isEnabled": true, "monthlyLimit": 2 },
+      { "feature": "AIExerciseRecognition", "isEnabled": true, "monthlyLimit": 10 },
+      { "feature": "AIImageGeneration", "isEnabled": true, "monthlyLimit": 5 },
+      { "feature": "AITrainingAnalysis", "isEnabled": true, "monthlyLimit": 10 },
+      { "feature": "ActiveProgramPlans", "isEnabled": true, "hardLimit": 3 },
+      { "feature": "ProgramPlanDurationMonths", "isEnabled": true, "hardLimit": 6 },
+      { "feature": "CustomWorkoutTemplates", "isEnabled": true, "hardLimit": 50 },
+      { "feature": "ExerciseHistoryMonths", "isEnabled": true, "hardLimit": 12 }
+    ]
+  },
+  {
+    "code": "pro",
+    "name": "Pro",
+    "description": "Unlimited planning and the full AI toolset.",
+    "isPublic": true,
+    "sortOrder": 3,
+    "entitlements": [
+      { "feature": "AIChat", "isEnabled": true, "monthlyLimit": 500 },
+      { "feature": "AIWorkoutGeneration", "isEnabled": true, "monthlyLimit": 60 },
+      { "feature": "AIProgramGeneration", "isEnabled": true, "monthlyLimit": 10 },
+      { "feature": "AIExerciseRecognition", "isEnabled": true, "monthlyLimit": 50 },
+      { "feature": "AIImageGeneration", "isEnabled": true, "monthlyLimit": 25 },
+      { "feature": "AITrainingAnalysis", "isEnabled": true, "monthlyLimit": 50 },
+      { "feature": "ActiveProgramPlans", "isEnabled": true, "hardLimit": 10 },
+      { "feature": "ProgramPlanDurationMonths", "isEnabled": true, "hardLimit": 12 },
+      { "feature": "CustomWorkoutTemplates", "isEnabled": true },
+      { "feature": "ExerciseHistoryMonths", "isEnabled": true }
+    ]
+  }
+]

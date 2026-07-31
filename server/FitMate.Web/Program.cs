@@ -14,6 +14,14 @@ using FitMate.Services.ProgramPlans.Days;
 using FitMate.Services.ProgramPlans.Plans;
 using FitMate.Services.ProgramPlans.Schedules;
 using FitMate.Services.Storage.Blobs;
+using FitMate.Integrations.AI.OpenAI;
+using FitMate.Services.AI;
+using FitMate.Services.AI.Tools;
+using FitMate.Services.AI.Unsupported;
+using FitMate.Services.AIActions;
+using FitMate.Services.AdminAI;
+using FitMate.Services.AdminSubscriptions;
+using FitMate.Services.Subscriptions;
 using FitMate.Services.Storage.Imaging;
 using FitMate.Services.Storage.Urls;
 using FitMate.Services.TrainingProfiles;
@@ -23,6 +31,8 @@ using FitMate.Services.WorkoutTemplates;
 using FitMate.Web.Attributes;
 using FitMate.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,8 +60,14 @@ builder.Services.AddSerilog((services, loggerConfiguration) => loggerConfigurati
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     // UseHttpsRedirection warns on every request when no HTTPS port is resolvable (e.g. behind a
-    // TLS-terminating proxy). Keep that per-request noise out of the Errors table.
-    .MinimumLevel.Override("Microsoft.AspNetCore.HttpsRedirection", LogEventLevel.Error)
+    // TLS-terminating proxy). Keep that per-request noise out of the Errors table. The category is
+    // the middleware's full type name, so the override has to be prefixed with its namespace
+    // (Microsoft.AspNetCore.HttpsPolicy) — "Microsoft.AspNetCore.HttpsRedirection" matches nothing.
+    .MinimumLevel.Override("Microsoft.AspNetCore.HttpsPolicy", LogEventLevel.Error)
+    // Data-protection logs startup advisories at Warning (key-at-rest encryption, key creation).
+    // They describe hosting configuration rather than an application fault, so they don't belong in
+    // the admin error grid; genuine key-ring failures are logged at Error and still land there.
+    .MinimumLevel.Override("Microsoft.AspNetCore.DataProtection", LogEventLevel.Error)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .Enrich.With(new SerilogHttpContextDataEnricher(services.GetRequiredService<IHttpContextAccessor>()))
@@ -120,6 +136,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(connectionString);
 });
+
+// Keep the data-protection key ring in the database. The default file-system store writes to the
+// container filesystem, which is thrown away on every deploy: each release produced a fresh key ring
+// (three in the first three weeks of production), silently invalidating every password-reset token
+// that had already been mailed out. The explicit application name pins the key-derivation discriminator
+// so keys stay interchangeable across deploys and instances.
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToDbContext<AppDbContext>()
+    .SetApplicationName("FitMate");
 
 builder.Services
     .AddIdentity<User, Role>(options =>
@@ -252,29 +278,93 @@ builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ApplicationSettings>();
 
+// Infrastructure: storage, imaging and mail.
 builder.Services.AddScoped<IImageProcessor, ImageSharpImageProcessor>();
 builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 builder.Services.AddScoped<IPhotoUrlResolver, PhotoUrlResolver>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
-builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+
+// Identity and accounts.
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITrainingProfileService, TrainingProfileService>();
+
+// Exercise catalogue.
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<IMuscleGroupService, MuscleGroupService>();
+
+// Training: workouts, templates and body metrics.
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IWorkoutTemplateService, WorkoutTemplateService>();
+builder.Services.AddScoped<IBodyMetricService, BodyMetricService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+
+// Program plans.
 builder.Services.AddScoped<IProgramPlanScheduleService, ProgramPlanScheduleService>();
 builder.Services.AddScoped<IProgramPlanService, ProgramPlanService>();
 builder.Services.AddScoped<IProgramPlanDayService, ProgramPlanDayService>();
-builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
-builder.Services.AddScoped<IBodyMetricService, BodyMetricService>();
-builder.Services.AddScoped<ITrainingProfileService, TrainingProfileService>();
+
+// Subscriptions: what a plan grants and how much of it has been used.
+builder.Services.AddScoped<IEntitlementService, EntitlementService>();
+builder.Services.AddScoped<IUsageService, UsageService>();
+
+// AI provider adapter. Nothing outside FitMate.Integrations touches a vendor SDK.
+builder.Services.AddFitMateOpenAI(builder.Configuration);
+builder.Services.Configure<AIOptions>(builder.Configuration.GetSection(AIOptions.SectionName));
+
+// AI conversations and auditing.
+builder.Services.AddScoped<IAIRedactionService, AIRedactionService>();
+builder.Services.AddScoped<IAIConversationService, AIConversationService>();
+builder.Services.AddScoped<IAICostCalculator, AICostCalculator>();
+builder.Services.AddScoped<IAIRunService, AIRunService>();
+
+// AI prompting and model selection.
+builder.Services.AddSingleton<IAIPromptBuilder, AIPromptBuilder>();
+builder.Services.AddScoped<IAIContextBuilder, AIContextBuilder>();
+builder.Services.AddSingleton<IAIModelRouter, AIModelRouter>();
+
+// AI orchestration and the tool allow-list (see AIToolServiceCollectionExtensions).
+builder.Services.AddScoped<IAIToolRegistry, AIToolRegistry>();
+builder.Services.AddScoped<IAIOrchestrator, AIOrchestrator>();
+builder.Services.AddFitMateAITools();
+
+// AI actions: proposals the user confirms before anything is written.
+builder.Services.AddFitMateAIActions();
+
+// What users asked the coach for that FitMate cannot do yet.
+builder.Services.AddScoped<IUnsupportedRequestService, UnsupportedRequestService>();
+
+// Administration.
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAdminErrorService, AdminErrorService>();
+
+// Administration: AI observability and the unsupported-request backlog.
+builder.Services.AddScoped<IAdminAIService, AdminAIService>();
+builder.Services.AddScoped<IAdminUnsupportedRequestService, AdminUnsupportedRequestService>();
+
+// Administration: plans, user subscriptions and metered usage.
+builder.Services.AddScoped<IAdminSubscriptionPlanService, AdminSubscriptionPlanService>();
+builder.Services.AddScoped<IAdminSubscriptionService, AdminSubscriptionService>();
 
 var app = builder.Build();
 
+// Production runs behind a TLS-terminating proxy, which forwards the original scheme and client IP
+// in X-Forwarded-*. Without this the app only ever sees plain HTTP, so Request.IsHttps is false and
+// UseHttpsRedirection tries to redirect every already-secure request — failing, because no HTTPS port
+// is bound, and logging "Failed to determine the https port for redirect" each time. This must run
+// before any middleware that reads the scheme or the remote IP. The proxy's address is not stable, so
+// the known-proxy allow-list is cleared rather than pinned.
 if (!app.Environment.IsDevelopment())
 {
+    var forwardedHeadersOptions = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
+    };
+
+    forwardedHeadersOptions.KnownNetworks.Clear();
+    forwardedHeadersOptions.KnownProxies.Clear();
+
+    app.UseForwardedHeaders(forwardedHeadersOptions);
     app.UseHttpsRedirection();
 }
 

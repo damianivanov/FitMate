@@ -17,5 +17,5 @@ public class UserTrainingProfile : BaseEntity
     public string? PreferredTrainingDaysJson { get; set; }   // jsonb: DayOfWeek[] (0 = Sunday)
     public string? ExerciseRestrictions { get; set; }
     public string? AdditionalPreferences { get; set; }
-    public bool AllowAiPersonalization { get; set; } = true;
+    public bool AllowAIPersonalization { get; set; } = true;
  }

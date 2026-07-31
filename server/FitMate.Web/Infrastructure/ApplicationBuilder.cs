@@ -1,9 +1,11 @@
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using FitMate.DB.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FitMate.Web.Infrastructure;
 
@@ -31,6 +33,7 @@ public static class ApplicationBuilderExtensions
         await SeedRoles(roleManager);
         await SeedAdminUser(userManager, configuration);
         await SeedMuscleGroups(dbContext, environment.ContentRootPath);
+        await SeedPlans(dbContext, environment.ContentRootPath);
         await SeedExercises(dbContext, environment.ContentRootPath);
     }
 
@@ -284,6 +287,97 @@ public static class ApplicationBuilderExtensions
         return hasChanges;
     }
 
+    /// <summary>
+    /// Seeds the Free/Plus/Pro plans. Idempotent and matched by stable code: descriptive fields are
+    /// refreshed, but limits an administrator has edited are never overwritten.
+    /// </summary>
+    private static async Task SeedPlans(AppDbContext dbContext, string contentRootPath)
+    {
+        var seedPath = Path.Combine(contentRootPath, "SeedData", "plans.json");
+        var items = await ReadSeedFileAsync<List<SeedPlan>>(seedPath);
+        if (items == null || items.Count == 0)
+        {
+            return;
+        }
+
+        var existingPlans = await dbContext.Plans
+            .Include(x => x.Entitlements)
+            .ToDictionaryAsync(x => x.Code, StringComparer.OrdinalIgnoreCase);
+
+        var hasChanges = false;
+
+        foreach (var item in items)
+        {
+            var code = item.Code?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                continue;
+            }
+
+            if (!existingPlans.TryGetValue(code, out var plan))
+            {
+                plan = new Plan { Code = code };
+                dbContext.Plans.Add(plan);
+                existingPlans[code] = plan;
+                hasChanges = true;
+            }
+
+            plan.Name = item.Name?.Trim() ?? code;
+            plan.Description = NormalizeOptionalString(item.Description);
+            plan.IsPublic = item.IsPublic;
+            plan.IsActive = true;
+            plan.SortOrder = item.SortOrder;
+
+            foreach (var entitlementSeed in item.Entitlements)
+            {
+                if (plan.Entitlements.Any(x => x.Feature == entitlementSeed.Feature))
+                {
+                    continue;
+                }
+
+                plan.Entitlements.Add(new PlanEntitlement
+                {
+                    Feature = entitlementSeed.Feature,
+                    IsEnabled = entitlementSeed.IsEnabled,
+                    DailyLimit = entitlementSeed.DailyLimit,
+                    MonthlyLimit = entitlementSeed.MonthlyLimit,
+                    MaximumPerRequest = entitlementSeed.MaximumPerRequest,
+                    SoftLimit = entitlementSeed.SoftLimit,
+                    HardLimit = entitlementSeed.HardLimit,
+                    ConfigurationJson = entitlementSeed.ConfigurationJson,
+                });
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges || dbContext.ChangeTracker.HasChanges())
+        {
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
+    private sealed class SeedPlan
+    {
+        public string? Code { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public bool IsPublic { get; set; }
+        public int SortOrder { get; set; }
+        public List<SeedPlanEntitlement> Entitlements { get; set; } = [];
+    }
+
+    private sealed class SeedPlanEntitlement
+    {
+        public SubscriptionFeature Feature { get; set; }
+        public bool IsEnabled { get; set; }
+        public int? DailyLimit { get; set; }
+        public int? MonthlyLimit { get; set; }
+        public int? MaximumPerRequest { get; set; }
+        public int? SoftLimit { get; set; }
+        public int? HardLimit { get; set; }
+        public string? ConfigurationJson { get; set; }
+    }
+
     private static async Task<T?> ReadSeedFileAsync<T>(string path)
     {
         if (!File.Exists(path))
@@ -295,6 +389,7 @@ public static class ApplicationBuilderExtensions
         return await JsonSerializer.DeserializeAsync<T>(stream, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() },
         });
     }
 

@@ -14,8 +14,8 @@ public class ProgramPlan : BaseEntity
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }          // null = open-ended ("keeps going")
     public int TargetWorkoutsPerWeek { get; set; }
-    public bool IsAiGenerated { get; set; }
-    public long? SourceAiActionId { get; set; }     // plain column; FK added in Plan 06
+    public bool IsAIGenerated { get; set; }
+    public long? SourceAIActionId { get; set; }     // plain column; FK added in Plan 06
     public DateTime? ActivatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 

@@ -56,7 +56,7 @@ public class TrainingProfileService : ITrainingProfileService
         profile.PreferredTrainingDaysJson = SerializeList(trainingDays);
         profile.ExerciseRestrictions = NormalizeText(request.ExerciseRestrictions);
         profile.AdditionalPreferences = NormalizeText(request.AdditionalPreferences);
-        profile.AllowAiPersonalization = request.AllowAiPersonalization;
+        profile.AllowAIPersonalization = request.AllowAIPersonalization;
 
         // DateModified is stamped by SaveChangesAsync and is what TrainingProfileModel.UpdatedAt reports.
         await dbContext.SaveChangesAsync();
@@ -144,7 +144,7 @@ public class TrainingProfileService : ITrainingProfileService
         PreferredTrainingDays = DeserializeList<DayOfWeek>(profile.PreferredTrainingDaysJson),
         ExerciseRestrictions = profile.ExerciseRestrictions,
         AdditionalPreferences = profile.AdditionalPreferences,
-        AllowAiPersonalization = profile.AllowAiPersonalization,
+        AllowAIPersonalization = profile.AllowAIPersonalization,
         UpdatedAt = profile.DateModified ?? profile.DateCreated,
     };
 }

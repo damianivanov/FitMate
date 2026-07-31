@@ -29,6 +29,11 @@ COPY --from=build /app/publish .
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 
+# The aspnet base image ships ASPNETCORE_HTTP_PORTS=8080, which conflicts with the ASPNETCORE_URLS
+# set below: Kestrel honours URLS and logs "Overriding HTTP_PORTS" on every start. Clear it so there
+# is a single source of truth for the bound port.
+ENV ASPNETCORE_HTTP_PORTS=
+
 # Railway injects $PORT at runtime. Shell form lets the variable expand so Kestrel
 # binds to the port Railway routes to.
 CMD ASPNETCORE_URLS=http://0.0.0.0:$PORT dotnet FitMate.Web.dll

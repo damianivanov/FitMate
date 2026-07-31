@@ -212,4 +212,96 @@ public class AuthApiTests
         var after = await client.GetAsync("/api/exercises/get-all");
         Assert.Equal(HttpStatusCode.Unauthorized, after.StatusCode);
     }
+
+    // Нов потребител няма записано решение за бисквитки
+    [Fact]
+    public async Task CurrentUser_NewUser_HasNoCookieConsent()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = await factory.CreateUserClientAsync("consent-none@test.local");
+
+        var response = await client.GetAsync("/api/auth/current-user");
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserModel>>();
+
+        Assert.Null(body!.Data!.CookieConsentAnalytics);
+        Assert.Null(body.Data.CookieConsentMarketing);
+        Assert.Null(body.Data.CookieConsentAt);
+    }
+
+    // Приемане на бисквитки записва двете категории и момента
+    [Fact]
+    public async Task CookieConsent_Accept_PersistsCategoriesAndTimestamp()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = await factory.CreateUserClientAsync("consent-accept@test.local");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/cookie-consent",
+            new CookieConsentRequest { Analytics = true, Marketing = true });
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserModel>>();
+
+        Assert.True(body!.Success);
+        Assert.True(body.Data!.CookieConsentAnalytics);
+        Assert.True(body.Data.CookieConsentMarketing);
+        Assert.NotNull(body.Data.CookieConsentAt);
+
+        // Решението трябва да оцелее до следващото зареждане на приложението
+        var current = await client.GetAsync("/api/auth/current-user");
+        var currentBody = await current.Content.ReadFromJsonAsync<ApiResponse<UserModel>>();
+
+        Assert.True(currentBody!.Data!.CookieConsentAnalytics);
+        Assert.True(currentBody.Data.CookieConsentMarketing);
+    }
+
+    // Отказ записва false, а не липсващо решение
+    [Fact]
+    public async Task CookieConsent_Reject_PersistsFalseNotNull()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = await factory.CreateUserClientAsync("consent-reject@test.local");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/cookie-consent",
+            new CookieConsentRequest { Analytics = false, Marketing = false });
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserModel>>();
+
+        Assert.True(body!.Success);
+        Assert.False(body.Data!.CookieConsentAnalytics);
+        Assert.False(body.Data.CookieConsentMarketing);
+        Assert.NotNull(body.Data.CookieConsentAt);
+    }
+
+    // Промяна на решението презаписва предишното
+    [Fact]
+    public async Task CookieConsent_ChangedDecision_OverwritesPrevious()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = await factory.CreateUserClientAsync("consent-change@test.local");
+
+        await client.PostAsJsonAsync(
+            "/api/auth/cookie-consent",
+            new CookieConsentRequest { Analytics = true, Marketing = true });
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/cookie-consent",
+            new CookieConsentRequest { Analytics = false, Marketing = false });
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserModel>>();
+
+        Assert.False(body!.Data!.CookieConsentAnalytics);
+        Assert.False(body.Data.CookieConsentMarketing);
+    }
+
+    // Без вход не може да се записва решение за бисквитки
+    [Fact]
+    public async Task CookieConsent_Unauthenticated_Returns401()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = factory.CreateApiClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/cookie-consent",
+            new CookieConsentRequest { Analytics = true, Marketing = true });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

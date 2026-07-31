@@ -13,6 +13,6 @@ public class TrainingProfileModel
     public List<DayOfWeek> PreferredTrainingDays { get; set; } = [];
     public string? ExerciseRestrictions { get; set; }
     public string? AdditionalPreferences { get; set; }
-    public bool AllowAiPersonalization { get; set; }
+    public bool AllowAIPersonalization { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -13,7 +13,7 @@ public class ProgramPlanModel
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public int TargetWorkoutsPerWeek { get; set; }
-    public bool IsAiGenerated { get; set; }
+    public bool IsAIGenerated { get; set; }
     public DateTime? ActivatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public List<ProgramPlanScheduleRuleModel> ScheduleRules { get; set; } = [];

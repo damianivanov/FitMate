@@ -21,6 +21,26 @@ const gridLinks = [
     title: "Error Grid",
     description: "Inspect server-side errors, view stack traces, and clear the log.",
   },
+  {
+    to: "/management/ai",
+    title: "AI Overview",
+    description: "Runs, tool calls, latency and what the assistant costs.",
+  },
+  {
+    to: "/management/ai/conversations",
+    title: "AI Conversations",
+    description: "Browse conversations, runs and proposed actions for support.",
+  },
+  {
+    to: "/management/ai/unsupported-requests",
+    title: "Unsupported Requests",
+    description: "What users keep asking for that FitMate cannot do yet.",
+  },
+  {
+    to: "/management/subscriptions",
+    title: "Subscriptions",
+    description: "Plans, per-user entitlements, admin overrides and metered usage.",
+  },
 ] as const;
 
 export default function AdminPanel() {

@@ -13,5 +13,5 @@ public class SaveTrainingProfileRequest
     public List<DayOfWeek> PreferredTrainingDays { get; set; } = [];
     public string? ExerciseRestrictions { get; set; }
     public string? AdditionalPreferences { get; set; }
-    public bool AllowAiPersonalization { get; set; } = true;
+    public bool AllowAIPersonalization { get; set; } = true;
 }

@@ -36,7 +36,7 @@ public class TrainingProfileApiTests
             availableEquipment = new[] { "Barbell", "Dumbbell" },
             preferredTrainingDays = new[] { 1, 4 },   // Monday, Thursday
             exerciseRestrictions = "No overhead pressing",
-            allowAiPersonalization = true,
+            allowAIPersonalization = true,
         });
         Assert.Equal(HttpStatusCode.OK, putResponse.StatusCode);
 

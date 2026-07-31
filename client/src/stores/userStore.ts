@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { User } from "@/types";
 import { authService } from "@/services/authService";
 import { isAdmin as hasAdminRole } from "@/lib/access";
+import { useConsentStore } from "./consentStore";
 
 function createEmptyUser(): User {
   return {
@@ -55,6 +56,10 @@ export const useUserStore = create<UserState>()((set) => ({
     }
 
     if (currentUser) {
+      // Resolve consent before flipping userLoaded, otherwise the banner mounts
+      // and is then closed by the sync a moment later.
+      await useConsentStore.getState().syncWithUser(currentUser);
+
       set({
         user: currentUser,
         userLoaded: true,

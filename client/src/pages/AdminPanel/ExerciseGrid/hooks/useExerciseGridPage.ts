@@ -227,9 +227,26 @@ export function useExerciseGridPage() {
       setEditorError(null);
 
       try {
+        // Creating from the admin grid targets the shared catalogue: an exercise left public
+        // becomes global (visible to everyone), a non-public one stays private to this admin.
         const response = editingId
           ? await exerciseService.update(editingId, payload)
-          : await exerciseService.create(payload, file);
+          : await exerciseService.createAsAdmin(
+              {
+                name: payload.name,
+                description: payload.description,
+                videoUrl: payload.videoUrl,
+                primaryMuscleGroupId: payload.primaryMuscleGroupId,
+                secondaryMuscleGroupId: payload.secondaryMuscleGroupId,
+                equipment: payload.equipment,
+                movementPattern: payload.movementPattern,
+                difficulty: payload.difficulty,
+                category: payload.category,
+                aliases: payload.aliases,
+                isPrivate: !payload.isPublic,
+              },
+              file,
+            );
 
         unwrap(response.data, "Save failed.");
 

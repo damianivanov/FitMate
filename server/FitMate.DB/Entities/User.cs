@@ -11,6 +11,9 @@ public class User : IdentityUser<long>, IBaseEntity
     public string? GoogleId { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool? CookieConsentAnalytics { get; set; }
+    public bool? CookieConsentMarketing { get; set; }
+    public DateTime? CookieConsentAt { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }
 

@@ -1,5 +1,6 @@
 using FitMate.Core.Common;
 using FitMate.Core.Exceptions;
+using FitMate.Core.JsonModels.Subscriptions;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,47 @@ public class LogApiErrorAttribute : ExceptionFilterAttribute
 
         var requestDescriptor =
             $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}{context.HttpContext.Request.QueryString}";
+
+        if (context.Exception is SubscriptionLimitExceededException limitException)
+        {
+            logger.LogWarning(
+                "Subscription limit reached on {Request} for {Feature}",
+                requestDescriptor,
+                limitException.Details.Feature);
+
+            context.ExceptionHandled = true;
+            context.Result = new JsonResult(
+                new CommonJsonModel<SubscriptionLimitErrorModel>(
+                    error: limitException.Message,
+                    data: limitException.Details))
+            {
+                StatusCode = StatusCodes.Status429TooManyRequests,
+            };
+            return;
+        }
+
+        if (context.Exception is SubscriptionFeatureDisabledException disabledException)
+        {
+            logger.LogWarning(
+                "Disabled feature requested on {Request}: {Feature}",
+                requestDescriptor,
+                disabledException.Feature);
+
+            context.ExceptionHandled = true;
+            context.Result = new JsonResult(
+                new CommonJsonModel<SubscriptionLimitErrorModel>(
+                    error: disabledException.Message,
+                    data: new SubscriptionLimitErrorModel
+                    {
+                        Code = "subscription_feature_disabled",
+                        Feature = disabledException.Feature,
+                        UpgradeAvailable = true,
+                    }))
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+            };
+            return;
+        }
 
         if (context.Exception is FitMateException)
         {

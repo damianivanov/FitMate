@@ -1,10 +1,12 @@
 using FitMate.Core.Exceptions;
+using FitMate.Core.JsonModels.Subscriptions;
 using FitMate.Core.JsonModels.WorkoutTemplates;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.Storage.Blobs;
 using FitMate.Services.Storage.Urls;
+using FitMate.Services.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.WorkoutTemplates;
@@ -13,13 +15,49 @@ public class WorkoutTemplateService : IWorkoutTemplateService
 {
     private readonly AppDbContext dbContext;
     private readonly IPhotoUrlResolver photoUrlResolver;
+    private readonly IEntitlementService entitlementService;
 
     public WorkoutTemplateService(
         AppDbContext dbContext,
-        IPhotoUrlResolver photoUrlResolver)
+        IPhotoUrlResolver photoUrlResolver,
+        IEntitlementService entitlementService)
     {
         this.dbContext = dbContext;
         this.photoUrlResolver = photoUrlResolver;
+        this.entitlementService = entitlementService;
+    }
+
+    /// <summary>
+    /// How many templates a user may own comes from the subscription plan. Editing and deleting are
+    /// never blocked, so a user who downgrades keeps access to what they already built.
+    /// </summary>
+    private async Task RequireTemplateQuotaAsync(long userId)
+    {
+        var entitlement = await entitlementService.GetEntitlementAsync(
+            userId,
+            SubscriptionFeature.CustomWorkoutTemplates);
+
+        if (entitlement is not { IsEnabled: true })
+        {
+            throw new SubscriptionFeatureDisabledException(SubscriptionFeature.CustomWorkoutTemplates);
+        }
+
+        if (entitlement.HardLimit is not { } maxTemplates)
+        {
+            return; // unlimited
+        }
+
+        var owned = await dbContext.WorkoutTemplates.CountAsync(x => x.UserId == userId);
+        if (owned >= maxTemplates)
+        {
+            throw new SubscriptionLimitExceededException(new SubscriptionLimitErrorModel
+            {
+                Feature = SubscriptionFeature.CustomWorkoutTemplates,
+                Limit = maxTemplates,
+                Used = owned,
+                UpgradeAvailable = true,
+            });
+        }
     }
 
     public async Task<IReadOnlyList<WorkoutTemplateModel>> ListAsync(long userId)
@@ -69,6 +107,8 @@ public class WorkoutTemplateService : IWorkoutTemplateService
             throw new FitMateException("Unauthorized.");
         }
 
+        await RequireTemplateQuotaAsync(userId);
+
         var preparedTemplate = await PrepareTemplateAsync(request);
         var workoutTemplate = new WorkoutTemplate
         {
@@ -107,6 +147,8 @@ public class WorkoutTemplateService : IWorkoutTemplateService
         {
             throw new FitMateException("Unauthorized.");
         }
+
+        await RequireTemplateQuotaAsync(userId);
 
         if (workoutId <= 0)
         {

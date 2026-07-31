@@ -331,6 +331,37 @@ namespace FitMate.Web.Controllers
             return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
         }
 
+        [Authorize]
+        [HttpPost("cookie-consent")]
+        public async Task<ActionResult> SaveCookieConsent([FromBody] CookieConsentRequest model)
+        {
+            var userId = UserService.LoggedInUserId;
+            if (userId == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
+            }
+
+            var user = await userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
+            }
+
+            user.CookieConsentAnalytics = model.Analytics;
+            user.CookieConsentMarketing = model.Marketing;
+            user.CookieConsentAt = DateTime.UtcNow;
+
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                var firstError = updateResult.Errors.FirstOrDefault()?.Description ?? "Unable to save cookie preferences.";
+                return this.ReturnJsonError(firstError);
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
+        }
+
         private static (string FirstName, string? LastName) NormalizeProfileNames(UpdateProfileRequest model)
         {
             var firstName = (model.FirstName ?? string.Empty).Trim();

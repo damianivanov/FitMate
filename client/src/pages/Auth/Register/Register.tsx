@@ -178,6 +178,18 @@ export default function Register() {
           <PrimaryButton type="submit" disabled={isLoading} className="w-full mt-6">
             {isLoading ? "Creating account..." : "Create account"}
           </PrimaryButton>
+
+          <p className="text-xs text-tertiary text-center">
+            By creating an account you agree to our{" "}
+            <Link to="/legal#terms" target="_blank" className="liquid-link font-semibold">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/legal#privacy" target="_blank" className="liquid-link font-semibold">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
 
         <div className="flex items-center gap-3">

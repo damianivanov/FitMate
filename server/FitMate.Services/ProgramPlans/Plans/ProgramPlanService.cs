@@ -1,11 +1,13 @@
 using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.ProgramPlans;
+using FitMate.Core.JsonModels.Subscriptions;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.ProgramPlans;
 using FitMate.Services.ProgramPlans.Days;
 using FitMate.Services.ProgramPlans.Schedules;
+using FitMate.Services.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.ProgramPlans.Plans;
@@ -18,15 +20,72 @@ public class ProgramPlanService : IProgramPlanService
     private readonly AppDbContext dbContext;
     private readonly IProgramPlanScheduleService scheduleService;
     private readonly IProgramPlanDayService dayService;
+    private readonly IEntitlementService entitlementService;
 
     public ProgramPlanService(
         AppDbContext dbContext,
         IProgramPlanScheduleService scheduleService,
-        IProgramPlanDayService dayService)
+        IProgramPlanDayService dayService,
+        IEntitlementService entitlementService)
     {
         this.dbContext = dbContext;
         this.scheduleService = scheduleService;
         this.dayService = dayService;
+        this.entitlementService = entitlementService;
+    }
+
+    /// <summary>
+    /// How many plans a user may keep active and how long a fixed-length plan may run both come
+    /// from the subscription plan. Open-ended plans have no duration to compare, so only the
+    /// active-plan ceiling applies to them.
+    /// </summary>
+    private async Task RequireActivationEntitlementsAsync(ProgramPlan plan, long planId, long userId)
+    {
+        var activePlans = await entitlementService.GetEntitlementAsync(
+            userId,
+            SubscriptionFeature.ActiveProgramPlans);
+
+        if (activePlans is not { IsEnabled: true })
+        {
+            throw new SubscriptionFeatureDisabledException(SubscriptionFeature.ActiveProgramPlans);
+        }
+
+        if (activePlans.HardLimit is { } maxActivePlans)
+        {
+            var activeCount = await dbContext.ProgramPlans
+                .CountAsync(p => p.UserId == userId && p.Status == ProgramPlanStatus.Active && p.Id != planId);
+
+            if (activeCount >= maxActivePlans)
+            {
+                throw new SubscriptionLimitExceededException(new SubscriptionLimitErrorModel
+                {
+                    Feature = SubscriptionFeature.ActiveProgramPlans,
+                    Limit = maxActivePlans,
+                    Used = activeCount,
+                    UpgradeAvailable = true,
+                });
+            }
+        }
+
+        if (plan.EndDate is not { } endDate)
+        {
+            return;
+        }
+
+        var duration = await entitlementService.GetEntitlementAsync(
+            userId,
+            SubscriptionFeature.ProgramPlanDurationMonths);
+
+        if (duration?.HardLimit is { } maxMonths && endDate > plan.StartDate.AddMonths(maxMonths))
+        {
+            throw new SubscriptionLimitExceededException(new SubscriptionLimitErrorModel
+            {
+                Feature = SubscriptionFeature.ProgramPlanDurationMonths,
+                Limit = maxMonths,
+                Used = maxMonths,
+                UpgradeAvailable = true,
+            });
+        }
     }
 
     public async Task<IReadOnlyList<ProgramPlanModel>> ListAsync(long userId)
@@ -91,6 +150,71 @@ public class ProgramPlanService : IProgramPlanService
         return (await GetByIdAsync(plan.Id, userId))!;
     }
 
+    public async Task<ProgramPlanModel> UpdateActiveScheduleAsync(
+        long planId,
+        SaveProgramPlanRequest request,
+        DateOnly effectiveFrom,
+        long userId)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
+        var plan = await LoadOwnedAsync(planId, userId, track: true)
+            ?? throw new FitMateException("Program plan not found.");
+
+        if (plan.Status != ProgramPlanStatus.Active)
+        {
+            throw new FitMateException("Only active plans can be rescheduled.");
+        }
+
+        if (plan.ScheduleType == ProgramScheduleType.CustomCalendar)
+        {
+            throw new FitMateException("Custom calendar plans cannot be rescheduled this way.");
+        }
+
+        if (request.ScheduleType != plan.ScheduleType)
+        {
+            throw new FitMateException("The schedule type of an active plan cannot be changed.");
+        }
+
+        await ValidateAsync(request, userId);
+
+        var futureScheduled = await dbContext.ProgramPlanDays
+            .Where(d => d.ProgramPlanId == plan.Id
+                && d.ScheduledDate >= effectiveFrom
+                && d.Status == ProgramPlanDayStatus.Scheduled)
+            .ToListAsync();
+
+        dbContext.ProgramPlanDays.RemoveRange(futureScheduled);
+        dbContext.ProgramPlanScheduleRules.RemoveRange(plan.ScheduleRules);
+        plan.ScheduleRules.Clear();
+        await dbContext.SaveChangesAsync();
+
+        // The rotation phase is measured from the original start date, so keep it even though the
+        // caller sends a full save request.
+        var originalStartDate = plan.StartDate;
+        ApplyRequest(plan, request);
+        plan.StartDate = originalStartDate;
+
+        var horizonEnd = plan.EndDate ?? effectiveFrom.AddDays(OpenEndedHorizonDays);
+
+        // Days the user already touched stay put; regenerating over them would violate the unique
+        // (ProgramPlanId, ScheduledDate, OrderIndex) index.
+        var survivingDates = await dbContext.ProgramPlanDays
+            .Where(d => d.ProgramPlanId == plan.Id && d.ScheduledDate >= effectiveFrom)
+            .Select(d => d.ScheduledDate)
+            .ToListAsync();
+
+        var regenerated = scheduleService.GenerateDays(plan, effectiveFrom, horizonEnd)
+            .Where(d => !survivingDates.Contains(d.ScheduledDate))
+            .ToList();
+
+        dbContext.ProgramPlanDays.AddRange(regenerated);
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return (await GetByIdAsync(plan.Id, userId))!;
+    }
+
     public async Task<ProgramPlanModel> ActivateAsync(long planId, long userId)
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
@@ -103,13 +227,7 @@ public class ProgramPlanService : IProgramPlanService
             throw new FitMateException("Only draft or paused plans can be activated.");
         }
 
-        var hasOtherActive = await dbContext.ProgramPlans
-            .AnyAsync(p => p.UserId == userId && p.Status == ProgramPlanStatus.Active && p.Id != planId);
-        if (hasOtherActive)
-        {
-            // Plan 04 replaces this hard "1" with IEntitlementService (ActiveProgramPlans).
-            throw new FitMateException("You already have an active program plan.");
-        }
+        await RequireActivationEntitlementsAsync(plan, planId, userId);
 
         if (plan.Status == ProgramPlanStatus.Draft)
         {

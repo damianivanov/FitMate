@@ -19,7 +19,7 @@ public class TrainingProfileServiceTests
         AvailableEquipment = ["Barbell", "Dumbbell"],
         PreferredTrainingDays = [DayOfWeek.Monday, DayOfWeek.Thursday],
         ExerciseRestrictions = "No overhead pressing",
-        AllowAiPersonalization = true,
+        AllowAIPersonalization = true,
     };
 
     // GET без запазен профил връща null

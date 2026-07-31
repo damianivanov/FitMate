@@ -4,6 +4,7 @@ using FitMate.DB;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FitMate.Tests.Integration;
 
@@ -51,5 +52,45 @@ public class ErrorLoggingApiTests
 
         Assert.DoesNotContain(errors, e => e.Message.Contains("Invalid email or password"));
         Assert.DoesNotContain(errors, e => e.Message.Contains("Handled business error"));
+    }
+
+    // Hosting-infrastructure warnings describe deployment configuration, not application faults, and
+    // must stay out of the admin error grid. These are the exact categories that filled production's
+    // Errors table: the level overrides are matched against the full logger category, so they only
+    // work when keyed by the real namespace (HttpsPolicy, not HttpsRedirection).
+    [Theory]
+    [InlineData("Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware")]
+    [InlineData("Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository")]
+    [InlineData("Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager")]
+    public async Task HostingInfrastructureWarning_IsNotPersistedToErrorsTable(string category)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var loggerFactory = factory.Services.GetRequiredService<ILoggerFactory>();
+
+        loggerFactory.CreateLogger(category).LogWarning("Failed to determine the https port for redirect.");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var errors = await dbContext.Errors.AsNoTracking().ToListAsync();
+
+        Assert.DoesNotContain(errors, e => e.Source == category);
+    }
+
+    // Guards the override above from being widened into a blanket Microsoft.AspNetCore mute: warnings
+    // the application itself raises still have to reach the grid.
+    [Fact]
+    public async Task ApplicationWarning_IsPersistedToErrorsTable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var loggerFactory = factory.Services.GetRequiredService<ILoggerFactory>();
+
+        loggerFactory.CreateLogger("FitMate.Services.Workouts.WorkoutService")
+            .LogWarning("Something the application cares about");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var errors = await dbContext.Errors.AsNoTracking().ToListAsync();
+
+        Assert.Contains(errors, e => e.Message.Contains("Something the application cares about"));
     }
 }

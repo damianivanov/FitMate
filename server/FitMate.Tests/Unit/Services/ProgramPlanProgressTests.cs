@@ -50,8 +50,8 @@ public class ProgramPlanProgressTests
     private static ProgramPlanService CreateService(SqliteTestDatabase db)
     {
         var context = db.CreateContext();
-        var dayService = new ProgramPlanDayService(context, new WorkoutService(context, new FakePhotoUrlResolver()), new ProgramPlanScheduleService());
-        return new ProgramPlanService(context, new ProgramPlanScheduleService(), dayService);
+        var dayService = new ProgramPlanDayService(context, new WorkoutService(context, new FakePhotoUrlResolver(), new FakeEntitlementService()), new ProgramPlanScheduleService());
+        return new ProgramPlanService(context, new ProgramPlanScheduleService(), dayService, new FakeEntitlementService());
     }
 
     [Fact]

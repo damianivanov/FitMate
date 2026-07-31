@@ -16,7 +16,7 @@ public static class ProgramPlanMapper
         StartDate = plan.StartDate,
         EndDate = plan.EndDate,
         TargetWorkoutsPerWeek = plan.TargetWorkoutsPerWeek,
-        IsAiGenerated = plan.IsAiGenerated,
+        IsAIGenerated = plan.IsAIGenerated,
         ActivatedAt = plan.ActivatedAt,
         CompletedAt = plan.CompletedAt,
         ScheduleRules = plan.ScheduleRules

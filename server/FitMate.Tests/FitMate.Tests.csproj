@@ -25,6 +25,7 @@
     <ProjectReference Include="..\FitMate.Core\FitMate.Core.csproj" />
     <ProjectReference Include="..\FitMate.DB\FitMate.DB.csproj" />
     <ProjectReference Include="..\FitMate.Web\FitMate.Web.csproj" />
+    <ProjectReference Include="..\FitMate.Integrations\FitMate.Integrations.csproj" />
   </ItemGroup>
 
 </Project>

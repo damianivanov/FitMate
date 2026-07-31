@@ -1,6 +1,15 @@
 import api from "@/lib/api";
 import type {
   AdminUserModel,
+  AIAdminOverviewModel,
+  AIAdminRunModel,
+  AIConversationDetailModel,
+  AIConversationListItemModel,
+  AIConversationQueryRequest,
+  AICostSummaryModel,
+  AIRunQueryRequest,
+  AIAdminUsageSummaryModel,
+  AssignPlanOverrideRequest,
   CreateMuscleGroupRequest,
   ErrorModel,
   ErrorQueryRequest,
@@ -10,8 +19,17 @@ import type {
   MuscleGroup,
   MuscleGroupQueryRequest,
   PagedResponse,
+  SavePlanRequest,
+  SubscriptionPlanAdminModel,
+  SubscriptionQueryRequest,
+  UnsupportedAIRequestModel,
+  UnsupportedRequestQueryRequest,
+  UpdateUnsupportedRequestRequest,
   UpdateUserRequest,
+  UsageQueryRequest,
   UserQueryRequest,
+  UserSubscriptionAdminModel,
+  UserUsageAdminModel,
 } from "@/types";
 
 export const adminService = {
@@ -60,6 +78,121 @@ export const adminService = {
 
     async clearAll() {
       return api.delete<JsonData<number>>("admin/errors/all");
+    },
+  },
+
+  ai: {
+    async overview(days: number) {
+      return api.get<JsonData<AIAdminOverviewModel>>("admin/ai/overview", { params: { days } });
+    },
+
+    async listConversations(params: AIConversationQueryRequest) {
+      return api.get<JsonData<PagedResponse<AIConversationListItemModel>>>("admin/ai/conversations", {
+        params,
+      });
+    },
+
+    async getConversation(id: number) {
+      return api.get<JsonData<AIConversationDetailModel>>(`admin/ai/conversations/${id}`);
+    },
+
+    async listRuns(params: AIRunQueryRequest) {
+      return api.get<JsonData<PagedResponse<AIAdminRunModel>>>("admin/ai/runs", { params });
+    },
+
+    async getRun(id: number) {
+      return api.get<JsonData<AIAdminRunModel>>(`admin/ai/runs/${id}`);
+    },
+
+    async usage(periodStart?: string) {
+      return api.get<JsonData<AIAdminUsageSummaryModel>>("admin/ai/usage", { params: { periodStart } });
+    },
+
+    async costs(days: number) {
+      return api.get<JsonData<AICostSummaryModel>>("admin/ai/costs", { params: { days } });
+    },
+  },
+
+  unsupportedRequests: {
+    async list(params: UnsupportedRequestQueryRequest) {
+      return api.get<JsonData<PagedResponse<UnsupportedAIRequestModel>>>(
+        "admin/ai/unsupported-requests",
+        { params },
+      );
+    },
+
+    async categories() {
+      return api.get<JsonData<string[]>>("admin/ai/unsupported-requests/categories");
+    },
+
+    async getById(id: number) {
+      return api.get<JsonData<UnsupportedAIRequestModel>>(`admin/ai/unsupported-requests/${id}`);
+    },
+
+    async update(id: number, payload: UpdateUnsupportedRequestRequest) {
+      return api.put<JsonData<UnsupportedAIRequestModel>>(
+        `admin/ai/unsupported-requests/${id}`,
+        payload,
+      );
+    },
+  },
+
+  subscriptionPlans: {
+    async list() {
+      return api.get<JsonData<SubscriptionPlanAdminModel[]>>("admin/subscription-plans");
+    },
+
+    async getById(id: number) {
+      return api.get<JsonData<SubscriptionPlanAdminModel>>(`admin/subscription-plans/${id}`);
+    },
+
+    async create(payload: SavePlanRequest) {
+      return api.post<JsonData<SubscriptionPlanAdminModel>>("admin/subscription-plans", payload);
+    },
+
+    async update(id: number, payload: SavePlanRequest) {
+      return api.put<JsonData<SubscriptionPlanAdminModel>>(`admin/subscription-plans/${id}`, payload);
+    },
+
+    async setActive(id: number, isActive: boolean) {
+      return api.post<JsonData<SubscriptionPlanAdminModel>>(
+        `admin/subscription-plans/${id}/active`,
+        null,
+        { params: { isActive } },
+      );
+    },
+  },
+
+  subscriptions: {
+    async list(params: SubscriptionQueryRequest) {
+      return api.get<JsonData<PagedResponse<UserSubscriptionAdminModel>>>("admin/subscriptions", {
+        params,
+      });
+    },
+
+    async getByUserId(userId: number) {
+      return api.get<JsonData<UserSubscriptionAdminModel>>(`admin/subscriptions/${userId}`);
+    },
+
+    async assignOverride(userId: number, payload: AssignPlanOverrideRequest) {
+      return api.post<JsonData<UserSubscriptionAdminModel>>(
+        `admin/subscriptions/${userId}/override`,
+        payload,
+      );
+    },
+
+    async removeOverride(userId: number) {
+      return api.delete<JsonData<UserSubscriptionAdminModel>>(`admin/subscriptions/${userId}/override`);
+    },
+  },
+
+  usage: {
+    async list(params: UsageQueryRequest) {
+      return api.get<JsonData<PagedResponse<UserUsageAdminModel>>>("admin/usage", { params });
+    },
+
+    async reset(id: number) {
+      return api.post<JsonData<UserUsageAdminModel>>(`admin/usage/${id}/reset`);
     },
   },
 };

@@ -14,6 +14,6 @@ export interface TrainingProfileModel
 	preferredTrainingDays: DayOfWeek[];
 	exerciseRestrictions?: string;
 	additionalPreferences?: string;
-	allowAiPersonalization: boolean;
+	allowAIPersonalization: boolean;
 	updatedAt: string;
 }

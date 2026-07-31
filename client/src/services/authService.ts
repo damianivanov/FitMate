@@ -1,6 +1,7 @@
 import type {
   AuthResponse,
   ChangePasswordRequest,
+  CookieConsentRequest,
   ForgotPasswordRequest,
   GoogleLoginRequest,
   JsonData,
@@ -47,6 +48,10 @@ export const authService = {
 
   async updateProfile(payload: UpdateProfileRequest) {
     return api.put<JsonData<User>>("auth/profile", payload);
+  },
+
+  async saveCookieConsent(payload: CookieConsentRequest) {
+    return api.post<JsonData<User>>("auth/cookie-consent", payload);
   },
 
   async logout() {

@@ -123,6 +123,12 @@ export default function Login() {
         </div>
 
         <GoogleSignInButton onError={setError} />
+
+        <p className="text-xs text-tertiary text-center">
+          <Link to="/legal" className="liquid-link">
+            Terms, Privacy &amp; Cookies
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ export type TrainingProfileFormValues = {
   preferredTrainingDays: DayOfWeek[];
   exerciseRestrictions: string;
   additionalPreferences: string;
-  allowAiPersonalization: boolean;
+  allowAIPersonalization: boolean;
 };
 
 const defaultFormValues: TrainingProfileFormValues = {
@@ -34,7 +34,7 @@ const defaultFormValues: TrainingProfileFormValues = {
   preferredTrainingDays: [],
   exerciseRestrictions: "",
   additionalPreferences: "",
-  allowAiPersonalization: true,
+  allowAIPersonalization: true,
 };
 
 function toFormValues(model: TrainingProfileModel): TrainingProfileFormValues {
@@ -51,7 +51,7 @@ function toFormValues(model: TrainingProfileModel): TrainingProfileFormValues {
     preferredTrainingDays: model.preferredTrainingDays ?? [],
     exerciseRestrictions: model.exerciseRestrictions ?? "",
     additionalPreferences: model.additionalPreferences ?? "",
-    allowAiPersonalization: model.allowAiPersonalization,
+    allowAIPersonalization: model.allowAIPersonalization,
   };
 }
 
@@ -68,7 +68,7 @@ function toRequest(values: TrainingProfileFormValues): SaveTrainingProfileReques
     preferredTrainingDays: values.preferredTrainingDays,
     exerciseRestrictions: values.exerciseRestrictions.trim() || undefined,
     additionalPreferences: values.additionalPreferences.trim() || undefined,
-    allowAiPersonalization: values.allowAiPersonalization,
+    allowAIPersonalization: values.allowAIPersonalization,
   };
 }
 

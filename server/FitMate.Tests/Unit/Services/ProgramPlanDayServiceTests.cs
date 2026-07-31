@@ -55,7 +55,7 @@ public class ProgramPlanDayServiceTests
     private static (ProgramPlanDayService DayService, AppDbContext Context) CreateService(SqliteTestDatabase db)
     {
         var context = db.CreateContext();
-        var workoutService = new WorkoutService(context, new FakePhotoUrlResolver());
+        var workoutService = new WorkoutService(context, new FakePhotoUrlResolver(), new FakeEntitlementService());
         return (new ProgramPlanDayService(context, workoutService, new ProgramPlanScheduleService()), context);
     }
 
@@ -125,7 +125,7 @@ public class ProgramPlanDayServiceTests
         var (service, context) = CreateService(db);
         var workoutId = await service.StartWorkoutAsync(dayId, SqliteTestDatabase.UserId);
 
-        var workoutService = new WorkoutService(context, new FakePhotoUrlResolver());
+        var workoutService = new WorkoutService(context, new FakePhotoUrlResolver(), new FakeEntitlementService());
         await workoutService.FinishAsync(workoutId, MinimalFinishRequest(exerciseId), SqliteTestDatabase.UserId);
 
         var day = await context.ProgramPlanDays.AsNoTracking().SingleAsync(d => d.Id == dayId);

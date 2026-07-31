@@ -5,6 +5,7 @@ using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.Storage.Blobs;
 using FitMate.Services.Storage.Urls;
+using FitMate.Services.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.Workouts;
@@ -14,10 +15,16 @@ public class WorkoutService : IWorkoutService
     private readonly AppDbContext dbContext;
     private readonly IPhotoUrlResolver photoUrlResolver;
 
-    public WorkoutService(AppDbContext dbContext, IPhotoUrlResolver photoUrlResolver)
+    private readonly IEntitlementService entitlementService;
+
+    public WorkoutService(
+        AppDbContext dbContext,
+        IPhotoUrlResolver photoUrlResolver,
+        IEntitlementService entitlementService)
     {
         this.dbContext = dbContext;
         this.photoUrlResolver = photoUrlResolver;
+        this.entitlementService = entitlementService;
     }
 
     public async Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId)
@@ -515,12 +522,21 @@ public class WorkoutService : IWorkoutService
 
         var normalizedTake = take <= 0 ? 3 : Math.Min(take, 10);
 
+        // How far back a user can look is part of their plan; null means unlimited history.
+        var historyEntitlement = await entitlementService.GetEntitlementAsync(
+            userId,
+            SubscriptionFeature.ExerciseHistoryMonths);
+        DateTime? earliest = historyEntitlement?.HardLimit is { } months
+            ? DateTime.UtcNow.AddMonths(-months)
+            : null;
+
         var candidates = await dbContext.WorkoutExercises
             .AsNoTracking()
             .Where(x =>
                 normalizedExerciseIds.Contains(x.ExerciseId)
                 && x.WorkoutExerciseGroup.Workout.UserId == userId
-                && x.WorkoutExerciseGroup.Workout.FinishedAt.HasValue)
+                && x.WorkoutExerciseGroup.Workout.FinishedAt.HasValue
+                && (earliest == null || x.WorkoutExerciseGroup.Workout.FinishedAt >= earliest))
             .Select(x => new PreviousWorkoutExerciseCandidate
             {
                 WorkoutExerciseId = x.Id,

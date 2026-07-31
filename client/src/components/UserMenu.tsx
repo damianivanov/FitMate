@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { LuLogOut, LuMenu, LuMoon, LuShield, LuSun, LuUserRound } from "react-icons/lu";
+import { LuCookie, LuLogOut, LuMenu, LuMoon, LuScale, LuShield, LuSun, LuUserRound } from "react-icons/lu";
 import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
 import { isAdmin as hasAdminRole } from "@/lib/access";
+import { useConsentStore } from "@/stores/consentStore";
 import { useThemeStore } from "@/stores/themeStore";
 import type { User } from "@/types";
 
@@ -23,6 +24,7 @@ export default function UserMenu({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { theme, toggleTheme } = useThemeStore();
+  const reopenBanner = useConsentStore((state) => state.reopenBanner);
   const isAdminUser = hasAdminRole(user);
   const isLightMode = theme === "light";
   const displayName = buildDisplayName(user.firstName, user.lastName) || user.email;
@@ -56,6 +58,16 @@ export default function UserMenu({
 
   const handleThemeToggle = () => {
     toggleTheme();
+  };
+
+  const handleLegalClick = () => {
+    onNavigate();
+    handleCloseMenu();
+  };
+
+  const handleCookiePreferencesClick = () => {
+    reopenBanner();
+    handleCloseMenu();
   };
 
   const menuIconClassName = "h-5 w-5 text-slate-500 dark:text-slate-400";
@@ -144,6 +156,26 @@ export default function UserMenu({
               Admin
             </Link>
           ) : null}
+
+          <Link
+            to="/legal"
+            onClick={handleLegalClick}
+            className="liquid-nav-item flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
+            role="menuitem"
+          >
+            <LuScale className="h-4 w-4" />
+            Legal
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleCookiePreferencesClick}
+            className="liquid-nav-item flex w-full items-center gap-2.5 rounded-full px-3 py-2.5 text-left text-sm font-medium"
+            role="menuitem"
+          >
+            <LuCookie className="h-4 w-4" />
+            Cookie preferences
+          </button>
 
           <div className="liquid-divider mt-1 border-t px-1 pt-1">
             <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium">
