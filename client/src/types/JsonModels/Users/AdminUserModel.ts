@@ -1,3 +1,5 @@
+import type { EntitlementSource } from "../Enums/EntitlementSource";
+
 export interface AdminUserModel
 {
 	id: number;
@@ -8,4 +10,8 @@ export interface AdminUserModel
 	isAdmin: boolean;
 	dateCreated: string;
 	lastLoginAt?: string;
+	effectivePlanCode: string;
+	effectivePlanName: string;
+	source: EntitlementSource;
+	hasActiveOverride: boolean;
 }

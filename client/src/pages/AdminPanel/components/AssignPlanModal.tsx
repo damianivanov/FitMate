@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Modal } from "@/shared/components";
-import type {
-  AssignPlanOverrideRequest,
-  SubscriptionPlanAdminModel,
-  UserSubscriptionAdminModel,
-} from "@/types";
+import type { AssignPlanOverrideRequest, SubscriptionPlanAdminModel } from "@/types";
 
-type AssignOverrideFormProps = {
-  user: UserSubscriptionAdminModel;
+export type AssignPlanTarget = {
+  userId: number;
+  email: string | null;
+  currentPlanName: string;
+};
+
+type AssignPlanFormProps = {
+  target: AssignPlanTarget;
   plans: SubscriptionPlanAdminModel[];
   isSaving: boolean;
   onSave: (payload: AssignPlanOverrideRequest) => Promise<void>;
@@ -15,7 +17,7 @@ type AssignOverrideFormProps = {
 };
 
 /** Mounted per user (see the `key` below), so the form never carries the previous one's input. */
-function AssignOverrideForm({ user, plans, isSaving, onSave, onClose }: AssignOverrideFormProps) {
+function AssignPlanForm({ target, plans, isSaving, onSave, onClose }: AssignPlanFormProps) {
   const [planCode, setPlanCode] = useState(plans[0]?.code ?? "");
   const [reason, setReason] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -25,7 +27,7 @@ function AssignOverrideForm({ user, plans, isSaving, onSave, onClose }: AssignOv
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted">
-        {user.email ?? `User ${user.userId}`} is currently on {user.effectivePlanName}.
+        {target.email ?? `User ${target.userId}`} is currently on {target.currentPlanName}.
       </p>
 
       <label className="flex flex-col gap-1">
@@ -90,27 +92,27 @@ function AssignOverrideForm({ user, plans, isSaving, onSave, onClose }: AssignOv
   );
 }
 
-type AssignOverrideModalProps = {
-  user: UserSubscriptionAdminModel | null;
+type AssignPlanModalProps = {
+  target: AssignPlanTarget | null;
   plans: SubscriptionPlanAdminModel[];
   isSaving: boolean;
   onSave: (payload: AssignPlanOverrideRequest) => Promise<void>;
   onClose: () => void;
 };
 
-export function AssignOverrideModal({
-  user,
+export function AssignPlanModal({
+  target,
   plans,
   isSaving,
   onSave,
   onClose,
-}: AssignOverrideModalProps) {
+}: AssignPlanModalProps) {
   return (
-    <Modal isOpen={user != null} onClose={onClose} title="Assign a plan" maxWidth="lg">
-      {user ? (
-        <AssignOverrideForm
-          key={user.userId}
-          user={user}
+    <Modal isOpen={target != null} onClose={onClose} title="Assign a plan" maxWidth="lg">
+      {target ? (
+        <AssignPlanForm
+          key={target.userId}
+          target={target}
           plans={plans}
           isSaving={isSaving}
           onSave={onSave}

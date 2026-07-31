@@ -17,17 +17,13 @@ export default function CookieConsentBanner() {
     }
   }, [isBannerOpen]);
 
-  // Wait for the auth check so the banner does not mount at the wrong offset and
-  // then jump once the mobile bottom nav appears.
   if (!isBannerOpen || !userLoaded) {
     return null;
   }
 
-  // The mobile bottom nav only renders for authenticated users, so only then does
-  // the banner need to sit above it.
   const bottomOffsetClassName = isAuthenticated
-    ? "bottom-[calc(env(safe-area-inset-bottom,0px)+5rem)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
-    : "bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]";
+    ? "bottom-24 md:bottom-4"
+    : "bottom-4";
 
   return (
     <div
@@ -36,9 +32,9 @@ export default function CookieConsentBanner() {
       aria-modal="false"
       aria-label="Cookie preferences"
       tabIndex={-1}
-      className={`fixed inset-x-0 z-[var(--z-nav)] px-3 outline-none ${bottomOffsetClassName}`}
+      className={`pointer-events-none fixed inset-x-0 z-[var(--z-nav)] px-3 outline-none ${bottomOffsetClassName}`}
     >
-      <div className="liquid-surface mx-auto flex w-full max-w-3xl flex-col gap-4 rounded-3xl px-5 py-4 md:flex-row md:items-center md:justify-between md:gap-6">
+      <div className="liquid-surface liquid-modal-surface pointer-events-auto mx-auto flex w-full max-w-3xl flex-col gap-4 rounded-3xl px-5 py-4 md:flex-row md:items-center md:justify-between md:gap-6">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">We use cookies</p>
           <p className="text-xs text-secondary">

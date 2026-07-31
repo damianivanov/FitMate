@@ -5,6 +5,7 @@ using FitMate.DB.Constants;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.AdminSubscriptions;
+using FitMate.Services.Subscriptions;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,7 @@ public class AdminSubscriptionServiceTests
     private const long AdminId = SqliteTestDatabase.AdminUserId;
 
     private static AdminSubscriptionService CreateService(AppDbContext context) =>
-        new(context, new FakeEntitlementService());
+        new(context, new FakeEntitlementService(), new EffectivePlanResolver(context));
 
     private static void SeedSubscription(AppDbContext context, long userId, long planId)
     {

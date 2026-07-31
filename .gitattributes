@@ -1,5 +1,40 @@
-# Enforce LF line endings for TypeScript sources so generated typings stay consistent
+# Line endings are decided here, not by each machine's core.autocrlf.
+# Baseline: git stores LF, and checks out whatever is native for the platform.
+* text=auto
+
+# Sources written by generators or read by tooling that assumes LF.
+# backend.ts is emitted by Reinforced.Typings (CRLF on Windows) and normalised by
+# client/tools/process-types.mjs, which also writes every split file under JsonModels/.
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.mjs  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.json text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
 .gitattributes text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
-*.mjs text eol=lf
+.gitignore     text eol=lf
+
+# Scripts that break if they get CRLF.
+*.sh       text eol=lf
+Dockerfile text eol=lf
+
+# Left native so Visual Studio and the SDK stay happy on Windows.
+*.cs     text
+*.csproj text
+*.sln    text
+
+# Never touched.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

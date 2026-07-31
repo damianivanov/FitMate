@@ -1,6 +1,6 @@
 import { PageBody, PageHeader } from "@/shared/components";
 import { EntitlementSource, SubscriptionFeature } from "@/types";
-import { AssignOverrideModal } from "./components/AssignOverrideModal";
+import { AssignPlanModal } from "../components/AssignPlanModal";
 import { useSubscriptionAdminPage, type SubscriptionAdminTab } from "./hooks/useSubscriptionAdminPage";
 
 const TABS: { id: SubscriptionAdminTab; label: string }[] = [
@@ -188,8 +188,16 @@ export default function SubscriptionAdmin() {
         ) : null}
       </PageBody>
 
-      <AssignOverrideModal
-        user={state.overrideTarget}
+      <AssignPlanModal
+        target={
+          state.overrideTarget
+            ? {
+                userId: state.overrideTarget.userId,
+                email: state.overrideTarget.email ?? null,
+                currentPlanName: state.overrideTarget.effectivePlanName,
+              }
+            : null
+        }
         plans={state.plans}
         isSaving={state.isBusy}
         onSave={actions.assignOverride}

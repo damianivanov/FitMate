@@ -12,7 +12,15 @@ if (!fs.existsSync(generatedFile)) {
   process.exit(1);
 }
 
-const content = fs.readFileSync(generatedFile, "utf8");
+// Reinforced.Typings writes backend.ts with CRLF on Windows, but .gitattributes pins *.ts to LF.
+// Left as-is, every generated file lands CRLF and git reports all ~175 of them as modified with an
+// empty diff. Normalise once here so the slices below inherit LF, and rewrite backend.ts itself.
+const rawContent = fs.readFileSync(generatedFile, "utf8");
+const content = rawContent.replace(/\r\n/g, "\n");
+
+if (content !== rawContent) {
+  fs.writeFileSync(generatedFile, content, "utf8");
+}
 
 // Parse namespaces (both export namespace and module syntax)
 const namespaceRegex =

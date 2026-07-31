@@ -26,17 +26,25 @@ Five server projects. Dependencies point strictly downward — nothing below ref
 ```
 FitMate.Web            ASP.NET Core host. Controllers, DI wiring, filters, migrations-on-start.
       │
-      ├──────────────► FitMate.Integrations   Vendor SDK adapters (OpenAI). Provider-neutral models.
-      │                                        NOTHING outside this project references a vendor SDK.
       ▼
 FitMate.Services       Business logic. One folder per domain, interface + implementation per service.
       │
-      ▼
-FitMate.DB             EF Core: AppDbContext, entities, per-entity configurations, migrations, enums.
-      │
-      ▼
-FitMate.Core           DTOs (JsonModels), exceptions, settings. No EF, no ASP.NET.
+      ├───────────────────────────┬───────────────────────────┐
+      ▼                           ▼                           ▼
+FitMate.Core            FitMate.Integrations          FitMate.DB
+DTOs (JsonModels),      Vendor SDK adapters           EF Core: AppDbContext, entities,
+exceptions, settings.   (OpenAI) + neutral models.    per-entity configurations,
+      │                 NOTHING outside this          migrations, enums.
+      │                 project references a
+      ▼                 vendor SDK.                   (references nothing)
+FitMate.DB
+(DTOs use DB enums —
+ EntitlementSource,
+ SubscriptionStatus, …)
 ```
+
+`FitMate.DB` and `FitMate.Integrations` are the roots — neither references another project. `Core`
+sits on top of `DB` because the JSON models expose DB enums directly rather than mirroring them.
 
 `FitMate.Tools` is a separate console app for one-off operational commands and is not part of the
 request path. `FitMate.Tests` covers all of the above (386 tests).

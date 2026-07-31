@@ -18,6 +18,11 @@ export namespace Enums {
 		Dropset = 3,
 		Failure = 4
 	}
+	export enum EntitlementSource {
+		FreePlan = 1,
+		Subscription = 2,
+		AdminOverride = 3
+	}
 	export enum TrainingGoal {
 		GeneralFitness = 1,
 		Hypertrophy = 2,
@@ -43,11 +48,6 @@ export namespace Enums {
 		Thursday = 4,
 		Friday = 5,
 		Saturday = 6
-	}
-	export enum EntitlementSource {
-		FreePlan = 1,
-		Subscription = 2,
-		AdminOverride = 3
 	}
 	export enum SubscriptionStatus {
 		Trialing = 1,
@@ -460,6 +460,10 @@ export namespace JsonModels.Users {
 		isAdmin: boolean;
 		dateCreated: string;
 		lastLoginAt?: string;
+		effectivePlanCode: string;
+		effectivePlanName: string;
+		source: Enums.EntitlementSource;
+		hasActiveOverride: boolean;
 	}
 	export interface UpdateUserRequest
 	{

@@ -4,6 +4,8 @@ using FitMate.Core.JsonModels.Users;
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using FitMate.DB.Enums;
+using FitMate.Services.Subscriptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,15 +16,18 @@ public class AdminUserService : IAdminUserService
     private readonly AppDbContext dbContext;
     private readonly UserManager<User> userManager;
     private readonly IUserService userService;
+    private readonly IEffectivePlanResolver planResolver;
 
     public AdminUserService(
         AppDbContext dbContext,
         UserManager<User> userManager,
-        IUserService userService)
+        IUserService userService,
+        IEffectivePlanResolver planResolver)
     {
         this.dbContext = dbContext;
         this.userManager = userManager;
         this.userService = userService;
+        this.planResolver = planResolver;
     }
 
     public async Task<PagedResponse<AdminUserModel>> ListAsync(UserQueryRequest request)
@@ -48,11 +53,15 @@ public class AdminUserService : IAdminUserService
             .Take(pageSize)
             .ToListAsync();
 
-        var adminUserIds = await GetAdminUserIdsAsync(users.Select(x => x.Id).ToList());
+        var userIds = users.Select(x => x.Id).ToList();
+        var adminUserIds = await GetAdminUserIdsAsync(userIds);
+        var plans = await planResolver.ResolveManyAsync(userIds);
 
         return new PagedResponse<AdminUserModel>
         {
-            Items = users.Select(x => MapToModel(x, adminUserIds.Contains(x.Id))).ToList(),
+            Items = users
+                .Select(x => MapToModel(x, adminUserIds.Contains(x.Id), plans.GetValueOrDefault(x.Id)))
+                .ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize,
@@ -101,7 +110,8 @@ public class AdminUserService : IAdminUserService
             await userManager.UpdateAsync(user);
         }
 
-        return MapToModel(user, request.IsAdmin);
+        var plans = await planResolver.ResolveManyAsync([user.Id]);
+        return MapToModel(user, request.IsAdmin, plans.GetValueOrDefault(user.Id));
     }
 
     public async Task<bool> DeleteAsync(long id)
@@ -179,7 +189,7 @@ public class AdminUserService : IAdminUserService
         return ids.ToHashSet();
     }
 
-    private static AdminUserModel MapToModel(User user, bool isAdmin)
+    private static AdminUserModel MapToModel(User user, bool isAdmin, ResolvedPlan? plan)
     {
         return new AdminUserModel
         {
@@ -191,6 +201,10 @@ public class AdminUserService : IAdminUserService
             IsAdmin = isAdmin,
             DateCreated = user.DateCreated,
             LastLoginAt = user.LastLoginAt,
+            EffectivePlanCode = plan?.EffectivePlanCode ?? string.Empty,
+            EffectivePlanName = plan?.EffectivePlanName ?? string.Empty,
+            Source = plan?.Source ?? EntitlementSource.FreePlan,
+            HasActiveOverride = plan?.ActiveOverrideId != null,
         };
     }
 }

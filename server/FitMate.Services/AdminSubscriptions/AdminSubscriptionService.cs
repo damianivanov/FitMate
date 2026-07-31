@@ -18,11 +18,16 @@ public class AdminSubscriptionService : IAdminSubscriptionService
 {
     private readonly AppDbContext dbContext;
     private readonly IEntitlementService entitlementService;
+    private readonly IEffectivePlanResolver planResolver;
 
-    public AdminSubscriptionService(AppDbContext dbContext, IEntitlementService entitlementService)
+    public AdminSubscriptionService(
+        AppDbContext dbContext,
+        IEntitlementService entitlementService,
+        IEffectivePlanResolver planResolver)
     {
         this.dbContext = dbContext;
         this.entitlementService = entitlementService;
+        this.planResolver = planResolver;
     }
 
     public async Task<PagedResponse<UserSubscriptionAdminModel>> ListAsync(SubscriptionQueryRequest request)
@@ -98,18 +103,18 @@ public class AdminSubscriptionService : IAdminSubscriptionService
             .ToListAsync();
 
         var overrides = await LoadActiveOverridesAsync(userIds, now);
-        var freePlan = await GetFreePlanAsync();
+        var resolved = await planResolver.ResolveManyAsync(userIds);
 
         return new PagedResponse<UserSubscriptionAdminModel>
         {
             Items = users
-                .Select(user => Resolve(
+                .Select(user => Compose(
                     user.Id,
                     user.Email,
                     $"{user.FirstName} {user.LastName}".Trim(),
                     subscriptions.FirstOrDefault(x => x.UserId == user.Id),
                     overrides.GetValueOrDefault(user.Id),
-                    freePlan))
+                    resolved[user.Id]))
                 .ToList(),
             TotalCount = totalCount,
             Page = page,
@@ -147,14 +152,15 @@ public class AdminSubscriptionService : IAdminSubscriptionService
             .FirstOrDefaultAsync();
 
         var overrides = await LoadActiveOverridesAsync([userId], now);
+        var resolved = await planResolver.ResolveManyAsync([userId]);
 
-        return Resolve(
+        return Compose(
             user.Id,
             user.Email,
             $"{user.FirstName} {user.LastName}".Trim(),
             subscription,
             overrides.GetValueOrDefault(userId),
-            await GetFreePlanAsync());
+            resolved[userId]);
     }
 
     public async Task<UserSubscriptionAdminModel> AssignOverrideAsync(
@@ -349,28 +355,15 @@ public class AdminSubscriptionService : IAdminSubscriptionService
                 x.EndsAt))
             .ToDictionaryAsync(x => x.UserId, x => x);
 
-    private async Task<(string Code, string Name)> GetFreePlanAsync()
-    {
-        var plan = await dbContext.Plans
-            .AsNoTracking()
-            .Where(x => x.Code == PlanCodes.Free)
-            .Select(x => new { x.Code, x.Name })
-            .FirstOrDefaultAsync();
-
-        return (plan?.Code ?? PlanCodes.Free, plan?.Name ?? "Free");
-    }
-
-    private static UserSubscriptionAdminModel Resolve(
+    private static UserSubscriptionAdminModel Compose(
         long userId,
         string? email,
         string fullName,
         SubscriptionRow? subscription,
         OverrideRow? planOverride,
-        (string Code, string Name) freePlan)
+        ResolvedPlan resolved)
     {
-        var activeSubscription = subscription is { Status: SubscriptionStatus.Active } ? subscription : null;
-
-        var model = new UserSubscriptionAdminModel
+        return new UserSubscriptionAdminModel
         {
             UserId = userId,
             Email = email,
@@ -379,38 +372,21 @@ public class AdminSubscriptionService : IAdminSubscriptionService
             SubscriptionStatus = subscription?.Status,
             CurrentPeriodEnd = subscription?.CurrentPeriodEnd,
             CancelAtPeriodEnd = subscription?.CancelAtPeriodEnd ?? false,
+            EffectivePlanCode = resolved.EffectivePlanCode,
+            EffectivePlanName = resolved.EffectivePlanName,
+            Source = resolved.Source,
+            ActiveOverride = planOverride == null || resolved.Source != EntitlementSource.AdminOverride
+                ? null
+                : new PlanOverrideAdminModel
+                {
+                    Id = planOverride.Id,
+                    PlanCode = planOverride.PlanCode,
+                    Reason = planOverride.Reason,
+                    CreatedByUserId = planOverride.CreatedByUserId,
+                    StartsAt = planOverride.StartsAt,
+                    EndsAt = planOverride.EndsAt,
+                },
         };
-
-        if (planOverride != null)
-        {
-            model.EffectivePlanCode = planOverride.PlanCode;
-            model.EffectivePlanName = planOverride.PlanName;
-            model.Source = EntitlementSource.AdminOverride;
-            model.ActiveOverride = new PlanOverrideAdminModel
-            {
-                Id = planOverride.Id,
-                PlanCode = planOverride.PlanCode,
-                Reason = planOverride.Reason,
-                CreatedByUserId = planOverride.CreatedByUserId,
-                StartsAt = planOverride.StartsAt,
-                EndsAt = planOverride.EndsAt,
-            };
-
-            return model;
-        }
-
-        if (activeSubscription != null)
-        {
-            model.EffectivePlanCode = activeSubscription.PlanCode;
-            model.EffectivePlanName = activeSubscription.PlanName;
-            model.Source = EntitlementSource.Subscription;
-            return model;
-        }
-
-        model.EffectivePlanCode = freePlan.Code;
-        model.EffectivePlanName = freePlan.Name;
-        model.Source = EntitlementSource.FreePlan;
-        return model;
     }
 
     private sealed record SubscriptionRow(

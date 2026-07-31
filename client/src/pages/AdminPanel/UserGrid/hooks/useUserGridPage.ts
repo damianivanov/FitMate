@@ -5,7 +5,14 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { unwrap } from "@/lib/unwrap";
 import { adminService } from "@/services/adminService";
 import { useUserStore } from "@/stores/userStore";
-import type { AdminUser, PagedResponse, UpdateUserRequest } from "@/types";
+import type {
+  AdminUser,
+  AssignPlanOverrideRequest,
+  PagedResponse,
+  SubscriptionPlanAdminModel,
+  UpdateUserRequest,
+} from "@/types";
+import type { AssignPlanTarget } from "../../components/AssignPlanModal";
 import { createUserGridColumns } from "../columns";
 import type { UserFormValues } from "../components/UserEditorModal";
 
@@ -27,6 +34,23 @@ export function useUserGridPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadIndex, setReloadIndex] = useState(0);
+
+  const [plans, setPlans] = useState<SubscriptionPlanAdminModel[]>([]);
+  const [planTarget, setPlanTarget] = useState<AssignPlanTarget | null>(null);
+  const [isAssigningPlan, setIsAssigningPlan] = useState(false);
+
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        const response = await adminService.subscriptionPlans.list();
+        setPlans(unwrap(response.data, "Unable to load plans."));
+      } catch (loadError) {
+        setActionError(loadError instanceof Error ? loadError.message : "Unable to load plans.");
+      }
+    }
+
+    void loadPlans();
+  }, []);
 
   useEffect(() => {
     async function loadRows() {
@@ -95,9 +119,75 @@ export function useUserGridPage() {
     [currentUserId],
   );
 
+  const onAssignPlan = useCallback((user: AdminUser) => {
+    setActionError(null);
+    setPlanTarget({
+      userId: user.id,
+      email: user.email,
+      currentPlanName: user.effectivePlanName,
+    });
+  }, []);
+
+  const onRemoveOverride = useCallback(async (user: AdminUser) => {
+    const confirmed = window.confirm(
+      `Remove the plan override for "${user.email}"? They fall back to their real plan.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError(null);
+
+    try {
+      await adminService.subscriptions.removeOverride(user.id);
+      setReloadIndex((index) => index + 1);
+    } catch (removeError) {
+      setActionError(
+        removeError instanceof Error ? removeError.message : "Unable to remove the override.",
+      );
+    }
+  }, []);
+
+  const assignPlan = useCallback(
+    async (payload: AssignPlanOverrideRequest) => {
+      if (!planTarget) {
+        return;
+      }
+
+      setIsAssigningPlan(true);
+      setActionError(null);
+
+      try {
+        await adminService.subscriptions.assignOverride(planTarget.userId, payload);
+        setPlanTarget(null);
+        setReloadIndex((index) => index + 1);
+      } catch (assignError) {
+        setActionError(
+          assignError instanceof Error ? assignError.message : "Unable to assign the plan.",
+        );
+      } finally {
+        setIsAssigningPlan(false);
+      }
+    },
+    [planTarget],
+  );
+
+  const closePlanModal = useCallback(() => {
+    if (!isAssigningPlan) {
+      setPlanTarget(null);
+    }
+  }, [isAssigningPlan]);
+
   const columns = useMemo<GridColDef<AdminUser>[]>(
-    () => createUserGridColumns({ currentUserId, onEdit: openEditEditor, onDelete }),
-    [currentUserId, onDelete, openEditEditor],
+    () =>
+      createUserGridColumns({
+        currentUserId,
+        onEdit: openEditEditor,
+        onDelete,
+        onAssignPlan,
+        onRemoveOverride: (user) => void onRemoveOverride(user),
+      }),
+    [currentUserId, onDelete, openEditEditor, onAssignPlan, onRemoveOverride],
   );
 
   const onSearchInputChange: ChangeEventHandler<HTMLInputElement> = useCallback((event) => {
@@ -163,6 +253,9 @@ export function useUserGridPage() {
       isSelfEditing: editingUser?.id === currentUserId,
       formValues,
       editorError,
+      plans,
+      planTarget,
+      isAssigningPlan,
     }),
     [
       pagedUsers,
@@ -178,6 +271,9 @@ export function useUserGridPage() {
       currentUserId,
       formValues,
       editorError,
+      plans,
+      planTarget,
+      isAssigningPlan,
     ],
   );
 
@@ -187,8 +283,10 @@ export function useUserGridPage() {
       changePagination,
       closeEditor,
       save,
+      assignPlan,
+      closePlanModal,
     }),
-    [onSearchInputChange, changePagination, closeEditor, save],
+    [onSearchInputChange, changePagination, closeEditor, save, assignPlan, closePlanModal],
   );
 
   return { state, actions };

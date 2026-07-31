@@ -1,3 +1,5 @@
+using FitMate.DB.Enums;
+
 namespace FitMate.Core.JsonModels.Users;
 
 public class AdminUserModel
@@ -10,4 +12,8 @@ public class AdminUserModel
     public bool IsAdmin { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? LastLoginAt { get; set; }
+    public string EffectivePlanCode { get; set; } = string.Empty;
+    public string EffectivePlanName { get; set; } = string.Empty;
+    public EntitlementSource Source { get; set; }
+    public bool HasActiveOverride { get; set; }
 }

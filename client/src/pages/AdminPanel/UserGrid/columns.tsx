@@ -1,12 +1,15 @@
 import type { GridColDef } from "@mui/x-data-grid";
-import { LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuBadgeCheck, LuPencil, LuTrash2, LuUndo2 } from "react-icons/lu";
 import { normalizeUtcIsoString } from "@/lib/helpers";
+import { EntitlementSource } from "@/types";
 import type { AdminUser } from "@/types";
 
 type UserGridColumnsOptions = {
   currentUserId: number;
   onEdit: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
+  onAssignPlan: (user: AdminUser) => void;
+  onRemoveOverride: (user: AdminUser) => void;
 };
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
@@ -32,6 +35,8 @@ export function createUserGridColumns({
   currentUserId,
   onEdit,
   onDelete,
+  onAssignPlan,
+  onRemoveOverride,
 }: UserGridColumnsOptions): GridColDef<AdminUser>[] {
   return [
     {
@@ -79,6 +84,25 @@ export function createUserGridColumns({
       ),
     },
     {
+      field: "effectivePlanName",
+      headerName: "Plan",
+      minWidth: 150,
+      sortable: false,
+      renderCell: (params) => (
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-foreground">{params.row.effectivePlanName || "—"}</span>
+          {params.row.source === EntitlementSource.AdminOverride ? (
+            <span
+              className="inline-flex rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-300"
+              title="Granted by an admin override"
+            >
+              override
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
       field: "dateCreated",
       headerName: "Joined",
       minWidth: 130,
@@ -97,7 +121,7 @@ export function createUserGridColumns({
       headerName: "Actions",
       sortable: false,
       filterable: false,
-      width: 120,
+      width: 200,
       renderCell: (params) => {
         const isSelf = params.row.id === currentUserId;
 
@@ -111,6 +135,29 @@ export function createUserGridColumns({
 
         return (
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="liquid-pill rounded-full p-2 text-primary"
+              onClick={() => onAssignPlan(params.row)}
+              aria-label="Assign plan"
+              title="Assign a plan"
+            >
+              <LuBadgeCheck className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              disabled={!params.row.hasActiveOverride}
+              className="liquid-pill rounded-full p-2 disabled:opacity-40"
+              onClick={() => onRemoveOverride(params.row)}
+              aria-label="Remove plan override"
+              title={
+                params.row.hasActiveOverride
+                  ? "Remove the override and fall back to their real plan"
+                  : "No active override"
+              }
+            >
+              <LuUndo2 className="h-4 w-4" />
+            </button>
             <button
               type="button"
               disabled={isSelf}

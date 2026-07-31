@@ -306,6 +306,7 @@ builder.Services.AddScoped<IProgramPlanDayService, ProgramPlanDayService>();
 
 // Subscriptions: what a plan grants and how much of it has been used.
 builder.Services.AddScoped<IEntitlementService, EntitlementService>();
+builder.Services.AddScoped<IEffectivePlanResolver, EffectivePlanResolver>();
 builder.Services.AddScoped<IUsageService, UsageService>();
 
 // AI provider adapter. Nothing outside FitMate.Integrations touches a vendor SDK.

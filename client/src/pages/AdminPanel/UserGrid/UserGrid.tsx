@@ -1,5 +1,6 @@
 import { PageBody, PageHeader } from "@/shared/components";
 import { EntityGrid } from "@/shared/components/tables";
+import { AssignPlanModal } from "../components/AssignPlanModal";
 import { UserEditorModal } from "./components/UserEditorModal";
 import { useUserGridPage } from "./hooks/useUserGridPage";
 
@@ -45,6 +46,14 @@ export default function UserGrid() {
         error={state.editorError}
         onClose={actions.closeEditor}
         onSubmit={actions.save}
+      />
+
+      <AssignPlanModal
+        target={state.planTarget}
+        plans={state.plans}
+        isSaving={state.isAssigningPlan}
+        onSave={actions.assignPlan}
+        onClose={actions.closePlanModal}
       />
     </>
   );
