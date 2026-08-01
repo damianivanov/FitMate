@@ -8,5 +8,7 @@ export enum SubscriptionFeature {
 	ActiveProgramPlans = 20,
 	ProgramPlanDurationMonths = 21,
 	CustomWorkoutTemplates = 22,
-	ExerciseHistoryMonths = 23
+	ExerciseHistoryMonths = 23,
+	AIContextTokens = 24,
+	AIConversationMessages = 25
 }

@@ -3,6 +3,7 @@ using FitMate.Core.JsonModels.Common;
 using FitMate.DB;
 using FitMate.DB.Enums;
 using FitMate.Services.AI;
+using FitMate.Services.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.AdminAI;
@@ -18,11 +19,111 @@ public class AdminAIService : IAdminAIService
 
     private readonly AppDbContext dbContext;
     private readonly IAIRedactionService redactionService;
+    private readonly IEffectivePlanResolver planResolver;
 
-    public AdminAIService(AppDbContext dbContext, IAIRedactionService redactionService)
+    public AdminAIService(
+        AppDbContext dbContext,
+        IAIRedactionService redactionService,
+        IEffectivePlanResolver planResolver)
     {
         this.dbContext = dbContext;
         this.redactionService = redactionService;
+        this.planResolver = planResolver;
+    }
+
+    public async Task<PagedResponse<AIUserCostBreakdownModel>> GetUserCostsAsync(AIUserCostQueryRequest request)
+    {
+        var page = request.Page <= 0 ? 1 : request.Page;
+        var pageSize = request.PageSize <= 0 ? 20 : Math.Min(request.PageSize, 200);
+        var window = request.Days is <= 0 or > 365 ? 30 : request.Days;
+        var from = DateTime.UtcNow.AddDays(-window);
+        var search = request.Search?.Trim();
+
+        var runsQuery = dbContext.AIRuns.AsNoTracking().Where(x => x.StartedAt >= from);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var userIds = await dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Email != null && x.Email.Contains(search))
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            runsQuery = runsQuery.Where(x => userIds.Contains(x.UserId));
+        }
+
+        var runs = await runsQuery
+            .Select(x => new
+            {
+                x.UserId,
+                x.Model,
+                x.InputTokens,
+                x.CachedInputTokens,
+                x.OutputTokens,
+                x.EstimatedCost,
+            })
+            .ToListAsync();
+
+        var grouped = runs
+            .GroupBy(x => x.UserId)
+            .Select(group => new
+            {
+                UserId = group.Key,
+                RunCount = group.Count(),
+                InputTokens = group.Sum(x => (long)x.InputTokens),
+                CachedInputTokens = group.Sum(x => (long)x.CachedInputTokens),
+                OutputTokens = group.Sum(x => (long)x.OutputTokens),
+                EstimatedCost = group.Sum(x => x.EstimatedCost ?? 0m),
+                ByModel = group
+                    .GroupBy(x => x.Model)
+                    .Select(modelGroup => new AIUserModelCostModel
+                    {
+                        Model = modelGroup.Key,
+                        RunCount = modelGroup.Count(),
+                        InputTokens = modelGroup.Sum(x => (long)x.InputTokens),
+                        CachedInputTokens = modelGroup.Sum(x => (long)x.CachedInputTokens),
+                        OutputTokens = modelGroup.Sum(x => (long)x.OutputTokens),
+                        EstimatedCost = modelGroup.Sum(x => x.EstimatedCost ?? 0m),
+                    })
+                    .OrderByDescending(x => x.EstimatedCost)
+                    .ToList(),
+            })
+            .OrderByDescending(x => x.EstimatedCost)
+            .ToList();
+
+        var totalCount = grouped.Count;
+        var pageRows = grouped.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var pageUserIds = pageRows.Select(x => x.UserId).ToList();
+
+        var emails = await dbContext.Users
+            .AsNoTracking()
+            .Where(x => pageUserIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Email);
+
+        var plans = await planResolver.ResolveManyAsync(pageUserIds);
+
+        return new PagedResponse<AIUserCostBreakdownModel>
+        {
+            Items = pageRows
+                .Select(row => new AIUserCostBreakdownModel
+                {
+                    UserId = row.UserId,
+                    Email = emails.GetValueOrDefault(row.UserId),
+                    PlanCode = plans.GetValueOrDefault(row.UserId)?.EffectivePlanCode ?? string.Empty,
+                    PlanName = plans.GetValueOrDefault(row.UserId)?.EffectivePlanName ?? string.Empty,
+                    RunCount = row.RunCount,
+                    InputTokens = row.InputTokens,
+                    CachedInputTokens = row.CachedInputTokens,
+                    OutputTokens = row.OutputTokens,
+                    TotalTokens = row.InputTokens + row.OutputTokens,
+                    EstimatedCost = row.EstimatedCost,
+                    ByModel = row.ByModel,
+                })
+                .ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+        };
     }
 
     public async Task<AIAdminOverviewModel> GetOverviewAsync(int days)

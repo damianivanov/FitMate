@@ -8,6 +8,8 @@ import Profile, { ProfileAccount, MyExercises, TrainingProfile } from "./pages/P
 import AdminPanel, {
   AIConversationGrid,
   AIOverview,
+  AISettings,
+  AIUserCosts,
   ErrorGrid,
   ExerciseGrid,
   MuscleGroupGrid,
@@ -287,6 +289,14 @@ export const router = createBrowserRouter([
           {
             path: "ai/unsupported-requests",
             element: <UnsupportedRequestGrid />,
+          },
+          {
+            path: "ai/costs",
+            element: <AIUserCosts />,
+          },
+          {
+            path: "ai/settings",
+            element: <AISettings />,
           },
           {
             path: "subscriptions",

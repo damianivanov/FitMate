@@ -20,6 +20,10 @@ public sealed class FakeEntitlementService : IEntitlementService
 
     public List<long> InvalidatedUserIds { get; } = [];
 
+    public AIModelTier? ModelTier { get; set; }
+
+    public Task<AIModelTier?> GetAIModelTierAsync(long userId) => Task.FromResult(ModelTier);
+
     public Task RequireFeatureAsync(long userId, SubscriptionFeature feature) =>
         DisabledFeatures.Contains(feature)
             ? throw new SubscriptionFeatureDisabledException(feature)

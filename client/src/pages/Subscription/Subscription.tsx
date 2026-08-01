@@ -1,4 +1,5 @@
 import { AsyncSection, PageBody, PageHeader } from "@/shared/components";
+import { isCustomerFacingFeature } from "./components/features";
 import { UsageBar } from "./components/UsageBar";
 import { useSubscriptionPage } from "./hooks/useSubscriptionPage";
 
@@ -40,9 +41,11 @@ export default function Subscription() {
                 <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
                   This month
                 </p>
-                {subscription.features.map((feature) => (
-                  <UsageBar key={feature.feature} availability={feature} />
-                ))}
+                {subscription.features
+                  .filter((feature) => isCustomerFacingFeature(feature.feature))
+                  .map((feature) => (
+                    <UsageBar key={feature.feature} availability={feature} />
+                  ))}
               </section>
             </div>
           ) : null}

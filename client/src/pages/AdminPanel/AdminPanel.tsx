@@ -37,6 +37,16 @@ const gridLinks = [
     description: "What users keep asking for that FitMate cannot do yet.",
   },
   {
+    to: "/management/ai/costs",
+    title: "AI Cost per User",
+    description: "Token spend and money per user, broken down by model.",
+  },
+  {
+    to: "/management/ai/settings",
+    title: "AI Settings",
+    description: "Default models, token ceilings and tool limits for the coach.",
+  },
+  {
     to: "/management/subscriptions",
     title: "Subscriptions",
     description: "Plans, per-user entitlements, admin overrides and metered usage.",

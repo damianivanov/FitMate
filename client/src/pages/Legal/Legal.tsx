@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
-import { legalContactEmail, legalEffectiveDate, legalSections } from "./content";
+import { legalSections } from "./content";
 import type { LegalSubsection } from "./content";
 
 function Subsection({ subsection }: { subsection: LegalSubsection }) {
@@ -75,19 +75,14 @@ export default function Legal() {
   }, [hash]);
 
   return (
-    <div className="w-full px-4 pb-16 pt-6 md:pt-10 min-[1920px]:mx-auto min-[1920px]:w-[75%]">
+    <div className="w-full p-6 md:pt-10 min-[1920px]:mx-auto min-[1920px]:w-[75%]">
       <div className="mx-auto w-full max-w-3xl space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-3xl font-extrabold text-primary">Legal</h1>
-          <p className="text-sm text-secondary">
-            Effective {legalEffectiveDate}. Questions about anything on this page go to{" "}
-            <a href={`mailto:${legalContactEmail}`} className="liquid-link font-semibold">
-              {legalContactEmail}
-            </a>
-            .
-          </p>
+        <header>
+          {/* Kept for the document outline: the sections below are h2s and need a page-level
+              heading above them, but nothing needs to be drawn. */}
+          <h1 className="sr-only">Legal</h1>
 
-          <nav className="flex flex-wrap gap-2 pt-1">
+          <nav aria-label="Legal sections" className="flex flex-wrap gap-2">
             {legalSections.map((section) => (
               <a
                 key={section.id}

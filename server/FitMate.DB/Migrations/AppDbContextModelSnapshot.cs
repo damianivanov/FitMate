@@ -322,6 +322,74 @@ namespace FitMate.DB.Migrations
                     b.ToTable("AIRuns");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.AISettings", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DefaultModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FastModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ImageModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("MaximumContextTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaximumConversationMessages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaximumMessageCharacters")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaximumOutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaximumToolCallsPerRun")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaximumToolIterations")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReasoningModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("StoreRawProviderPayload")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VisionModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AISettings");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.AIToolExecution", b =>
                 {
                     b.Property<long>("Id")
@@ -700,6 +768,9 @@ namespace FitMate.DB.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int?>("AIModelTier")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Code")
                         .IsRequired()

@@ -327,6 +327,7 @@ public static class ApplicationBuilderExtensions
             plan.IsPublic = item.IsPublic;
             plan.IsActive = true;
             plan.SortOrder = item.SortOrder;
+            plan.AIModelTier = item.AIModelTier;
 
             foreach (var entitlementSeed in item.Entitlements)
             {
@@ -363,6 +364,7 @@ public static class ApplicationBuilderExtensions
         public string? Description { get; set; }
         public bool IsPublic { get; set; }
         public int SortOrder { get; set; }
+        public AIModelTier? AIModelTier { get; set; }
         public List<SeedPlanEntitlement> Entitlements { get; set; } = [];
     }
 

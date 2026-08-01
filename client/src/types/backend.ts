@@ -69,7 +69,9 @@ export namespace Enums {
 		ActiveProgramPlans = 20,
 		ProgramPlanDurationMonths = 21,
 		CustomWorkoutTemplates = 22,
-		ExerciseHistoryMonths = 23
+		ExerciseHistoryMonths = 23,
+		AIContextTokens = 24,
+		AIConversationMessages = 25
 	}
 	export enum BillingInterval {
 		Monthly = 1,
@@ -201,6 +203,11 @@ export namespace Enums {
 		MaxWeight = 2,
 		MaxReps = 3,
 		MaxVolume = 4
+	}
+	export enum AIModelTier {
+		Fast = 1,
+		Default = 2,
+		Reasoning = 3
 	}
 	export enum UsageEntryType {
 		Reservation = 1,
@@ -1439,6 +1446,68 @@ export namespace JsonModels.AdminAI {
 		from?: string;
 		to?: string;
 		failuresOnly: boolean;
+	}
+	export interface AISettingsModel
+	{
+		provider: string;
+		defaultModel: string;
+		fastModel: string;
+		reasoningModel: string;
+		visionModel: string;
+		imageModel: string;
+		timeoutSeconds: number;
+		maximumToolIterations: number;
+		maximumToolCallsPerRun: number;
+		maximumConversationMessages: number;
+		maximumContextTokens: number;
+		maximumOutputTokens: number;
+		maximumMessageCharacters: number;
+		storeRawProviderPayload: boolean;
+		isStored: boolean;
+	}
+	export interface SaveAISettingsRequest
+	{
+		defaultModel: string;
+		fastModel: string;
+		reasoningModel: string;
+		visionModel: string;
+		imageModel: string;
+		timeoutSeconds: number;
+		maximumToolIterations: number;
+		maximumToolCallsPerRun: number;
+		maximumConversationMessages: number;
+		maximumContextTokens: number;
+		maximumOutputTokens: number;
+		maximumMessageCharacters: number;
+		storeRawProviderPayload: boolean;
+	}
+	export interface AIUserCostBreakdownModel
+	{
+		userId: number;
+		email?: string;
+		planCode: string;
+		planName: string;
+		runCount: number;
+		inputTokens: number;
+		cachedInputTokens: number;
+		outputTokens: number;
+		totalTokens: number;
+		estimatedCost: number;
+		byModel: JsonModels.AdminAI.AIUserModelCostModel[];
+	}
+	export interface AIUserModelCostModel
+	{
+		model: string;
+		runCount: number;
+		inputTokens: number;
+		cachedInputTokens: number;
+		outputTokens: number;
+		estimatedCost: number;
+	}
+	export interface AIUserCostQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		days: number;
+		search?: string;
 	}
 	export interface RecordUnsupportedRequestRequest
 	{

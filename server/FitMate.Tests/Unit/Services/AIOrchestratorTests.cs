@@ -51,10 +51,23 @@ public class AIOrchestratorTests
         var entitlements = new FakeEntitlementService();
         var promptBuilder = new AIPromptBuilder();
 
+        var budgetResolver = new FakeAIBudgetResolver
+        {
+            Budget = new AIBudget(
+                Model: "test-model",
+                MaximumContextTokens: 32_000,
+                MaximumConversationMessages: 30,
+                MaximumOutputTokens: 4_000,
+                MaximumMessageCharacters: 16_000,
+                TimeoutSeconds: 30,
+                MaximumToolIterations: maxIterations,
+                MaximumToolCallsPerRun: maxToolCalls),
+        };
+
         var orchestrator = new AIOrchestrator(
             conversationService,
             new AIRunService(context, new AICostCalculator(context), redaction),
-            new AIContextBuilder(conversationService, promptBuilder, options),
+            new AIContextBuilder(conversationService, promptBuilder, new AITokenEstimator()),
             registry,
             provider,
             new AIModelRouter(options),
@@ -62,6 +75,7 @@ public class AIOrchestratorTests
             entitlements,
             usage,
             new AIActionService(context, []),
+            budgetResolver,
             options);
 
         return new Harness(orchestrator, context, provider, usage, entitlements, conversation.Id);

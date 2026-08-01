@@ -4,6 +4,7 @@ using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.AI;
 using FitMate.Services.AdminAI;
+using FitMate.Services.Subscriptions;
 using FitMate.Tests.TestInfrastructure;
 
 namespace FitMate.Tests.Unit.Services;
@@ -11,7 +12,7 @@ namespace FitMate.Tests.Unit.Services;
 public class AdminAIServiceTests
 {
     private static AdminAIService CreateService(AppDbContext context) =>
-        new(context, new AIRedactionService());
+        new(context, new AIRedactionService(), new EffectivePlanResolver(context));
 
     private static async Task<(long ConversationId, long RunId)> SeedRunAsync(
         AppDbContext context,

@@ -29,6 +29,7 @@ public class AIOrchestrator : IAIOrchestrator
     private readonly IEntitlementService entitlementService;
     private readonly IUsageService usageService;
     private readonly IAIActionService actionService;
+    private readonly IAIBudgetResolver budgetResolver;
     private readonly AIOptions options;
 
     public AIOrchestrator(
@@ -42,6 +43,7 @@ public class AIOrchestrator : IAIOrchestrator
         IEntitlementService entitlementService,
         IUsageService usageService,
         IAIActionService actionService,
+        IAIBudgetResolver budgetResolver,
         IOptions<AIOptions> options)
     {
         this.conversationService = conversationService;
@@ -54,6 +56,7 @@ public class AIOrchestrator : IAIOrchestrator
         this.entitlementService = entitlementService;
         this.usageService = usageService;
         this.actionService = actionService;
+        this.budgetResolver = budgetResolver;
         this.options = options.Value;
     }
 
@@ -69,12 +72,21 @@ public class AIOrchestrator : IAIOrchestrator
 
         // Plan gate first (403), then quota (429): neither should cost a provider call.
         await entitlementService.RequireFeatureAsync(userId, SubscriptionFeature.AIChat);
+
+        var budget = await budgetResolver.ResolveAsync(userId);
+
+        if (request.Content.Length > budget.MaximumMessageCharacters)
+        {
+            throw new FitMateException(
+                $"That message is too long. Please keep it under {budget.MaximumMessageCharacters:N0} characters.");
+        }
+
         var reservation = await usageService.ReserveAsync(userId, SubscriptionFeature.AIChat, 1);
 
         // Ownership is enforced here, before a run row exists.
         await conversationService.AddUserMessageAsync(conversationId, request.Content, userId);
 
-        var model = modelRouter.ResolveCompletionModel();
+        var model = budget.Model;
         var run = await runService.StartAsync(
             userId,
             conversationId,
@@ -87,7 +99,7 @@ public class AIOrchestrator : IAIOrchestrator
 
         try
         {
-            var messages = await contextBuilder.BuildAsync(conversationId, userId);
+            var messages = await contextBuilder.BuildAsync(conversationId, userId, budget);
             var toolContext = new AIToolContext
             {
                 UserId = userId,
@@ -107,9 +119,9 @@ public class AIOrchestrator : IAIOrchestrator
 
             var totalToolCalls = 0;
 
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(options.TimeoutSeconds));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(budget.TimeoutSeconds));
 
-            for (var iteration = 0; iteration < options.MaximumToolIterations; iteration++)
+            for (var iteration = 0; iteration < budget.MaximumToolIterations; iteration++)
             {
                 var providerResponse = await completionProvider.CompleteAsync(
                     new AICompletionRequest
@@ -117,6 +129,7 @@ public class AIOrchestrator : IAIOrchestrator
                         Messages = messages,
                         Tools = providerTools,
                         Model = model,
+                        MaxOutputTokens = budget.MaximumOutputTokens,
                     },
                     timeout.Token);
 
@@ -143,7 +156,7 @@ public class AIOrchestrator : IAIOrchestrator
                 }
 
                 totalToolCalls += providerResponse.ToolCalls.Count;
-                if (totalToolCalls > options.MaximumToolCallsPerRun)
+                if (totalToolCalls > budget.MaximumToolCallsPerRun)
                 {
                     const string message = "The assistant requested too many tools for a single message.";
                     await runService.MarkLimitExceededAsync(run.Id, "tool_call_limit", message);

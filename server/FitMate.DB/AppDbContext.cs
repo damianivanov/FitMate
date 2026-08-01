@@ -47,6 +47,7 @@ public class AppDbContext : IdentityDbContext<User, Role, long>, IDataProtection
     public DbSet<AIToolExecution> AIToolExecutions => Set<AIToolExecution>();
     public DbSet<UserAIPreferences> UserAIPreferences => Set<UserAIPreferences>();
     public DbSet<AIModelPricing> AIModelPricings => Set<AIModelPricing>();
+    public DbSet<AISettings> AISettings => Set<AISettings>();
     public DbSet<AIAction> AIActions => Set<AIAction>();
     public DbSet<UnsupportedAIRequest> UnsupportedAIRequests => Set<UnsupportedAIRequest>();
     public DbSet<UnsupportedAIRequestOccurrence> UnsupportedAIRequestOccurrences => Set<UnsupportedAIRequestOccurrence>();

@@ -1,6 +1,7 @@
 using FitMate.Core.JsonModels.AdminAI;
 using FitMate.DB;
 using FitMate.Services.AdminAI;
+using FitMate.Services.AI;
 using FitMate.Services.Users;
 using FitMate.Web.Attributes;
 using FitMate.Web.Controllers.Base;
@@ -15,17 +16,41 @@ public class AdminAIController : BaseApiController
 {
     private readonly IAdminAIService adminAIService;
     private readonly IAdminUnsupportedRequestService unsupportedRequestService;
+    private readonly IAISettingsService settingsService;
 
     public AdminAIController(
         ILogger<BaseApiController> logger,
         AppDbContext dbContext,
         IUserService userService,
         IAdminAIService adminAIService,
-        IAdminUnsupportedRequestService unsupportedRequestService)
+        IAdminUnsupportedRequestService unsupportedRequestService,
+        IAISettingsService settingsService)
         : base(logger, dbContext, userService)
     {
         this.adminAIService = adminAIService;
         this.unsupportedRequestService = unsupportedRequestService;
+        this.settingsService = settingsService;
+    }
+
+    [HttpGet("settings")]
+    public async Task<ActionResult> GetSettings()
+    {
+        var settings = await settingsService.GetAsync();
+        return this.ReturnJson(settings);
+    }
+
+    [HttpPut("settings")]
+    public async Task<ActionResult> SaveSettings([FromBody] SaveAISettingsRequest request)
+    {
+        var settings = await settingsService.SaveAsync(request);
+        return this.ReturnJson(settings);
+    }
+
+    [HttpGet("costs/users")]
+    public async Task<ActionResult> GetUserCosts([FromQuery] AIUserCostQueryRequest request)
+    {
+        var costs = await adminAIService.GetUserCostsAsync(request);
+        return this.ReturnJson(costs);
     }
 
     [HttpGet("overview")]

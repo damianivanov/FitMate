@@ -1,38 +1,40 @@
 import { NavLink } from "react-router";
+import { LuDumbbell, LuPlus } from "react-icons/lu";
 import { useUserStore } from "@/stores/userStore";
 import {
   selectIsActiveWorkout,
   selectIsWorkoutRunning,
   useActiveWorkoutStore,
 } from "@/stores/activeWorkoutStore";
-import { mobileBottomNavItems } from "./navigation";
+import { mobileTabItems, type NavItem } from "./navigation";
 
 type MobileBottomNavProps = {
   onNavigate: () => void;
 };
 
-const baseBottomNavLinkClassName =
-  "flex h-10 w-10 items-center justify-center rounded-full transition active:scale-90";
+const leadingTabItems = mobileTabItems.slice(0, 2);
+const trailingTabItems = mobileTabItems.slice(2);
 
-const bottomNavLinkClassName = `${baseBottomNavLinkClassName} text-amber-50/75`;
+function BottomTab({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+  const Icon = item.icon;
 
-const activeBottomNavLinkClassName = `${baseBottomNavLinkClassName} text-primary ring-1 ring-inset ring-primary/25`;
-
-const primaryActionBottomNavLinkClassName = [
-  "liquid-press flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white transition",
-  "ring-1 ring-primary-300/45 shadow-[0_10px_24px_rgba(var(--primary-rgb),0.26)]",
-].join(" ");
-
-function getBottomNavLinkClassName(isActive: boolean, isPrimaryAction = false): string {
-  if (isPrimaryAction) {
-    return primaryActionBottomNavLinkClassName;
-  }
-
-  return isActive ? activeBottomNavLinkClassName : bottomNavLinkClassName;
-}
-
-function getBottomNavIconClassName(): string {
-  return "h-5 w-5";
+  return (
+    <li className="flex justify-center">
+      <NavLink
+        to={item.to}
+        end={item.end}
+        onClick={onNavigate}
+        aria-label={item.label}
+        title={item.label}
+        className={({ isActive }) =>
+          `liquid-bottom-tab liquid-press ${isActive ? "liquid-bottom-tab-active" : ""}`}
+      >
+        {({ isActive }) => (
+          <Icon className="h-5 w-5" strokeWidth={isActive ? 2.6 : 1.9} />
+        )}
+      </NavLink>
+    </li>
+  );
 }
 
 export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
@@ -46,54 +48,39 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
     return null;
   }
 
+  const actionLabel = isWorkoutActive ? "Resume workout" : "Start workout";
+  const ActionIcon = isWorkoutActive ? LuDumbbell : LuPlus;
+
   return (
     <nav
-      aria-label="Mobile primary navigation"
+      aria-label="Primary"
       className="liquid-mobile-bottom-nav-shell pointer-events-none fixed inset-x-0 bottom-0 z-[var(--z-nav)] px-3 md:hidden"
     >
-      <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto h-14 w-full max-w-lg rounded-full px-2">
-        <ul className="grid h-full grid-cols-5 place-items-center">
-          {mobileBottomNavItems.map((item) => {
-            const Icon = item.icon;
+      <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto w-full max-w-lg rounded-full px-1.5 py-1.5">
+        <ul className="grid grid-cols-5">
+          {leadingTabItems.map((item) => (
+            <BottomTab key={item.to} item={item} onNavigate={onNavigate} />
+          ))}
 
-            // The center dumbbell button represents the active workout: it expands a
-            // running one (blinking while active) or starts a new one.
-            if (item.isPrimaryAction) {
-              return (
-                <li key={item.to}>
-                  <button
-                    type="button"
-                    onClick={() => (isWorkoutActive ? expand() : openNewWorkout())}
-                    aria-label={isWorkoutActive ? "Resume workout" : "Start workout"}
-                    className={[
-                      getBottomNavLinkClassName(false, true),
-                      isWorkoutRunning ? "liquid-dumbbell-active" : "",
-                    ].join(" ")}
-                  >
-                    <Icon className={getBottomNavIconClassName()} strokeWidth={2} />
-                  </button>
-                </li>
-              );
-            }
+          <li className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => (isWorkoutActive ? expand() : openNewWorkout())}
+              aria-label={actionLabel}
+              title={actionLabel}
+              className="liquid-bottom-tab liquid-press"
+            >
+              <span
+                className={`liquid-bottom-action ${isWorkoutRunning ? "liquid-dumbbell-active" : ""}`}
+              >
+                <ActionIcon className="h-6 w-6" strokeWidth={2.25} />
+              </span>
+            </button>
+          </li>
 
-            return (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  onClick={onNavigate}
-                  aria-label={item.label}
-                  className={({ isActive }) =>
-                    getBottomNavLinkClassName(isActive, item.isPrimaryAction)}
-                >
-                  <Icon
-                    className={getBottomNavIconClassName()}
-                    strokeWidth={2}
-                  />
-                </NavLink>
-              </li>
-            );
-          })}
+          {trailingTabItems.map((item) => (
+            <BottomTab key={item.to} item={item} onNavigate={onNavigate} />
+          ))}
         </ul>
       </div>
     </nav>

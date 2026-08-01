@@ -44,6 +44,12 @@ public class EntitlementService : IEntitlementService
         return resolved.Plan.Entitlements.FirstOrDefault(x => x.Feature == feature);
     }
 
+    public async Task<AIModelTier?> GetAIModelTierAsync(long userId)
+    {
+        var resolved = await ResolvePlanAsync(userId);
+        return resolved.Plan.AIModelTier;
+    }
+
     public async Task<FeatureAvailabilityModel> GetAvailabilityAsync(long userId, SubscriptionFeature feature)
     {
         var resolved = await ResolvePlanAsync(userId);

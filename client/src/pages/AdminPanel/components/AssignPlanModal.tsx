@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { LuBadgeCheck, LuLoaderCircle } from "react-icons/lu";
 import { Modal } from "@/shared/components";
+import { Dropdown } from "@/shared/components/Inputs";
 import type { AssignPlanOverrideRequest, SubscriptionPlanAdminModel } from "@/types";
 
 export type AssignPlanTarget = {
@@ -7,6 +9,8 @@ export type AssignPlanTarget = {
   email: string | null;
   currentPlanName: string;
 };
+
+const labelClassName = "mb-2 block text-xs font-semibold uppercase tracking-widest text-muted";
 
 type AssignPlanFormProps = {
   target: AssignPlanTarget;
@@ -16,79 +20,101 @@ type AssignPlanFormProps = {
   onClose: () => void;
 };
 
-/** Mounted per user (see the `key` below), so the form never carries the previous one's input. */
 function AssignPlanForm({ target, plans, isSaving, onSave, onClose }: AssignPlanFormProps) {
-  const [planCode, setPlanCode] = useState(plans[0]?.code ?? "");
+  const [planCode, setPlanCode] = useState<string | null>(plans[0]?.code ?? null);
   const [reason, setReason] = useState("");
   const [endsAt, setEndsAt] = useState("");
 
-  const canSave = planCode !== "" && reason.trim() !== "" && !isSaving;
+  const options = useMemo(
+    () => plans.map((plan) => ({ label: plan.name, value: plan.code })),
+    [plans],
+  );
+
+  const canSave = planCode !== null && reason.trim() !== "" && !isSaving;
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSave || planCode === null) {
+      return;
+    }
+
+    void onSave({
+      planCode,
+      reason: reason.trim(),
+      endsAt: endsAt ? new Date(`${endsAt}T23:59:59Z`).toISOString() : undefined,
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted">
-        {target.email ?? `User ${target.userId}`} is currently on {target.currentPlanName}.
-      </p>
+    <form onSubmit={handleSubmit} className="px-5 py-5">
+      <div className="liquid-pill flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
+        <span className="min-w-0 truncate text-sm text-foreground">
+          {target.email ?? `User ${target.userId}`}
+        </span>
+        <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-muted">
+          {target.currentPlanName}
+        </span>
+      </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-foreground">Plan</span>
-        <select
+      <div className="mt-5">
+        <Dropdown
+          label="Plan"
+          required
           value={planCode}
-          onChange={(event) => setPlanCode(event.target.value)}
-          className="liquid-input rounded-xl px-3 py-2.5"
-        >
-          {plans.map((plan) => (
-            <option key={plan.id} value={plan.code}>
-              {plan.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={options}
+          onChange={(value) => setPlanCode(value)}
+          placeholder="Select a plan"
+        />
+      </div>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-foreground">Reason</span>
+      <label className="mt-4 block">
+        <span className={labelClassName}>Reason</span>
         <input
+          type="text"
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Support case, trial, staff account..."
-          className="liquid-input rounded-xl px-3 py-2.5"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setReason(event.target.value)}
+          placeholder="Support case, trial, staff account…"
+          autoFocus
+          className="liquid-input w-full rounded-xl px-4 py-3 text-sm text-foreground"
         />
       </label>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-foreground">Ends at (optional)</span>
+      <label className="mt-4 block">
+        <span className={labelClassName}>Ends at</span>
         <input
           type="date"
           value={endsAt}
-          onChange={(event) => setEndsAt(event.target.value)}
-          className="liquid-input rounded-xl px-3 py-2.5"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setEndsAt(event.target.value)}
+          className="liquid-input w-full rounded-xl px-4 py-3 text-sm text-foreground"
         />
+        <span className="mt-2 block text-xs text-tertiary">
+          Leave empty for an override that does not expire.
+        </span>
       </label>
 
-      <div className="flex justify-end gap-2">
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={onClose}
-          className="liquid-pill rounded-full px-4 py-2.5 text-sm font-semibold"
+          disabled={isSaving}
+          className="liquid-pill inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-full px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           Cancel
         </button>
         <button
-          type="button"
+          type="submit"
           disabled={!canSave}
-          onClick={() =>
-            void onSave({
-              planCode,
-              reason: reason.trim(),
-              endsAt: endsAt ? new Date(`${endsAt}T23:59:59Z`).toISOString() : undefined,
-            })
-          }
-          className="liquid-primary-btn rounded-full px-4 py-2.5 text-sm font-semibold disabled:opacity-40"
+          className="liquid-primary-btn inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          {isSaving ? "Saving..." : "Assign"}
+          {isSaving ? (
+            <LuLoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <LuBadgeCheck className="h-4 w-4" />
+          )}
+          <span>{isSaving ? "Assigning" : "Assign plan"}</span>
         </button>
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -108,7 +134,13 @@ export function AssignPlanModal({
   onClose,
 }: AssignPlanModalProps) {
   return (
-    <Modal isOpen={target != null} onClose={onClose} title="Assign a plan" maxWidth="lg">
+    <Modal
+      isOpen={target != null}
+      onClose={onClose}
+      title="Assign a plan"
+      titleIcon={<LuBadgeCheck className="h-5 w-5" />}
+      maxWidth="md"
+    >
       {target ? (
         <AssignPlanForm
           key={target.userId}

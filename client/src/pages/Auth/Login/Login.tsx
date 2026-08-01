@@ -66,70 +66,72 @@ export default function Login() {
   };
 
   return (
-    <div className="w-full flex-1 flex items-center justify-center px-5 py-8">
-      <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold text-primary">Welcome Back</h1>
-        </div>
-
-        <form className="space-y-4" onSubmit={onSubmit} autoComplete="on">
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            value={email}
-            onChange={handleEmailChange}
-            autoComplete="username"
-            inputMode="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            className="liquid-input w-full rounded-full px-3 py-2.5"
-          />
-
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            value={password}
-            onChange={handlePasswordChange}
-            autoComplete="current-password"
-            className="liquid-input w-full rounded-full px-3 py-2.5"
-          />
-
-          {error && <p className="text-sm text-danger">{error}</p>}
-
-          <PrimaryButton type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? "Signing in..." : "Sign In"}
-          </PrimaryButton>
-
-          <div className="flex justify-between text-sm">
-            <Link to="/forgot-password" className="liquid-link">
-              Forgot password?
-            </Link>
-            
-            <Link to="/register" className="liquid-link">
-              Create account
-            </Link>            
+    <div className="w-full flex-1 flex flex-col px-5 py-8">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="liquid-surface w-full max-w-md rounded-3xl p-6 md:p-7 space-y-5">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-extrabold text-primary">Welcome Back</h1>
           </div>
-        </form>
 
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-current opacity-10" />
-          <span className="text-xs font-medium uppercase tracking-wide text-tertiary">or</span>
-          <span className="h-px flex-1 bg-current opacity-10" />
+          <form className="space-y-4" onSubmit={onSubmit} autoComplete="on">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={handleEmailChange}
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="liquid-input w-full rounded-full px-3 py-2.5"
+            />
+
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={password}
+              onChange={handlePasswordChange}
+              autoComplete="current-password"
+              className="liquid-input w-full rounded-full px-3 py-2.5"
+            />
+
+            {error && <p className="text-sm text-danger">{error}</p>}
+
+            <PrimaryButton type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? "Signing in..." : "Sign In"}
+            </PrimaryButton>
+
+            <div className="flex justify-between text-sm">
+              <Link to="/forgot-password" className="liquid-link">
+                Forgot password?
+              </Link>
+            
+              <Link to="/register" className="liquid-link">
+                Create account
+              </Link>            
+            </div>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-current opacity-10" />
+            <span className="text-xs font-medium uppercase tracking-wide text-tertiary">or</span>
+            <span className="h-px flex-1 bg-current opacity-10" />
+          </div>
+
+          <GoogleSignInButton onError={setError} />
         </div>
-
-        <GoogleSignInButton onError={setError} />
-
-        <p className="text-xs text-tertiary text-center">
-          <Link to="/legal" className="liquid-link">
-            Terms, Privacy &amp; Cookies
-          </Link>
-        </p>
       </div>
+
+      <p className="pt-8 text-center text-xs text-tertiary">
+        <Link to="/legal" className="liquid-link">
+          Terms, Privacy &amp; Cookies
+        </Link>
+      </p>
     </div>
   );
 }

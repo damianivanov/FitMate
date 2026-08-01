@@ -7,6 +7,10 @@ import type {
   AIConversationListItemModel,
   AIConversationQueryRequest,
   AICostSummaryModel,
+  AISettingsModel,
+  AIUserCostBreakdownModel,
+  AIUserCostQueryRequest,
+  SaveAISettingsRequest,
   AIRunQueryRequest,
   AIAdminUsageSummaryModel,
   AssignPlanOverrideRequest,
@@ -110,6 +114,20 @@ export const adminService = {
 
     async costs(days: number) {
       return api.get<JsonData<AICostSummaryModel>>("admin/ai/costs", { params: { days } });
+    },
+
+    async userCosts(params: AIUserCostQueryRequest) {
+      return api.get<JsonData<PagedResponse<AIUserCostBreakdownModel>>>("admin/ai/costs/users", {
+        params,
+      });
+    },
+
+    async settings() {
+      return api.get<JsonData<AISettingsModel>>("admin/ai/settings");
+    },
+
+    async saveSettings(payload: SaveAISettingsRequest) {
+      return api.put<JsonData<AISettingsModel>>("admin/ai/settings", payload);
     },
   },
 

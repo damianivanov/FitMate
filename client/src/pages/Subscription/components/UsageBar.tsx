@@ -1,17 +1,5 @@
-import { SubscriptionFeature, type FeatureAvailabilityModel } from "@/types";
-
-const FEATURE_LABELS: Record<number, string> = {
-  [SubscriptionFeature.AIChat]: "AI chat messages",
-  [SubscriptionFeature.AIWorkoutGeneration]: "AI workout generation",
-  [SubscriptionFeature.AIProgramGeneration]: "AI program generation",
-  [SubscriptionFeature.AIExerciseRecognition]: "Exercise recognition",
-  [SubscriptionFeature.AIImageGeneration]: "AI image generation",
-  [SubscriptionFeature.AITrainingAnalysis]: "AI training analysis",
-  [SubscriptionFeature.ActiveProgramPlans]: "Active program plans",
-  [SubscriptionFeature.ProgramPlanDurationMonths]: "Program length (months)",
-  [SubscriptionFeature.CustomWorkoutTemplates]: "Custom workout templates",
-  [SubscriptionFeature.ExerciseHistoryMonths]: "Exercise history (months)",
-};
+import type { FeatureAvailabilityModel } from "@/types";
+import { FEATURE_LABELS } from "./features";
 
 type UsageBarProps = {
   availability: FeatureAvailabilityModel;

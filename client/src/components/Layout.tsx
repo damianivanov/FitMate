@@ -9,7 +9,9 @@ export default function Layout() {
   const { userLoaded, isAuthenticated } = useUserStore();
   const isBannerOpen = useConsentStore((state) => state.isBannerOpen);
   const isReadyAuthenticated = userLoaded && isAuthenticated;
-  const bannerClearanceClassName = isBannerOpen ? "pb-40 md:pb-28" : "";
+  const bannerClearanceClassName = isBannerOpen
+    ? "liquid-main-shell-banner-open pb-40 md:pb-28"
+    : "";
 
   if (isReadyAuthenticated) {
     return (

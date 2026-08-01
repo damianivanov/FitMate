@@ -42,14 +42,14 @@ export function WorkoutSheet({
   const [isEntered, setIsEntered] = useState(false);
   const [reduceMotion] = useState(prefersReducedMotion);
 
+  const isOpen = status === WorkoutSheetStatus.Open;
+  const isMinimized = status === WorkoutSheetStatus.Minimized;
+
   const { isDragging, dragHandlers } = useDragToMinimize({
     sheetRef,
     onMinimize,
-    disabled: reduceMotion,
+    disabled: reduceMotion || isMinimized,
   });
-
-  const isOpen = status === WorkoutSheetStatus.Open;
-  const isMinimized = status === WorkoutSheetStatus.Minimized;
 
   // Double-rAF so the panel mounts at translateY(100%) and then animates up to 0.
   useEffect(() => {
@@ -99,7 +99,9 @@ export function WorkoutSheet({
     }
   }, [isOpen, isEntered]);
 
-  const translatePercent = isMinimized || !isEntered ? 100 : 0;
+  // Slides down out of view to minimize and back up to open; the tab bar's action button is
+  // what brings it back.
+  const transform = isMinimized || !isEntered ? "translateY(100%)" : "translateY(0)";
 
   if (typeof document === "undefined") {
     return null;
@@ -109,6 +111,8 @@ export function WorkoutSheet({
     <div
       className={[
         "fixed inset-0 z-[var(--z-sheet)] md:hidden",
+        // The container spans the viewport, so it must stay transparent to taps while parked;
+        // the panel below re-enables them over the peek only.
         isMinimized ? "pointer-events-none" : "",
       ].join(" ")}
       aria-hidden={isMinimized ? true : undefined}
@@ -128,20 +132,15 @@ export function WorkoutSheet({
         aria-modal={isOpen ? true : undefined}
         aria-label="Workout in progress"
         tabIndex={-1}
-        className="liquid-workout-sheet absolute inset-0 flex flex-col outline-none"
-        style={
-          isDragging
-            ? { transition: "none" }
-            : { transform: `translateY(${translatePercent}%)` }
-        }
+        // `top` comes from --sheet-open-inset in CSS, so the box is sized once.
+        className="liquid-workout-sheet absolute inset-x-0 bottom-0 flex flex-col outline-none"
+        style={isDragging ? { transition: "none" } : { transform }}
       >
         <div
           {...dragHandlers}
-          style={{
-            touchAction: "none",
-            paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.875rem)",
-          }}
-          className="flex shrink-0 cursor-grab items-center justify-center pb-2.5 active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+          // The sheet already starts below the status bar, so the handle needs no inset.
+          className="flex shrink-0 cursor-grab items-center justify-center pt-3.5 pb-2.5 active:cursor-grabbing"
         >
           <span className="liquid-sheet-handle" aria-hidden="true" />
         </div>

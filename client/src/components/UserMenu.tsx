@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { LuCookie, LuLogOut, LuMenu, LuMoon, LuScale, LuShield, LuSun, LuUserRound } from "react-icons/lu";
+import { LuCookie, LuLogOut, LuMenu, LuMoon, LuScale, LuSun } from "react-icons/lu";
 import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
-import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useConsentStore } from "@/stores/consentStore";
 import { useThemeStore } from "@/stores/themeStore";
 import type { User } from "@/types";
@@ -25,7 +24,6 @@ export default function UserMenu({
 
   const { theme, toggleTheme } = useThemeStore();
   const reopenBanner = useConsentStore((state) => state.reopenBanner);
-  const isAdminUser = hasAdminRole(user);
   const isLightMode = theme === "light";
   const displayName = buildDisplayName(user.firstName, user.lastName) || user.email;
   const initials = buildInitials(user.firstName, user.lastName, user.email);
@@ -39,16 +37,6 @@ export default function UserMenu({
 
   const handleCloseMenu = () => {
     setIsOpen(false);
-  };
-
-  const handleProfileClick = () => {
-    onNavigate();
-    handleCloseMenu();
-  };
-
-  const handleAdminClick = () => {
-    onNavigate();
-    handleCloseMenu();
   };
 
   const handleLogoutClick = () => {
@@ -136,31 +124,9 @@ export default function UserMenu({
           </div>
 
           <Link
-            to="/profile"
-            onClick={handleProfileClick}
-            className="liquid-nav-item mt-1 flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
-            role="menuitem"
-          >
-            <LuUserRound className="h-4 w-4" />
-            Profile
-          </Link>
-
-          {isAdminUser ? (
-            <Link
-              to="/management"
-              onClick={handleAdminClick}
-              className="liquid-nav-item flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
-              role="menuitem"
-            >
-              <LuShield className="h-4 w-4" />
-              Admin
-            </Link>
-          ) : null}
-
-          <Link
             to="/legal"
             onClick={handleLegalClick}
-            className="liquid-nav-item flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
+            className="liquid-nav-item mt-1 flex items-center gap-2.5 rounded-full px-3 py-2.5 text-sm font-medium"
             role="menuitem"
           >
             <LuScale className="h-4 w-4" />

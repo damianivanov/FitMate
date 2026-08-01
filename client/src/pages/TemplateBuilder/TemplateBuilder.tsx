@@ -86,7 +86,7 @@ export default function TemplateBuilder() {
         saveTemplateLabel={state.saveTemplateLabel}
       />
 
-      <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6">
+      <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-6 pt-4 md:px-8 md:pt-6">
         {state.isBuilderLoading ? (
           <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
             <p className="text-sm font-semibold text-foreground">Loading template...</p>

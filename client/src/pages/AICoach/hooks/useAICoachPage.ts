@@ -41,49 +41,51 @@ export function useAICoachPage() {
     }
   }, []);
 
-  const startConversation = useCallback(async () => {
+  // A new chat is an empty slate, not a row in the database: `send` creates the thread once
+  // the user actually has something to ask. Otherwise every visit leaves an empty conversation.
+  const startConversation = useCallback(() => {
     setError(null);
-    try {
-      const response = await aiService.createConversation();
-      setActiveConversation(unwrap(response.data, "Unable to start a conversation."));
-      await loadConversations();
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Unable to start a conversation.");
-    }
-  }, [loadConversations]);
+    setActions([]);
+    setActiveConversation(null);
+  }, []);
 
   const send = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
-      if (!activeConversation || !trimmed) {
+      if (!trimmed || isSending) {
         return;
       }
 
-      // Show the user's message immediately; the reload after the reply reconciles ids.
-      const optimistic: AIMessageModel = {
-        id: -Date.now(),
-        role: AIMessageRole.User,
-        content: trimmed,
-        toolName: undefined,
-        dateCreated: new Date().toISOString(),
-      };
-
-      setActiveConversation({
-        ...activeConversation,
-        messages: [...activeConversation.messages, optimistic],
-      });
       setIsSending(true);
       setActiveTools([]);
       setError(null);
 
       try {
-        const response = await aiService.sendMessage(activeConversation.id, { content: trimmed });
+        // Sending is the only entry point a user needs: the first message opens the thread.
+        let target = activeConversation;
+        if (!target) {
+          const created = await aiService.createConversation();
+          target = unwrap(created.data, "Unable to start a conversation.");
+        }
+
+        // Show the user's message immediately; the reload after the reply reconciles ids.
+        const optimistic: AIMessageModel = {
+          id: -Date.now(),
+          role: AIMessageRole.User,
+          content: trimmed,
+          toolName: undefined,
+          dateCreated: new Date().toISOString(),
+        };
+
+        setActiveConversation({ ...target, messages: [...target.messages, optimistic] });
+
+        const response = await aiService.sendMessage(target.id, { content: trimmed });
         const result = unwrap(response.data, "The assistant could not answer.");
 
         setActiveTools(result.usedTools);
         setUsage(result.usage);
         setActions((current) => [...current, ...result.actions]);
-        await openConversation(activeConversation.id, true);
+        await openConversation(target.id, true);
         await loadConversations();
       } catch (sendError) {
         setError(
@@ -95,7 +97,7 @@ export function useAICoachPage() {
         setIsSending(false);
       }
     },
-    [activeConversation, loadConversations, openConversation],
+    [activeConversation, isSending, loadConversations, openConversation],
   );
 
   // Confirm and reject share everything except the call, so they run through one helper.

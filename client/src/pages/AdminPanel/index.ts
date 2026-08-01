@@ -6,4 +6,6 @@ export { default as UserGrid } from "./UserGrid";
 export { default as AIOverview } from "./AIOverview";
 export { default as AIConversationGrid } from "./AIConversationGrid";
 export { default as UnsupportedRequestGrid } from "./UnsupportedRequestGrid";
+export { default as AISettings } from "./AISettings";
+export { default as AIUserCosts } from "./AIUserCosts";
 export { default as SubscriptionAdmin } from "./SubscriptionAdmin";

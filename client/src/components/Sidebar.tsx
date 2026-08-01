@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
-import { LuMenu, LuX } from "react-icons/lu";
+import { LuMenu, LuPlus, LuX } from "react-icons/lu";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { useUserStore } from "@/stores/userStore";
 import MobileBottomNav from "./MobileBottomNav";
@@ -9,7 +9,7 @@ import UserMenu from "./UserMenu";
 
 function getPrimaryItemClassName(isActive: boolean): string {
   const baseClassName =
-    "liquid-nav-item flex w-full items-center gap-3.5 rounded-full border border-transparent px-4 py-3.5 text-left text-sm transition";
+    "liquid-nav-item flex w-full items-center gap-3.5 rounded-full border border-transparent px-4 py-3 text-left text-sm transition";
   const stateClassName = isActive
     ? "liquid-nav-item-active font-semibold"
     : "font-medium";
@@ -18,7 +18,10 @@ function getPrimaryItemClassName(isActive: boolean): string {
 }
 
 const iconButtonClassName =
-  "liquid-pill inline-flex h-10 w-10 items-center justify-center rounded-full transition";
+  "liquid-pill inline-flex h-11 w-11 items-center justify-center rounded-full transition";
+
+const sectionLabelClassName =
+  "px-4 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-tertiary";
 
 type PrimaryNavItemsProps = {
   isAdminUser: boolean;
@@ -27,7 +30,7 @@ type PrimaryNavItemsProps = {
 
 function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
   return (
-    <div className="space-y-4 pt-8">
+    <nav aria-label="Sections" className="space-y-6">
       {navSections.map((section) => {
         const visibleItems = section.items.filter(
           (item) => !item.requiresAdmin || isAdminUser,
@@ -38,11 +41,9 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
         }
 
         return (
-          <section key={section.section}>
-            <p className="px-2 text-xs font-bold uppercase tracking-[0.3em] text-primary">
-              {section.section}
-            </p>
-            <div className="mt-2 space-y-1.5">
+          <div key={section.section}>
+            <p className={sectionLabelClassName}>{section.section}</p>
+            <div className="mt-2 space-y-1">
               {visibleItems.map((item) => {
                 const Icon = item.icon;
 
@@ -54,30 +55,39 @@ function PrimaryNavItems({ isAdminUser, onNavigate }: PrimaryNavItemsProps) {
                     onClick={onNavigate}
                     className={({ isActive }) => getPrimaryItemClassName(isActive)}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5 shrink-0" />
                     <span>{item.label}</span>
                   </NavLink>
                 );
               })}
             </div>
-          </section>
+          </div>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
 function AppLogo() {
   return (
     <Link to="/" className="flex items-center gap-3">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-700 text-xl font-extrabold text-white shadow-[0_8px_30px_rgba(255,115,55,.12)]">
-        FM
-      </div>
       <div>
         <p className="text-2xl font-bold tracking-tight text-foreground">
           Fit<span className="text-primary ps-0.5">Mate</span>
         </p>
       </div>
+    </Link>
+  );
+}
+
+function StartWorkoutButton() {
+  return (
+    <Link
+      to="/workouts/new"
+      className="liquid-primary-btn inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold"
+    >
+      <LuPlus className="h-4 w-4" />
+      Start workout
     </Link>
   );
 }
@@ -112,8 +122,17 @@ function AuthenticatedNav() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMobileOpen]);
 
@@ -123,9 +142,16 @@ function AuthenticatedNav() {
         <div className="liquid-sidebar-panel h-full px-3 py-6">
           <div className="relative z-10 flex h-full flex-col">
             <AppLogo />
-            <PrimaryNavItems isAdminUser={isAdminUser} onNavigate={handleNavigate} />
 
-            <div className="mt-auto">
+            <div className="mt-6">
+              <StartWorkoutButton />
+            </div>
+
+            <div className="liquid-scrollbar mt-6 min-h-0 flex-1 overflow-y-auto">
+              <PrimaryNavItems isAdminUser={isAdminUser} onNavigate={handleNavigate} />
+            </div>
+
+            <div className="mt-4">
               <UserMenu user={user} onNavigate={handleNavigate} onLogout={handleLogout} />
             </div>
           </div>
@@ -155,7 +181,10 @@ function AuthenticatedNav() {
             onClick={handleCloseMobile}
             aria-label="Close navigation overlay"
           />
-          <aside className="liquid-sidebar-panel relative h-full w-[84vw] max-w-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
+          <aside
+            aria-label="All pages"
+            className="liquid-sidebar-panel relative h-full w-[84vw] max-w-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
+          >
             <div className="relative z-10 flex h-full flex-col">
               <div className="flex items-center justify-between">
                 <AppLogo />
@@ -169,15 +198,16 @@ function AuthenticatedNav() {
                 </button>
               </div>
 
-              <div className="mt-2 flex h-[calc(100%-5rem)] flex-col overflow-y-auto overflow-x-visible">
+              <div className="liquid-scrollbar mt-6 min-h-0 flex-1 overflow-y-auto">
                 <PrimaryNavItems isAdminUser={isAdminUser} onNavigate={handleNavigate} />
-                <div className="mt-auto">
-                  <UserMenu
-                    user={user}
-                    onNavigate={handleNavigate}
-                    onLogout={handleLogout}
-                  />
-                </div>
+              </div>
+
+              <div className="mt-4">
+                <UserMenu
+                  user={user}
+                  onNavigate={handleNavigate}
+                  onLogout={handleLogout}
+                />
               </div>
             </div>
           </aside>

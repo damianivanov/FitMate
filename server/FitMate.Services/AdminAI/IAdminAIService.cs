@@ -18,4 +18,7 @@ public interface IAdminAIService
     Task<AIAdminUsageSummaryModel> GetUsageAsync(DateOnly? periodStart);
 
     Task<AICostSummaryModel> GetCostsAsync(int days);
+
+    /// <summary>Per-user token spend over the window, each row broken down by model.</summary>
+    Task<PagedResponse<AIUserCostBreakdownModel>> GetUserCostsAsync(AIUserCostQueryRequest request);
 }

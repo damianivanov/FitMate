@@ -246,7 +246,7 @@ export default function WorkoutBuilder({
         className={
           isSheet
             ? "px-4 pb-24 pt-4"
-            : "liquid-scrollbar flex-1 overflow-y-auto px-3 pb-24 pt-4 md:px-8 md:pb-6 md:pt-6"
+            : "liquid-scrollbar flex-1 overflow-y-auto px-3 pb-6 pt-4 md:px-8 md:pt-6"
         }
       >
         <div className="w-full space-y-6">

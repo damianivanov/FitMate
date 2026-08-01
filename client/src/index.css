@@ -631,13 +631,55 @@ textarea { resize: none; }
 .liquid-sidebar { border-right: 1px solid var(--glass-border); }
 .liquid-mobile-header { border-bottom: 1px solid var(--glass-border); }
 
+/* TEST — the top bar borrows the tab bar's material in dark mode, so the two edges of the
+   screen read as one object. Light mode already shares --glass-bg-nav with it. Delete this
+   block to go back. */
+.dark .liquid-mobile-header {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.04)),
+    linear-gradient(120deg, rgba(16, 16, 24, 0.74), rgba(30, 32, 46, 0.68), rgba(var(--primary-rgb), 0.12));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 18px 38px rgba(8, 10, 18, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px) saturate(1.3);
+  -webkit-backdrop-filter: blur(8px) saturate(1.3);
+}
+
+/* The tab bar has no gloss overlay; leaving it on would stop the two matching. */
+.dark .liquid-mobile-header::before {
+  background: none;
+}
+
 .liquid-mobile-bottom-nav-shell {
   /* Floating pill, sat low: a small gap above the bottom edge (+ the home-indicator inset
      when it's live). NOT a big lift — that's what read as "pushed up". */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
 }
 
+/* Light: the same glass material as the mobile header, so the bar belongs to the app instead
+   of floating over it as the one dark chip. Ink is tokenised per theme; the tab rules below
+   never need to know which theme is live. */
 .liquid-mobile-bottom-nav {
+  --bottom-nav-ink: var(--text-tertiary);
+  --bottom-nav-ink-active: #b8420e;
+  --bottom-nav-action: linear-gradient(140deg, #fd7c3c, #d9490b);
+  --bottom-nav-action-glow: 0 10px 26px rgba(235, 98, 38, 0.38);
+
+  border: 1px solid var(--glass-border-strong);
+  background: var(--glass-bg-nav);
+  box-shadow: var(--glass-shadow), var(--glass-specular-nav);
+  backdrop-filter: var(--glass-blur-nav);
+  -webkit-backdrop-filter: var(--glass-blur-nav);
+}
+
+.dark .liquid-mobile-bottom-nav {
+  --bottom-nav-ink: rgba(255, 255, 255, 0.74);
+  --bottom-nav-ink-active: var(--color-primary);
+  --bottom-nav-action: linear-gradient(140deg, rgba(var(--primary-rgb), 0.98), rgba(var(--primary-rgb), 0.76));
+  --bottom-nav-action-glow: 0 10px 24px rgba(var(--primary-rgb), 0.3);
+
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.04)),
@@ -650,10 +692,77 @@ textarea { resize: none; }
   -webkit-backdrop-filter: blur(8px) saturate(1.3);
 }
 
+/* Icon-only tab. The link itself is the 44px touch target. */
+.liquid-bottom-tab {
+  display: flex;
+  height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--bottom-nav-ink);
+  transition: color 180ms var(--ease-out);
+}
+
+/* Current tab: accent colour, backed by a heavier icon stroke so the state does not rest
+   on hue alone. No fill — the solid accent circle stays unique to the action button. */
+.liquid-bottom-tab-active {
+  color: var(--bottom-nav-ink-active);
+}
+
+.liquid-bottom-action {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: var(--bottom-nav-action);
+  box-shadow: var(--bottom-nav-action-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* Every mobile page scrolls inside .liquid-main-shell, so the clearance for the floating tab
+   bar belongs there — not on one particular child. Pages that build their own scroll region
+   (the builders, the coach) inherit it without opting in. */
 @media (max-width: 767px) {
-  .liquid-main-shell > .liquid-scrollbar {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);
+  .liquid-main-shell {
+    padding-bottom: var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6rem));
   }
+}
+
+/* The cookie banner stacks on top of the tab bar, so it raises the same variable rather than
+   fighting the rule above with a utility class. */
+.liquid-main-shell-banner-open {
+  --mobile-bottom-clearance: calc(env(safe-area-inset-bottom, 0px) + 13rem);
+}
+
+/* ----------------------------------------------------------------
+   CHAT COMPOSER (AI coach)
+---------------------------------------------------------------- */
+
+.liquid-composer {
+  border: 1px solid var(--glass-border-strong);
+  background: var(--glass-bg-input);
+  backdrop-filter: var(--glass-blur-input);
+  -webkit-backdrop-filter: var(--glass-blur-input);
+  box-shadow: var(--glass-shadow);
+  transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.liquid-composer:focus-within {
+  border-color: var(--primary-400);
+  background: var(--glass-bg-input-focus);
+  box-shadow: var(--glass-shadow), 0 0 0 3px var(--primary-200);
+}
+
+.liquid-composer-field {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.liquid-composer-field::placeholder {
+  color: var(--text-tertiary);
 }
 
 /* ----------------------------------------------------------------
@@ -671,6 +780,14 @@ textarea { resize: none; }
 
 /* The sheet panel. translateY is driven inline by status/drag; CSS owns the curve + glass. */
 .liquid-workout-sheet {
+  /* Open stops short of the status bar: the gap shows the dimmed app behind, marks this as a
+     sheet rather than a page, and gives "tap above to minimize" somewhere to land. */
+  --sheet-open-inset: calc(env(safe-area-inset-top, 0px) + 2.5rem);
+
+  /* Sized once, from the open position. Both parked states are transforms of this box, so
+     moving between them never reflows the builder. */
+  top: var(--sheet-open-inset);
+
   background: var(--glass-bg-nav);
   backdrop-filter: var(--glass-blur-nav);
   -webkit-backdrop-filter: var(--glass-blur-nav);

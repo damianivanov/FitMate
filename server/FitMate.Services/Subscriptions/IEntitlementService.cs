@@ -16,6 +16,9 @@ public interface IEntitlementService
     /// <summary>The entitlement row that applies to this user, or null when the plan has no row for it.</summary>
     Task<PlanEntitlement?> GetEntitlementAsync(long userId, SubscriptionFeature feature);
 
+    /// <summary>The model tier this user's plan grants, or null to use the global default.</summary>
+    Task<AIModelTier?> GetAIModelTierAsync(long userId);
+
     /// <summary>Drops the cached plan resolution (billing webhooks, admin plan edits).</summary>
     void Invalidate(long userId);
 }

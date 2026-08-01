@@ -1,15 +1,17 @@
-import { AsyncSection, PageBody, PageHeader } from "@/shared/components";
+import { useEffect, useRef } from "react";
 import { AIMessageRole } from "@/types";
 import { ActionCard } from "./components/ActionCard";
+import { ChatComposer } from "./components/ChatComposer";
+import { CoachSuggestions, CoachWelcome } from "./components/CoachWelcome";
 import { ConversationList } from "./components/ConversationList";
 import { MessageBubble } from "./components/MessageBubble";
-import { MessageComposer } from "./components/MessageComposer";
 import { ToolActivityIndicator } from "./components/ToolActivityIndicator";
 import { useAICoachPage } from "./hooks/useAICoachPage";
 
 export default function AICoach() {
   const { state, actions } = useAICoachPage();
   const conversation = state.activeConversation;
+  const threadRef = useRef<HTMLDivElement | null>(null);
 
   // Tool traffic is auditing detail, not something a user should read.
   const visibleMessages =
@@ -18,42 +20,64 @@ export default function AICoach() {
         message.role === AIMessageRole.User || message.role === AIMessageRole.Assistant,
     ) ?? [];
 
+  const hasThread = visibleMessages.length > 0;
+
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (!thread) {
+      return;
+    }
+
+    thread.scrollTo({ top: thread.scrollHeight, behavior: "smooth" });
+  }, [visibleMessages.length, state.isSending]);
+
+  if (state.isLoading) {
+    return (
+      <div className="flex h-full flex-1 items-center justify-center px-6">
+        <p className="text-sm font-semibold text-secondary">Loading your coach...</p>
+      </div>
+    );
+  }
+
+  const errorMessage = state.error ? (
+    <p role="alert" className="px-1 pb-2 text-sm text-danger">
+      {state.error}
+    </p>
+  ) : null;
+
+  const usageMessage =
+    state.usage?.limit != null ? (
+      <p
+        className="px-1 pt-2 text-center text-sm font-medium tabular-nums text-tertiary"
+        title="AI messages used this month"
+      >
+        {state.usage.used} / {state.usage.limit}
+      </p>
+    ) : null;
+
   return (
-    <>
-      <PageHeader title="AI Coach" subtitle="Ask about training, programs and progress" />
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="shrink-0 px-4 pt-3 md:px-6">
+        <div className="mx-auto w-full max-w-3xl">
+          <ConversationList
+            conversations={state.conversations}
+            activeId={conversation?.id ?? null}
+            onSelect={actions.openConversation}
+            onNew={actions.startConversation}
+          />
+        </div>
+      </div>
 
-      <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.error}
-          loadingLabel="Loading your coach..."
-        >
-          <div className="flex flex-col gap-4">
-            <ConversationList
-              conversations={state.conversations}
-              activeId={conversation?.id ?? null}
-              onSelect={actions.openConversation}
-              onNew={actions.startConversation}
-            />
-
-            <section className="liquid-panel flex min-h-96 flex-col gap-3 rounded-2xl p-4 md:rounded-lg">
-              <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-                {conversation ? (
-                  visibleMessages.length > 0 ? (
-                    visibleMessages.map((message) => (
-                      <MessageBubble key={message.id} message={message} />
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted">
-                      Ask something like &ldquo;What should I train today?&rdquo;
-                    </p>
-                  )
-                ) : (
-                  <p className="text-sm text-muted">
-                    Start a conversation to plan your training.
-                  </p>
-                )}
-              </div>
+      {hasThread ? (
+        <>
+          <div
+            ref={threadRef}
+            className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 md:px-6"
+          >
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-6">
+              {visibleMessages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
 
               {state.pendingActions.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -70,21 +94,32 @@ export default function AICoach() {
               ) : null}
 
               <ToolActivityIndicator tools={state.activeTools} isSending={state.isSending} />
-
-              {state.usage?.limit != null ? (
-                <p className="text-xs text-muted">
-                  {state.usage.used} of {state.usage.limit} AI messages used this month
-                </p>
-              ) : null}
-
-              <MessageComposer
-                disabled={!conversation || state.isSending}
-                onSend={actions.send}
-              />
-            </section>
+            </div>
           </div>
-        </AsyncSection>
-      </PageBody>
-    </>
+
+          <div className="shrink-0 px-4 pt-2 pb-3 md:px-6 md:pb-6">
+            <div className="mx-auto w-full max-w-3xl">
+              {errorMessage}
+              <ChatComposer isSending={state.isSending} onSend={actions.send} />
+              {usageMessage}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-3 md:px-6 md:pb-6">
+          <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center gap-7 py-8">
+            <CoachWelcome />
+
+            <div>
+              {errorMessage}
+              <ChatComposer isSending={state.isSending} onSend={actions.send} autoFocus />
+              {usageMessage}
+            </div>
+
+            <CoachSuggestions onPick={actions.send} isSending={state.isSending} />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

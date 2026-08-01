@@ -17,7 +17,7 @@ const profileNavItems = [
     end: false,
   },
   {
-    label: "My Exercises",
+    label: "Exercises",
     to: "exercises",
     icon: LuDumbbell,
     end: false,

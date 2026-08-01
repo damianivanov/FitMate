@@ -313,6 +313,11 @@ builder.Services.AddScoped<IUsageService, UsageService>();
 builder.Services.AddFitMateOpenAI(builder.Configuration);
 builder.Services.Configure<AIOptions>(builder.Configuration.GetSection(AIOptions.SectionName));
 
+// AI configuration: stored global settings, and the per-user budget they combine into.
+builder.Services.AddScoped<IAISettingsService, AISettingsService>();
+builder.Services.AddSingleton<IAITokenEstimator, AITokenEstimator>();
+builder.Services.AddScoped<IAIBudgetResolver, AIBudgetResolver>();
+
 // AI conversations and auditing.
 builder.Services.AddScoped<IAIRedactionService, AIRedactionService>();
 builder.Services.AddScoped<IAIConversationService, AIConversationService>();

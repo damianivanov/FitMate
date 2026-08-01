@@ -1,13 +1,14 @@
 import type { IconType } from "react-icons";
 import {
-  LuCalendarCheck,
   LuCalendarDays,
+  LuChartLine,
   LuCircleUserRound,
+  LuClipboardList,
   LuCreditCard,
   LuDumbbell,
-  LuLayoutDashboard,
   LuLayoutTemplate,
   LuScale,
+  LuShield,
   LuSparkles,
 } from "react-icons/lu";
 
@@ -16,58 +17,45 @@ export interface NavItem {
   to: string;
   icon: IconType;
   end?: boolean;
-}
-
-export interface DesktopNavItem extends NavItem {
   requiresAdmin?: boolean;
-}
-
-export interface MobileNavItem extends NavItem {
-  isPrimaryAction?: boolean;
 }
 
 export interface NavSection {
   section: string;
-  items: DesktopNavItem[];
+  items: NavItem[];
 }
 
-export const trainingNavItems: DesktopNavItem[] = [
-  { label: "Dashboard", to: "/workouts", icon: LuDumbbell, end: true },
-  { label: "New workout", to: "/workouts/new", icon: LuDumbbell, end: false },
-  { label: "Program", to: "/program", icon: LuCalendarCheck, end: false },
-  { label: "Templates", to: "/templates", icon: LuLayoutTemplate, end: false },
-  { label: "Calendar", to: "/calendar", icon: LuCalendarDays, end: false },
-];
-
-export const insightNavItems: DesktopNavItem[] = [
-  { label: "AI Coach", to: "/ai-coach", icon: LuSparkles, end: false },
-  { label: "Analytics", to: "/analytics", icon: LuLayoutDashboard, end: false },
-  { label: "Weight", to: "/weight-log", icon: LuScale, end: false },
-];
-
-export const accountNavItems: DesktopNavItem[] = [
-  { label: "Subscription", to: "/subscription", icon: LuCreditCard, end: false },
-];
+export const navItems = {
+  workouts: { label: "Workouts", to: "/workouts", icon: LuDumbbell, end: true },
+  program: { label: "Program", to: "/program", icon: LuClipboardList },
+  templates: { label: "Templates", to: "/templates", icon: LuLayoutTemplate },
+  calendar: { label: "Calendar", to: "/calendar", icon: LuCalendarDays },
+  analytics: { label: "Analytics", to: "/analytics", icon: LuChartLine },
+  weight: { label: "Weight", to: "/weight-log", icon: LuScale },
+  aiCoach: { label: "AI Coach", to: "/ai-coach", icon: LuSparkles },
+  profile: { label: "Profile", to: "/profile", icon: LuCircleUserRound },
+  subscription: { label: "Subscription", to: "/subscription", icon: LuCreditCard },
+  admin: { label: "Admin", to: "/management", icon: LuShield, requiresAdmin: true },
+} satisfies Record<string, NavItem>;
 
 export const navSections: NavSection[] = [
   {
-    section: "Training",
-    items: trainingNavItems,
+    section: "Train",
+    items: [navItems.workouts, navItems.program, navItems.templates, navItems.calendar],
   },
   {
-    section: "Insights",
-    items: insightNavItems,
+    section: "Progress",
+    items: [navItems.analytics, navItems.weight, navItems.aiCoach],
   },
   {
     section: "Account",
-    items: accountNavItems,
+    items: [navItems.profile, navItems.subscription, navItems.admin],
   },
 ];
 
-export const mobileBottomNavItems: MobileNavItem[] = [
-  { label: "All Workouts", to: "/workouts", icon: LuDumbbell, end: true },
-  { label: "All Workout Templates", to: "/templates", icon: LuLayoutTemplate, end: true },
-  { label: "Workout", to: "/workouts/new", icon: LuDumbbell, end: true, isPrimaryAction: true },
-  { label: "Calendar", to: "/calendar", icon: LuCalendarDays, end: true },
-  { label: "Profile", to: "/profile", icon: LuCircleUserRound, end: false },
+export const mobileTabItems: NavItem[] = [
+  navItems.workouts,
+  navItems.program,
+  navItems.calendar,
+  navItems.analytics,
 ];
