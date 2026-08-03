@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  FloatingFocusManager,
   FloatingPortal,
   autoUpdate,
   flip,
@@ -62,18 +63,22 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
         ref={setTriggerElement}
         type="button"
         className={[
-          "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary",
-          isOpen ? "bg-primary-100 text-primary ring-1 ring-primary-400 hover:bg-primary-100" : "",
+          "relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition before:absolute before:-inset-0.5 before:rounded-full before:content-[''] hover:bg-[var(--menu-item-hover-bg)] hover:text-[var(--menu-item-primary-fg)]",
+          isOpen
+            ? "bg-[var(--menu-item-primary-hover-bg)] text-[var(--menu-item-primary-fg)] ring-1 ring-primary-400"
+            : "",
         ].join(" ")}
         aria-label={isOpen ? `Hide last sets for ${exerciseName}` : `Show last sets for ${exerciseName}`}
+        aria-expanded={isOpen}
         title="Last sets"
         {...getReferenceProps({ onClick: handleToggleClick })}
       >
-        <LuHistory className="h-4 w-4" />
+        <LuHistory aria-hidden="true" className="h-4 w-4" />
       </button>
 
       {isOpen ? (
         <FloatingPortal>
+          <FloatingFocusManager context={context} modal={false} returnFocus>
           <div
             ref={setPanelElement}
             role="dialog"
@@ -89,11 +94,11 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
               <button
                 type="button"
                 onClick={handleFastAddClick}
-                className="flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-primary-300 bg-primary-100/10 px-2.5 text-2xs font-semibold text-primary transition hover:bg-primary-100/20 hover:text-primary-700"
+                className="relative flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-primary-300 bg-primary-100/10 px-2.5 text-2xs font-semibold text-[var(--menu-item-primary-fg)] transition before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-[var(--menu-item-primary-hover-bg)]"
                 aria-label={`Add most recent sets to ${exerciseName}`}
                 title="Add the most recent sets"
               >
-                <LuPlus className="h-3.5 w-3.5" />
+                <LuPlus aria-hidden="true" className="h-3.5 w-3.5" />
                 <span>Add</span>
               </button>
             </div>
@@ -121,7 +126,9 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
                         key={set.setNumber}
                         className="flex items-center justify-between gap-3 text-sm"
                       >
-                        <span className="mono text-2xs font-semibold text-primary">#{set.setNumber}</span>
+                        <span className="mono text-2xs font-semibold text-[var(--menu-item-primary-fg)]">
+                          #{set.setNumber}
+                        </span>
                         <span className="font-semibold tabular-nums text-secondary">
                           {formatPreviousSetLabel(set) ?? "-"}
                         </span>
@@ -132,6 +139,7 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
               ))}
             </div>
           </div>
+          </FloatingFocusManager>
         </FloatingPortal>
       ) : null}
     </>

@@ -193,6 +193,12 @@
   --menu-bg: rgba(224, 232, 244, 0.90);
   --menu-border: rgba(236, 244, 254, 0.62);
   --menu-shadow: 0 12px 34px rgba(17, 24, 39, 0.18);
+  --menu-divider: rgba(28, 28, 30, 0.12);
+  --menu-item-hover-bg: rgba(28, 28, 30, 0.06);
+  --menu-item-primary-fg: #a34114;
+  --menu-item-primary-hover-bg: rgba(255, 115, 55, 0.14);
+  --menu-item-danger-fg: #b3261e;
+  --menu-item-danger-hover-bg: rgba(255, 59, 48, 0.12);
   --floating-surface-bg: linear-gradient(135deg, rgba(232, 239, 249, 0.36), rgba(220, 229, 242, 0.24));
   --floating-surface-border: rgba(236, 244, 254, 0.72);
   --floating-surface-shadow: 0 14px 34px rgba(17, 24, 39, 0.22);
@@ -384,6 +390,12 @@
   --menu-bg: linear-gradient(135deg, rgba(20, 24, 36, 0.95), rgba(14, 18, 32, 0.92));
   --menu-border: rgba(255, 255, 255, 0.10);
   --menu-shadow: 0 12px 40px rgba(0, 0, 0, 0.40);
+  --menu-divider: rgba(255, 255, 255, 0.10);
+  --menu-item-hover-bg: rgba(255, 255, 255, 0.08);
+  --menu-item-primary-fg: var(--color-primary);
+  --menu-item-primary-hover-bg: rgba(var(--primary-rgb), 0.16);
+  --menu-item-danger-fg: var(--color-danger);
+  --menu-item-danger-hover-bg: rgba(251, 113, 133, 0.14);
   --floating-surface-bg: linear-gradient(140deg, rgba(25, 26, 56, 0.47), rgba(19, 26, 53, 0.76));
   --floating-surface-border: rgba(255, 255, 255, 0.14);
   --floating-surface-shadow: 0 14px 38px rgba(15, 15, 37, 0.192);

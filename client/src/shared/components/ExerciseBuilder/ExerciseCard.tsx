@@ -10,16 +10,6 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from "react";
 import {
-  FloatingPortal,
-  autoUpdate,
-  flip,
-  offset,
-  shift,
-  useDismiss,
-  useFloating,
-  useInteractions,
-} from "@floating-ui/react";
-import {
   DndContext,
   closestCenter,
   type DragCancelEvent,
@@ -42,6 +32,7 @@ import {
 } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { SortableHandleItem, useDndSensors } from "@/shared/components/Dnd";
+import { ActionMenu, type ActionMenuItem } from "../ActionMenu";
 import { Modal } from "../Modal";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
@@ -53,8 +44,6 @@ import type {
   ExerciseBuilderExerciseVM,
 } from "./types";
 
-const EXERCISE_MENU_OFFSET_PX = 8;
-const VIEWPORT_PADDING_PX = 8;
 const SET_DISPLAY_LIMIT = 3;
 
 type ExerciseCardProps = {
@@ -130,44 +119,24 @@ export function ExerciseCard({
 
   const headerGridClass = ["grid min-w-0 flex-1 gap-2 sm:gap-4", getMetricGridColumnsClass(capabilities)].join(" ");
 
-  const [menuTriggerElement, setMenuTriggerElement] = useState<HTMLButtonElement | null>(null);
-  const [menuPanelElement, setMenuPanelElement] = useState<HTMLDivElement | null>(null);
-  const { floatingStyles, context, isPositioned } = useFloating({
-    open: isExerciseMenuOpen,
-    onOpenChange: setIsExerciseMenuOpen,
-    strategy: "fixed",
-    placement: "bottom-end",
-    middleware: [
-      offset(EXERCISE_MENU_OFFSET_PX),
-      flip({ padding: VIEWPORT_PADDING_PX }),
-      shift({ padding: VIEWPORT_PADDING_PX }),
-    ],
-    whileElementsMounted: autoUpdate,
-    elements: { reference: menuTriggerElement, floating: menuPanelElement },
-  });
-  const exerciseMenuDismiss = useDismiss(context);
-  const { getReferenceProps, getFloatingProps } = useInteractions([exerciseMenuDismiss]);
-
   const handleExerciseMenuClose = useCallback(() => {
     setIsExerciseMenuOpen(false);
   }, []);
 
-  const handleExerciseMenuToggleClick = () => {
-    if (isDragOverlay) {
+  const handleExerciseMenuOpenChange = (nextOpen: boolean) => {
+    if (isDragOverlay && nextOpen) {
       return;
     }
 
-    setIsExerciseMenuOpen((previous) => !previous);
+    setIsExerciseMenuOpen(nextOpen);
   };
 
   const handleNotesMenuClick = () => {
     setIsNotesVisible((previous) => !previous);
-    handleExerciseMenuClose();
   };
 
   const handleSetEditToggleClick = () => {
     setIsSetEditMode((previous) => !previous);
-    handleExerciseMenuClose();
   };
 
   const handleCollapseClick = () => {
@@ -189,11 +158,9 @@ export function ExerciseCard({
     }
 
     callbacks.onExerciseGroupingChange(exercise.id, ExerciseGroupType.Superset);
-    handleExerciseMenuClose();
   };
 
   const handleDeleteClick = () => {
-    handleExerciseMenuClose();
     callbacks.onRemoveExercise(exercise.id);
   };
 
@@ -243,68 +210,39 @@ export function ExerciseCard({
     setActiveDragSetId(null);
   };
 
-  const menuActionClassName =
-    "flex w-full cursor-pointer items-center justify-start gap-2 rounded-full bg-transparent px-3 py-2 text-left text-sm font-semibold transition-colors";
-
-  const exerciseMenu = isExerciseMenuOpen ? (
-    <FloatingPortal>
-      <div
-        ref={setMenuPanelElement}
-        className="liquid-user-menu z-420 w-52 rounded-2xl p-2"
-        style={{ ...floatingStyles, visibility: isPositioned ? "visible" : "hidden" }}
-        {...getFloatingProps()}
-      >
-        <button
-          type="button"
-          onClick={handleNotesMenuClick}
-          className={[
-            menuActionClassName,
-            isNotesVisible
-              ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
-              : "text-secondary hover:bg-white/8",
-          ].join(" ")}
-        >
-          <LuNotebookPen className="h-4 w-4" />
-          <span style={{ wordSpacing: "0.25rem" }}>{noteButtonText}</span>
-        </button>
-        {hasSetEditing ? (
-          <button
-            type="button"
-            onClick={handleSetEditToggleClick}
-            className={[
-              "mt-1",
-              menuActionClassName,
-              isSetEditMode
-                ? "bg-primary-100 text-primary-900 hover:bg-primary-100"
-                : "text-secondary hover:bg-white/8",
-            ].join(" ")}
-            aria-pressed={isSetEditMode}
-          >
-            <LuSlidersHorizontal className="h-4 w-4" />
-            <span>{isSetEditMode ? "Done editing sets" : "Edit sets"}</span>
-          </button>
-        ) : null}
-        {canCreateExerciseGroup ? (
-          <button
-            type="button"
-            onClick={handleCreateSupersetClick}
-            className={["mt-1", menuActionClassName, "text-secondary hover:bg-white/8"].join(" ")}
-          >
-            <LuLayers className="h-4 w-4" />
-            <span>Create Superset</span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          className={["mt-2", menuActionClassName, "text-danger hover:bg-red-100/20"].join(" ")}
-        >
-          <LuTrash2 className="h-4 w-4" />
-          <span>Delete</span>
-        </button>
-      </div>
-    </FloatingPortal>
-  ) : null;
+  const exerciseMenuItems: ActionMenuItem[] = [
+    {
+      key: "notes",
+      label: noteButtonText,
+      icon: <LuNotebookPen className="h-4 w-4" />,
+      onSelect: handleNotesMenuClick,
+      selected: isNotesVisible,
+    },
+  ];
+  if (hasSetEditing) {
+    exerciseMenuItems.push({
+      key: "edit-sets",
+      label: isSetEditMode ? "Done editing sets" : "Edit sets",
+      icon: <LuSlidersHorizontal className="h-4 w-4" />,
+      onSelect: handleSetEditToggleClick,
+      selected: isSetEditMode,
+    });
+  }
+  if (canCreateExerciseGroup) {
+    exerciseMenuItems.push({
+      key: "superset",
+      label: "Create Superset",
+      icon: <LuLayers className="h-4 w-4" />,
+      onSelect: handleCreateSupersetClick,
+    });
+  }
+  exerciseMenuItems.push({
+    key: "delete",
+    label: "Delete",
+    icon: <LuTrash2 className="h-4 w-4" />,
+    onSelect: handleDeleteClick,
+    variant: "danger",
+  });
 
   const setRows: ReactNode = capabilities.allowSetDnd ? (
     <DndContext
@@ -458,15 +396,15 @@ export function ExerciseCard({
                   onFastAdd={() => callbacks.onApplyPreviousSets?.(exercise.id)}
                 />
               ) : null}
-              <button
-                ref={setMenuTriggerElement}
-                type="button"
-                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition hover:bg-white/8 hover:text-primary"
-                aria-label={isExerciseMenuOpen ? `Close ${exercise.displayName} menu` : `Open ${exercise.displayName} menu`}
-                {...getReferenceProps({ onClick: handleExerciseMenuToggleClick })}
-              >
-                <LuEllipsis className="h-5 w-5" />
-              </button>
+              <ActionMenu
+                items={exerciseMenuItems}
+                open={isExerciseMenuOpen}
+                onOpenChange={handleExerciseMenuOpenChange}
+                menuWidthClassName="w-52"
+                triggerAriaLabel={`${exercise.displayName} menu`}
+                triggerClassName="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-secondary transition before:absolute before:-inset-0.5 before:rounded-full before:content-[''] hover:bg-[var(--menu-item-hover-bg)] hover:text-primary"
+                triggerContent={<LuEllipsis aria-hidden="true" className="h-5 w-5" />}
+              />
               {isCollapseEnabled ? (
                 <button
                   type="button"
@@ -557,7 +495,6 @@ export function ExerciseCard({
           </div>
         ) : null}
       </article>
-      {exerciseMenu}
       {exercise.imageUrl ? (
         <Modal
           isOpen={isImageModalOpen}
