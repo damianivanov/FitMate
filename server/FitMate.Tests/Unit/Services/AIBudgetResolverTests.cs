@@ -25,7 +25,8 @@ public class AIBudgetResolverTests
                 MaximumToolIterations = 6,
                 MaximumToolCallsPerRun = 12,
                 MaximumConversationMessages = 30,
-            }));
+            }),
+            new FakeAIModelCatalog());
 
     [Fact]
     public async Task WithNoStoredRow_FallsBackToAppsettingsAndThe32kDefault()

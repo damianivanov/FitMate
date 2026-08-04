@@ -46,6 +46,41 @@ function TextField({ label, hint, value, onChange }: TextFieldProps) {
   );
 }
 
+type ModelFieldProps = TextFieldProps & {
+  options: string[];
+};
+
+function ModelField({ label, hint, value, options, onChange }: ModelFieldProps) {
+  // No list means the provider is unconfigured or unreachable — fall back to free text rather
+  // than leaving an empty picker the admin cannot use.
+  if (options.length === 0) {
+    return <TextField label={label} hint={hint} value={value} onChange={onChange} />;
+  }
+
+  // A previously saved model may since have been retired. Keep it in the list so simply opening
+  // this page never silently rewrites what is stored.
+  const choices = value && !options.includes(value) ? [value, ...options] : options;
+
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="liquid-input cursor-pointer rounded-xl px-3 py-2.5"
+      >
+        <option value="">Not set</option>
+        {choices.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      {hint ? <span className="text-xs text-tertiary">{hint}</span> : null}
+    </label>
+  );
+}
+
 export default function AISettings() {
   const { state, actions } = useAISettingsPage();
   const { settings, values } = state;
@@ -79,35 +114,46 @@ export default function AISettings() {
 
             <section className="liquid-surface rounded-3xl p-5 md:p-6">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Models</h2>
-              <p className="mb-4 text-xs text-tertiary">
+              <p className="mb-2 text-xs text-tertiary">
                 Provider is <span className="font-semibold">{settings.provider}</span>, set in
                 configuration — it selects the adapter at startup and cannot be changed here.
               </p>
+              <p className="mb-4 text-xs text-tertiary">
+                {state.availableModels.length > 0
+                  ? `${state.availableModels.length} models available on this account.`
+                  : "Model list unavailable — check the provider API key. You can still type an id."}
+              </p>
               <div className="grid gap-4 md:grid-cols-2">
-                <TextField
+                <ModelField
                   label="Default model"
+                  hint="Used by every plan without its own tier."
+                  options={state.availableModels}
                   value={values.defaultModel}
                   onChange={setText("defaultModel")}
                 />
-                <TextField
+                <ModelField
                   label="Fast model"
                   hint="Used by plans on the Fast tier."
+                  options={state.availableModels}
                   value={values.fastModel}
                   onChange={setText("fastModel")}
                 />
-                <TextField
+                <ModelField
                   label="Reasoning model"
                   hint="Used by plans on the Reasoning tier."
+                  options={state.availableModels}
                   value={values.reasoningModel}
                   onChange={setText("reasoningModel")}
                 />
-                <TextField
+                <ModelField
                   label="Vision model"
+                  options={state.availableModels}
                   value={values.visionModel}
                   onChange={setText("visionModel")}
                 />
-                <TextField
+                <ModelField
                   label="Image model"
+                  options={state.availableModels}
                   value={values.imageModel}
                   onChange={setText("imageModel")}
                 />

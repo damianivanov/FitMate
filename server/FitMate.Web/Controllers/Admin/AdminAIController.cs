@@ -46,6 +46,13 @@ public class AdminAIController : BaseApiController
         return this.ReturnJson(settings);
     }
 
+    [HttpGet("settings/models")]
+    public async Task<ActionResult> GetAvailableModels()
+    {
+        var models = await settingsService.ListAvailableModelsAsync();
+        return this.ReturnJson(models);
+    }
+
     [HttpGet("costs/users")]
     public async Task<ActionResult> GetUserCosts([FromQuery] AIUserCostQueryRequest request)
     {

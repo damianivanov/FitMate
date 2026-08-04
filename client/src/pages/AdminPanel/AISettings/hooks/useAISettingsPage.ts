@@ -30,6 +30,7 @@ function toFormValues(settings: AISettingsModel): AISettingsFormValues {
 export function useAISettingsPage() {
   const [settings, setSettings] = useState<AISettingsModel | null>(null);
   const [values, setValues] = useState<AISettingsFormValues | null>(null);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,21 @@ export function useAISettingsPage() {
     }
 
     void load();
+  }, []);
+
+  // Separate from the settings load: an unreachable or unconfigured provider must leave the page
+  // usable, so a failure here just means the pickers fall back to free text.
+  useEffect(() => {
+    async function loadModels() {
+      try {
+        const response = await adminService.ai.availableModels();
+        setAvailableModels(unwrap(response.data, "Unable to load models.") ?? []);
+      } catch {
+        setAvailableModels([]);
+      }
+    }
+
+    void loadModels();
   }, []);
 
   const changeField = useCallback(
@@ -85,7 +101,7 @@ export function useAISettingsPage() {
   }, [values]);
 
   return {
-    state: { settings, values, isLoading, isSaving, error, savedAt },
+    state: { settings, values, availableModels, isLoading, isSaving, error, savedAt },
     actions: { changeField, save },
   };
 }

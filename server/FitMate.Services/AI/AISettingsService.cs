@@ -3,6 +3,7 @@ using FitMate.Core.JsonModels.AdminAI;
 using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Integrations.AI.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -16,17 +17,25 @@ public class AISettingsService : IAISettingsService
     public const int DefaultMaximumMessageCharacters = 16_000;
 
     private const string CacheKey = "ai:settings";
+    private const string ModelsCacheKey = "ai:models";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan ModelsCacheDuration = TimeSpan.FromMinutes(30);
 
     private readonly AppDbContext dbContext;
     private readonly IMemoryCache cache;
     private readonly AIOptions options;
+    private readonly IAIModelCatalog modelCatalog;
 
-    public AISettingsService(AppDbContext dbContext, IMemoryCache cache, IOptions<AIOptions> options)
+    public AISettingsService(
+        AppDbContext dbContext,
+        IMemoryCache cache,
+        IOptions<AIOptions> options,
+        IAIModelCatalog modelCatalog)
     {
         this.dbContext = dbContext;
         this.cache = cache;
         this.options = options.Value;
+        this.modelCatalog = modelCatalog;
     }
 
     public void Invalidate() => cache.Remove(CacheKey);
@@ -78,6 +87,28 @@ public class AISettingsService : IAISettingsService
         Invalidate();
 
         return FromEntity(entity);
+    }
+
+    public async Task<IReadOnlyList<string>> ListAvailableModelsAsync()
+    {
+        if (cache.TryGetValue(ModelsCacheKey, out IReadOnlyList<string>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        IReadOnlyList<string> models;
+        try
+        {
+            models = await modelCatalog.ListModelsAsync();
+        }
+        catch (Exception)
+        {
+            // An unconfigured key or an unreachable provider must not break the settings page.
+            return [];
+        }
+
+        cache.Set(ModelsCacheKey, models, ModelsCacheDuration);
+        return models;
     }
 
     private static void Validate(SaveAISettingsRequest request)

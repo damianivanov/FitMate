@@ -129,6 +129,10 @@ export const adminService = {
     async saveSettings(payload: SaveAISettingsRequest) {
       return api.put<JsonData<AISettingsModel>>("admin/ai/settings", payload);
     },
+
+    async availableModels() {
+      return api.get<JsonData<string[]>>("admin/ai/settings/models");
+    },
   },
 
   unsupportedRequests: {

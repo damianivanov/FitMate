@@ -17,6 +17,7 @@ public static class OpenAIServiceCollectionExtensions
         services.Configure<OpenAIOptions>(configuration.GetSection(OpenAIOptions.SectionName));
         services.AddScoped<IAICompletionProvider, OpenAICompletionProvider>();
         services.AddScoped<IAIImageProvider, OpenAIImageProvider>();
+        services.AddScoped<IAIModelCatalog, OpenAIModelCatalog>();
         return services;
     }
 }
