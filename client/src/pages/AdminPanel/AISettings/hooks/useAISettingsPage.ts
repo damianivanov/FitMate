@@ -20,6 +20,10 @@ function toFormValues(settings: AISettingsModel): AISettingsFormValues {
     maximumOutputTokens: settings.maximumOutputTokens,
     maximumMessageCharacters: settings.maximumMessageCharacters,
     storeRawProviderPayload: settings.storeRawProviderPayload,
+    conversationRetentionDays: settings.conversationRetentionDays,
+    operationalLogRetentionDays: settings.operationalLogRetentionDays,
+    temporaryUploadRetentionHours: settings.temporaryUploadRetentionHours,
+    expiredActionRetentionDays: settings.expiredActionRetentionDays,
   };
 }
 

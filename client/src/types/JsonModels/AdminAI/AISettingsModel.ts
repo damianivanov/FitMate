@@ -14,5 +14,9 @@ export interface AISettingsModel
 	maximumOutputTokens: number;
 	maximumMessageCharacters: number;
 	storeRawProviderPayload: boolean;
+	conversationRetentionDays: number;
+	operationalLogRetentionDays: number;
+	temporaryUploadRetentionHours: number;
+	expiredActionRetentionDays: number;
 	isStored: boolean;
 }

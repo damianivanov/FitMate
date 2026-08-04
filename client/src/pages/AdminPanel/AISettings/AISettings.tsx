@@ -171,6 +171,40 @@ export default function AISettings() {
               </label>
             </section>
 
+            <section className="liquid-surface rounded-3xl p-5 md:p-6">
+              <h2 className="mb-2 text-lg font-semibold text-foreground">Retention</h2>
+              <p className="mb-4 text-xs text-tertiary">
+                Stored and editable now, but nothing enforces them yet — the cleanup jobs that
+                read these values are still to come.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <NumberField
+                  label="Conversations (days)"
+                  hint="How long coach threads are kept."
+                  value={values.conversationRetentionDays}
+                  onChange={setNumber("conversationRetentionDays")}
+                />
+                <NumberField
+                  label="Operational logs (days)"
+                  hint="Runs, tool executions and usage records."
+                  value={values.operationalLogRetentionDays}
+                  onChange={setNumber("operationalLogRetentionDays")}
+                />
+                <NumberField
+                  label="Temporary uploads (hours)"
+                  hint="Images sent to the coach but never attached to anything."
+                  value={values.temporaryUploadRetentionHours}
+                  onChange={setNumber("temporaryUploadRetentionHours")}
+                />
+                <NumberField
+                  label="Expired actions (days)"
+                  hint="Suggestions the user never confirmed or rejected."
+                  value={values.expiredActionRetentionDays}
+                  onChange={setNumber("expiredActionRetentionDays")}
+                />
+              </div>
+            </section>
+
             <div className="flex items-center gap-3">
               <button
                 type="button"

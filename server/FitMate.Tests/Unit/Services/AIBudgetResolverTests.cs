@@ -62,6 +62,10 @@ public class AIBudgetResolverTests
             MaximumContextTokens = 16_000,
             MaximumOutputTokens = 2_000,
             MaximumMessageCharacters = 8_000,
+            ConversationRetentionDays = 365,
+            OperationalLogRetentionDays = 180,
+            TemporaryUploadRetentionHours = 24,
+            ExpiredActionRetentionDays = 90,
         });
 
         Assert.True(saved.IsStored);
@@ -139,6 +143,10 @@ public class AIBudgetResolverTests
             MaximumContextTokens = 32_000,
             MaximumOutputTokens = 4_000,
             MaximumMessageCharacters = 16_000,
+            ConversationRetentionDays = 365,
+            OperationalLogRetentionDays = 180,
+            TemporaryUploadRetentionHours = 24,
+            ExpiredActionRetentionDays = 90,
         });
 
         var entitlements = new FakeEntitlementService { ModelTier = AIModelTier.Fast };
