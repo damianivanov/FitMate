@@ -1,4 +1,4 @@
-import { PageBody, PageHeader } from "@/shared/components";
+import { Dropdown, PageBody, PageHeader } from "@/shared/components";
 import type { AISettingsFormValues } from "./hooks/useAISettingsPage";
 import { useAISettingsPage } from "./hooks/useAISettingsPage";
 
@@ -62,22 +62,17 @@ function ModelField({ label, hint, value, options, onChange }: ModelFieldProps) 
   const choices = value && !options.includes(value) ? [value, ...options] : options;
 
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-sm font-semibold text-foreground">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="liquid-input cursor-pointer rounded-xl px-3 py-2.5"
-      >
-        <option value="">Not set</option>
-        {choices.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      {hint ? <span className="text-xs text-tertiary">{hint}</span> : null}
-    </label>
+    <Dropdown
+      label={label}
+      helperText={hint}
+      searchable
+      searchPlaceholder="Search models..."
+      clearable
+      placeholder="Not set"
+      value={value || null}
+      options={choices.map((option) => ({ label: option, value: option }))}
+      onChange={(next) => onChange(next ?? "")}
+    />
   );
 }
 

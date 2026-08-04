@@ -92,6 +92,13 @@ public class AIRunService : IAIRunService
         await dbContext.SaveChangesAsync();
     }
 
+    public async Task AttachAssistantMessageAsync(long runId, long assistantMessageId)
+    {
+        var run = await RequireRunAsync(runId);
+        run.AssistantMessageId = assistantMessageId;
+        await dbContext.SaveChangesAsync();
+    }
+
     public async Task FailAsync(long runId, Exception exception)
     {
         var run = await RequireRunAsync(runId);

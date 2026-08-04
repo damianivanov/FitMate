@@ -14,4 +14,10 @@ public interface IAIRunService
     Task CompleteAsync(long runId, long assistantMessageId);
     Task FailAsync(long runId, Exception exception);
     Task MarkLimitExceededAsync(long runId, string errorCode, string errorMessage);
+
+    /// <summary>
+    /// Links the reply the user was shown without touching the run status, so a run that stopped at
+    /// a ceiling still reports why in the admin grid.
+    /// </summary>
+    Task AttachAssistantMessageAsync(long runId, long assistantMessageId);
 }

@@ -23,7 +23,9 @@ export function useAICoachPage() {
 
   const loadConversations = useCallback(async () => {
     const response = await aiService.listConversations();
-    setConversations(unwrap(response.data, "Unable to load conversations."));
+    const loaded = unwrap(response.data, "Unable to load conversations.");
+    setConversations(loaded);
+    return loaded;
   }, []);
 
   const openConversation = useCallback(async (id: number, keepActions = false) => {
@@ -141,7 +143,14 @@ export function useAICoachPage() {
       setIsLoading(true);
       setError(null);
       try {
-        await loadConversations();
+        const loaded = await loadConversations();
+
+        // Land in the thread the user was last in. Without this, returning to the coach always
+        // shows the welcome screen, which reads as "my conversation disappeared".
+        if (loaded.length > 0) {
+          await openConversation(loaded[0].id);
+        }
+
         const usageResponse = await aiService.getUsage();
         setUsage(unwrap(usageResponse.data, "Unable to load AI usage."));
       } catch (loadError) {
@@ -152,7 +161,7 @@ export function useAICoachPage() {
     }
 
     void load();
-  }, [loadConversations]);
+  }, [loadConversations, openConversation]);
 
   return {
     state: {

@@ -148,14 +148,19 @@ public class AIOrchestratorTests
 
         var harness = await CreateAsync(db, provider, maxIterations: 3, tools: [tool]);
 
-        await Assert.ThrowsAsync<AIToolLimitExceededException>(() =>
-            harness.Orchestrator.SendAsync(
-                harness.ConversationId,
-                new SendAIMessageRequest { Content = "Loop forever." },
-                SqliteTestDatabase.UserId));
+        // The user gets a readable reply rather than an error, so the thread stays coherent, but
+        // the run still records that a ceiling stopped it.
+        var response = await harness.Orchestrator.SendAsync(
+            harness.ConversationId,
+            new SendAIMessageRequest { Content = "Loop forever." },
+            SqliteTestDatabase.UserId);
+
+        Assert.Equal(AIMessageRole.Assistant, response.Message.Role);
+        Assert.False(string.IsNullOrWhiteSpace(response.Message.Content));
 
         var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
         Assert.Equal(AIRunStatus.LimitExceeded, run.Status);
+        Assert.Equal(response.Message.Id, run.AssistantMessageId);
         Assert.Single(harness.Usage.Released);
         Assert.Empty(harness.Usage.Committed);
     }

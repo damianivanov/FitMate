@@ -75,10 +75,13 @@ export function ConversationDetailModal({
       title={conversation?.title ?? "Conversation"}
       maxWidth="3xl"
     >
-      {isLoading || !conversation ? (
-        <p className="text-sm text-muted">Loading...</p>
-      ) : (
-        <div className="flex flex-col gap-4">
+      {/* The shared Modal renders children bare inside an overflow-hidden panel, so a long
+          conversation would be clipped with no way to reach the rest. */}
+      <div className="liquid-scrollbar max-h-[70vh] overflow-y-auto overscroll-contain px-5 py-4">
+        {isLoading || !conversation ? (
+          <p className="text-sm text-muted">Loading...</p>
+        ) : (
+          <div className="flex flex-col gap-4">
           <p className="text-sm text-muted">
             {conversation.userEmail ?? `User ${conversation.userId}`} · {formatTime(conversation.dateCreated)}
           </p>
@@ -160,9 +163,10 @@ export function ConversationDetailModal({
                 ))}
               </ul>
             </section>
-          ) : null}
-        </div>
-      )}
+            ) : null}
+          </div>
+        )}
+      </div>
     </Modal>
   );
 }

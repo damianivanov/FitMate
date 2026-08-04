@@ -161,7 +161,15 @@ public class AIOrchestrator : IAIOrchestrator
                     const string message = "The assistant requested too many tools for a single message.";
                     await runService.MarkLimitExceededAsync(run.Id, "tool_call_limit", message);
                     await usageService.ReleaseAsync(reservation.Id);
-                    throw new AIToolLimitExceededException(message);
+
+                    return await StopWithNoticeAsync(
+                        conversationId,
+                        userId,
+                        run.Id,
+                        "I got stuck looking things up and stopped before finishing. Could you narrow "
+                            + "the request down a little and ask again?",
+                        usedTools,
+                        pendingActionIds);
                 }
 
                 await runService.IncrementToolCallCountAsync(run.Id, providerResponse.ToolCalls.Count);
@@ -215,7 +223,15 @@ public class AIOrchestrator : IAIOrchestrator
             const string iterationMessage = "The assistant could not finish within the allowed number of steps.";
             await runService.MarkLimitExceededAsync(run.Id, "tool_iteration_limit", iterationMessage);
             await usageService.ReleaseAsync(reservation.Id);
-            throw new AIToolLimitExceededException(iterationMessage);
+
+            return await StopWithNoticeAsync(
+                conversationId,
+                userId,
+                run.Id,
+                "I ran out of steps before I could finish that. Try asking for one thing at a time — "
+                    + "for example the exercises first, then the sets and reps.",
+                usedTools,
+                pendingActionIds);
         }
         catch (AIToolLimitExceededException)
         {
@@ -225,8 +241,52 @@ public class AIOrchestrator : IAIOrchestrator
         {
             await runService.FailAsync(run.Id, exception);
             await usageService.ReleaseAsync(reservation.Id);
+
+            // Leave the thread readable: without this the conversation ends on the user's message
+            // with no reply, which looks like the assistant simply never answered.
+            try
+            {
+                await conversationService.AddAssistantMessageAsync(
+                    conversationId,
+                    "Something went wrong while I was working on that. Please try again.",
+                    userId);
+            }
+            catch (Exception)
+            {
+                // The original failure is what matters; never mask it with a logging failure.
+            }
+
             throw;
         }
+    }
+
+    /// <summary>
+    /// Ends a run that hit a budget ceiling as a normal assistant turn. The user gets an answer they
+    /// can act on instead of an error, and the stored conversation stays coherent when reloaded.
+    /// </summary>
+    private async Task<SendAIMessageResponse> StopWithNoticeAsync(
+        long conversationId,
+        long userId,
+        long runId,
+        string notice,
+        List<string> usedTools,
+        List<long> pendingActionIds)
+    {
+        var assistantMessage = await conversationService.AddAssistantMessageAsync(
+            conversationId,
+            notice,
+            userId);
+
+        await runService.AttachAssistantMessageAsync(runId, assistantMessage.Id);
+
+        return new SendAIMessageResponse
+        {
+            ConversationId = conversationId,
+            Message = assistantMessage,
+            UsedTools = usedTools,
+            Actions = await LoadActionsAsync(pendingActionIds, userId),
+            Usage = await BuildUsageAsync(userId),
+        };
     }
 
     /// <summary>Loads the proposals raised during this run so the client can render their cards.</summary>
