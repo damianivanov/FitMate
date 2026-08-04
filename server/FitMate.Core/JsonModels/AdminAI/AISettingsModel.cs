@@ -18,6 +18,11 @@ public class AISettingsModel
     public int MaximumMessageCharacters { get; set; }
     public bool StoreRawProviderPayload { get; set; }
 
+    public int ConversationRetentionDays { get; set; }
+    public int OperationalLogRetentionDays { get; set; }
+    public int TemporaryUploadRetentionHours { get; set; }
+    public int ExpiredActionRetentionDays { get; set; }
+
     /// <summary>False while the app is still running on the appsettings defaults.</summary>
     public bool IsStored { get; set; }
 }
@@ -38,4 +43,9 @@ public class SaveAISettingsRequest
     public int MaximumOutputTokens { get; set; }
     public int MaximumMessageCharacters { get; set; }
     public bool StoreRawProviderPayload { get; set; }
+
+    public int ConversationRetentionDays { get; set; }
+    public int OperationalLogRetentionDays { get; set; }
+    public int TemporaryUploadRetentionHours { get; set; }
+    public int ExpiredActionRetentionDays { get; set; }
 }

@@ -27,4 +27,14 @@ public class AISettings : BaseEntity
     public int MaximumMessageCharacters { get; set; }
 
     public bool StoreRawProviderPayload { get; set; }
+
+    /// <summary>
+    /// Retention windows. Stored and editable now; the cleanup jobs that enforce them arrive later,
+    /// so changing these has no effect yet.
+    /// </summary>
+    public int ConversationRetentionDays { get; set; } = 365;
+
+    public int OperationalLogRetentionDays { get; set; } = 180;
+    public int TemporaryUploadRetentionHours { get; set; } = 24;
+    public int ExpiredActionRetentionDays { get; set; } = 90;
 }

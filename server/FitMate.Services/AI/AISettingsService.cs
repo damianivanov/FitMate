@@ -69,6 +69,10 @@ public class AISettingsService : IAISettingsService
         entity.MaximumOutputTokens = request.MaximumOutputTokens;
         entity.MaximumMessageCharacters = request.MaximumMessageCharacters;
         entity.StoreRawProviderPayload = request.StoreRawProviderPayload;
+        entity.ConversationRetentionDays = request.ConversationRetentionDays;
+        entity.OperationalLogRetentionDays = request.OperationalLogRetentionDays;
+        entity.TemporaryUploadRetentionHours = request.TemporaryUploadRetentionHours;
+        entity.ExpiredActionRetentionDays = request.ExpiredActionRetentionDays;
 
         await dbContext.SaveChangesAsync();
         Invalidate();
@@ -90,6 +94,10 @@ public class AISettingsService : IAISettingsService
         RequirePositive(request.MaximumContextTokens, "The context token limit");
         RequirePositive(request.MaximumOutputTokens, "The output token limit");
         RequirePositive(request.MaximumMessageCharacters, "The message length limit");
+        RequirePositive(request.ConversationRetentionDays, "The conversation retention window");
+        RequirePositive(request.OperationalLogRetentionDays, "The operational log retention window");
+        RequirePositive(request.TemporaryUploadRetentionHours, "The temporary upload retention window");
+        RequirePositive(request.ExpiredActionRetentionDays, "The expired action retention window");
     }
 
     private static void RequirePositive(int value, string label)
@@ -116,6 +124,10 @@ public class AISettingsService : IAISettingsService
         MaximumOutputTokens = DefaultMaximumOutputTokens,
         MaximumMessageCharacters = DefaultMaximumMessageCharacters,
         StoreRawProviderPayload = options.StoreRawProviderPayload,
+        ConversationRetentionDays = options.Retention.ConversationRetentionDays,
+        OperationalLogRetentionDays = options.Retention.OperationalLogRetentionDays,
+        TemporaryUploadRetentionHours = options.Retention.TemporaryUploadRetentionHours,
+        ExpiredActionRetentionDays = options.Retention.ExpiredActionRetentionDays,
         IsStored = false,
     };
 
@@ -135,6 +147,10 @@ public class AISettingsService : IAISettingsService
         MaximumOutputTokens = entity.MaximumOutputTokens,
         MaximumMessageCharacters = entity.MaximumMessageCharacters,
         StoreRawProviderPayload = entity.StoreRawProviderPayload,
+        ConversationRetentionDays = entity.ConversationRetentionDays,
+        OperationalLogRetentionDays = entity.OperationalLogRetentionDays,
+        TemporaryUploadRetentionHours = entity.TemporaryUploadRetentionHours,
+        ExpiredActionRetentionDays = entity.ExpiredActionRetentionDays,
         IsStored = true,
     };
 }

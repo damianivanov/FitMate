@@ -1463,6 +1463,10 @@ export namespace JsonModels.AdminAI {
 		maximumOutputTokens: number;
 		maximumMessageCharacters: number;
 		storeRawProviderPayload: boolean;
+		conversationRetentionDays: number;
+		operationalLogRetentionDays: number;
+		temporaryUploadRetentionHours: number;
+		expiredActionRetentionDays: number;
 		isStored: boolean;
 	}
 	export interface SaveAISettingsRequest
@@ -1480,6 +1484,10 @@ export namespace JsonModels.AdminAI {
 		maximumOutputTokens: number;
 		maximumMessageCharacters: number;
 		storeRawProviderPayload: boolean;
+		conversationRetentionDays: number;
+		operationalLogRetentionDays: number;
+		temporaryUploadRetentionHours: number;
+		expiredActionRetentionDays: number;
 	}
 	export interface AIUserCostBreakdownModel
 	{
