@@ -101,7 +101,7 @@ public class AIOrchestratorTests
         var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
         Assert.Equal(AIRunStatus.Completed, run.Status);
         Assert.Equal(10, run.InputTokens);
-        Assert.Equal("system-v1", run.PromptVersion);
+        Assert.Equal("system-v2", run.PromptVersion);
         Assert.Equal(2, await harness.Context.AIMessages.CountAsync()); // user + assistant
     }
 

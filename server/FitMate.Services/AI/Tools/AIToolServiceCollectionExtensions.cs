@@ -20,6 +20,7 @@ public static class AIToolServiceCollectionExtensions
         services.AddScoped<IAIToolHandler, GetProgramCalendarToolHandler>();
         services.AddScoped<IAIToolHandler, GetSubscriptionUsageToolHandler>();
         services.AddScoped<IAIToolHandler, SearchExercisesToolHandler>();
+        services.AddScoped<IAIToolHandler, GetWorkoutCreationContextToolHandler>();
         services.AddScoped<IAIToolHandler, GetRecentWorkoutsToolHandler>();
         services.AddScoped<IAIToolHandler, GetExerciseHistoryToolHandler>();
         services.AddScoped<IAIToolHandler, GetWorkoutTemplatesToolHandler>();

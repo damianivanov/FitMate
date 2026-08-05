@@ -6,7 +6,7 @@ public class AIPromptBuilder : IAIPromptBuilder
 {
     private static readonly Lazy<string> SystemPrompt = new(LoadSystemPrompt);
 
-    public string SystemPromptVersion => "system-v1";
+    public string SystemPromptVersion => "system-v2";
 
     public string BuildSystemPrompt() => SystemPrompt.Value;
 
@@ -14,7 +14,7 @@ public class AIPromptBuilder : IAIPromptBuilder
     {
         var assemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
             ?? AppContext.BaseDirectory;
-        var path = Path.Combine(assemblyDirectory, "AI", "Prompts", "system-v1.txt");
+        var path = Path.Combine(assemblyDirectory, "AI", "Prompts", "system-v2.txt");
 
         return File.Exists(path)
             ? File.ReadAllText(path)
