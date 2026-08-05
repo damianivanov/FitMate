@@ -60,9 +60,11 @@ public static class AIProposalValidator
     /// </summary>
     public static List<string> ValidateExercises(
         IReadOnlyList<ProposedExercise> exercises,
-        IReadOnlyCollection<long> visibleExerciseIds)
+        IReadOnlyCollection<long> visibleExerciseIds,
+        IReadOnlyCollection<string>? declaredNewExerciseKeys = null)
     {
         var errors = new List<string>();
+        var declaredKeys = declaredNewExerciseKeys ?? [];
 
         if (exercises.Count == 0)
         {
@@ -75,59 +77,79 @@ public static class AIProposalValidator
             errors.Add($"At most {MaxExercisesPerSession} exercises are allowed.");
         }
 
-        var duplicateIds = exercises
-            .GroupBy(x => x.ExerciseId)
+        // An entry is identified either by its id or by the key it reserves, so the same new
+        // exercise cannot be listed twice either.
+        var duplicates = exercises
+            .GroupBy(Describe, StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
             .ToList();
 
-        if (duplicateIds.Count > 0)
+        if (duplicates.Count > 0)
         {
-            errors.Add($"Exercise {string.Join(", ", duplicateIds)} appears more than once.");
+            errors.Add($"Exercise {string.Join(", ", duplicates)} appears more than once.");
         }
 
         foreach (var exercise in exercises)
         {
-            if (!visibleExerciseIds.Contains(exercise.ExerciseId))
+            var isNew = !string.IsNullOrWhiteSpace(exercise.NewExerciseClientKey);
+
+            if (isNew && exercise.ExerciseId > 0)
             {
-                errors.Add($"Exercise {exercise.ExerciseId} does not exist or is not available to you.");
+                errors.Add(
+                    $"Exercise {Describe(exercise)} sets both an id and a new-exercise key; use one.");
+                continue;
+            }
+
+            if (isNew)
+            {
+                if (!declaredKeys.Contains(exercise.NewExerciseClientKey!, StringComparer.OrdinalIgnoreCase))
+                {
+                    errors.Add(
+                        $"Exercise references new exercise '{exercise.NewExerciseClientKey}', which was not described.");
+                    continue;
+                }
+            }
+            else if (!visibleExerciseIds.Contains(exercise.ExerciseId))
+            {
+                errors.Add($"Exercise {Describe(exercise)} does not exist or is not available to you.");
                 continue;
             }
 
             if (exercise.Sets.Count == 0)
             {
-                errors.Add($"Exercise {exercise.ExerciseId} has no sets.");
+                errors.Add($"Exercise {Describe(exercise)} has no sets.");
                 continue;
             }
 
             if (exercise.Sets.Count > MaxSetsPerExercise)
             {
-                errors.Add($"Exercise {exercise.ExerciseId} has more than {MaxSetsPerExercise} sets.");
+                errors.Add($"Exercise {Describe(exercise)} has more than {MaxSetsPerExercise} sets.");
             }
 
             foreach (var set in exercise.Sets)
             {
                 if (set.Reps is < 1 or > MaxReps)
                 {
-                    errors.Add($"Exercise {exercise.ExerciseId} has a set with an invalid rep count.");
+                    errors.Add($"Exercise {Describe(exercise)} has a set with an invalid rep count.");
                     break;
                 }
 
                 if (set.WeightKg is < 0 or > MaxWeightKg)
                 {
-                    errors.Add($"Exercise {exercise.ExerciseId} has a set with an invalid weight.");
+                    errors.Add($"Exercise {Describe(exercise)} has a set with an invalid weight.");
                     break;
                 }
 
                 if (set.Rpe is < 1 or > 10)
                 {
-                    errors.Add($"Exercise {exercise.ExerciseId} has a set with an RPE outside 1-10.");
+                    errors.Add($"Exercise {Describe(exercise)} has a set with an RPE outside 1-10.");
                     break;
                 }
 
                 if (set.RestSeconds is < 0 or > MaxRestSeconds)
                 {
-                    errors.Add($"Exercise {exercise.ExerciseId} has a set with an invalid rest time.");
+                    errors.Add($"Exercise {Describe(exercise)} has a set with an invalid rest time.");
                     break;
                 }
             }
@@ -135,6 +157,47 @@ public static class AIProposalValidator
 
         return errors;
     }
+
+    /// <summary>
+    /// Checks the exercises a proposal wants created alongside it. Each is held to the same rules as
+    /// a standalone propose_exercise, since confirming the workout also creates these.
+    /// </summary>
+    public static List<string> ValidateNewExercises(IReadOnlyList<ProposedNewExercise> newExercises)
+    {
+        var errors = new List<string>();
+
+        foreach (var candidate in newExercises)
+        {
+            if (string.IsNullOrWhiteSpace(candidate.ClientKey))
+            {
+                errors.Add("Every new exercise needs a clientKey.");
+                continue;
+            }
+
+            errors.AddRange(ValidateExercise(candidate)
+                .Select(error => $"New exercise '{candidate.ClientKey}': {error}"));
+        }
+
+        var duplicateKeys = newExercises
+            .Where(x => !string.IsNullOrWhiteSpace(x.ClientKey))
+            .GroupBy(x => x.ClientKey, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+
+        if (duplicateKeys.Count > 0)
+        {
+            errors.Add($"Duplicate new exercise key {string.Join(", ", duplicateKeys)}.");
+        }
+
+        return errors;
+    }
+
+    /// <summary>Identifies an entry in an error message: its id, or the key it reserves.</summary>
+    private static string Describe(ProposedExercise exercise) =>
+        string.IsNullOrWhiteSpace(exercise.NewExerciseClientKey)
+            ? exercise.ExerciseId.ToString()
+            : $"'{exercise.NewExerciseClientKey}'";
 
     public static int EstimateDurationMinutes(IReadOnlyList<ProposedExercise> exercises)
     {

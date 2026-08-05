@@ -15,7 +15,8 @@ internal static class ProposalSchemas
           "items": {
             "type": "object",
             "properties": {
-              "exerciseId": { "type": "integer", "description": "Must come from search_exercises." },
+              "exerciseId": { "type": "integer", "description": "An existing exercise, from get_workout_creation_context or search_exercises. Omit when using newExerciseClientKey." },
+              "newExerciseClientKey": { "type": "string", "description": "The clientKey of one of the newExercises below, when the exercise does not exist yet. Use this or exerciseId, never both." },
               "sets": {
                 "type": "array",
                 "items": {
@@ -30,7 +31,34 @@ internal static class ProposalSchemas
                 }
               }
             },
-            "required": ["exerciseId", "sets"]
+            "required": ["sets"]
+          }
+        }
+        """;
+
+    /// <summary>
+    /// Exercises created by the same confirmation as the workout or template that uses them, so a
+    /// missing exercise never costs the user a second round of confirming.
+    /// </summary>
+    private const string NewExercisesSchemaFragment = """
+        "newExercises": {
+          "type": "array",
+          "description": "Only for exercises that genuinely do not exist yet. Check the candidates you were given first.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "clientKey": { "type": "string", "description": "A short handle, e.g. 'skull-crusher', referenced by exercises above." },
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "primaryMuscleGroupId": { "type": "integer" },
+              "secondaryMuscleGroupId": { "type": "integer" },
+              "equipment": { "type": "string", "enum": ["Barbell","Dumbbell","Kettlebell","Cable","Machine","Bodyweight","ResistanceBand","MedicineBall","Other"] },
+              "movementPattern": { "type": "string", "enum": ["HorizontalPush","HorizontalPull","VerticalPush","VerticalPull","Squat","Hinge","Lunge","Carry","Rotation","Isolation","Other"] },
+              "difficulty": { "type": "string", "enum": ["Beginner","Intermediate","Advanced"] },
+              "category": { "type": "string", "enum": ["Strength","Cardio","Mobility","Plyometric","Olympic","Other"] },
+              "aliases": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["clientKey", "name", "primaryMuscleGroupId"]
           }
         }
         """;
@@ -41,7 +69,8 @@ internal static class ProposalSchemas
           "properties": {
             "title": { "type": "string" },
             "notes": { "type": "string" },
-            {{ExercisesSchemaFragment}}
+            {{ExercisesSchemaFragment}},
+            {{NewExercisesSchemaFragment}}
           },
           "required": ["title", "exercises"]
         }
@@ -55,7 +84,8 @@ internal static class ProposalSchemas
             "description": { "type": "string" },
             "estimatedDurationMinutes": { "type": "integer", "minimum": 1, "maximum": 600 },
             "isPublic": { "type": "boolean" },
-            {{ExercisesSchemaFragment}}
+            {{ExercisesSchemaFragment}},
+            {{NewExercisesSchemaFragment}}
           },
           "required": ["name", "exercises"]
         }
@@ -68,9 +98,16 @@ internal static class ProposalSchemas
     internal static async Task<List<AIActionPreviewLineModel>> BuildExerciseLinesAsync(
         AppDbContext dbContext,
         IReadOnlyList<ProposedExercise> exercises,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<ProposedNewExercise>? newExercises = null)
     {
         var ids = exercises.Select(x => x.ExerciseId).Distinct().ToList();
+
+        // Exercises that do not exist yet have no row to read a name from, so their name comes from
+        // the proposal itself and is marked, letting the user see what confirming will create.
+        var newNamesByKey = (newExercises ?? [])
+            .GroupBy(x => x.ClientKey, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Name, StringComparer.OrdinalIgnoreCase);
 
         var names = await dbContext.Exercises
             .AsNoTracking()
@@ -94,9 +131,14 @@ internal static class ProposalSchemas
                         ? $"{setCount} x {reps[0]}"
                         : $"{setCount} x {reps.Min()}-{reps.Max()}";
 
+                var key = exercise.NewExerciseClientKey;
+                var label = !string.IsNullOrWhiteSpace(key)
+                    ? $"{newNamesByKey.GetValueOrDefault(key, key)} (new)"
+                    : names.GetValueOrDefault(exercise.ExerciseId, $"Exercise {exercise.ExerciseId}");
+
                 return new AIActionPreviewLineModel
                 {
-                    Label = names.GetValueOrDefault(exercise.ExerciseId, $"Exercise {exercise.ExerciseId}"),
+                    Label = label,
                     Value = repLabel,
                 };
             })

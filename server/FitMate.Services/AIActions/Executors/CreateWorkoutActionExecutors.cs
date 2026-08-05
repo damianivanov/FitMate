@@ -6,6 +6,7 @@ using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Integrations.AI.Serialization;
+using FitMate.Services.Exercises;
 using FitMate.Services.WorkoutTemplates;
 using FitMate.Services.Workouts;
 using Microsoft.EntityFrameworkCore;
@@ -36,17 +37,64 @@ internal static class ProposedExerciseReader
     internal static async Task ValidateAsync(
         AppDbContext dbContext,
         IReadOnlyList<ProposedExercise> exercises,
-        long userId)
+        long userId,
+        IReadOnlyList<ProposedNewExercise>? newExercises = null)
     {
         var visibleIds = await GetVisibleExerciseIdsAsync(
             dbContext,
-            exercises.Select(x => x.ExerciseId),
+            exercises.Where(x => string.IsNullOrWhiteSpace(x.NewExerciseClientKey)).Select(x => x.ExerciseId),
             userId);
 
-        var errors = AIProposalValidator.ValidateExercises(exercises, visibleIds);
+        var declared = (newExercises ?? []).Select(x => x.ClientKey).ToList();
+
+        var errors = AIProposalValidator.ValidateNewExercises(newExercises ?? []);
+        errors.AddRange(AIProposalValidator.ValidateExercises(exercises, visibleIds, declared));
+
         if (errors.Count > 0)
         {
             throw new FitMateException(string.Join(" ", errors));
+        }
+    }
+
+    /// <summary>
+    /// Creates the exercises the proposal brings with it and rewrites the entries that referenced
+    /// them by key, so everything downstream sees ordinary exercise ids. Mirrors how a program
+    /// proposal materialises its new templates before wiring the schedule.
+    /// </summary>
+    internal static async Task CreateNewExercisesAsync(
+        AppDbContext dbContext,
+        IExerciseService exerciseService,
+        IReadOnlyList<ProposedExercise> exercises,
+        IReadOnlyList<ProposedNewExercise> newExercises,
+        long userId)
+    {
+        if (newExercises.Count == 0)
+        {
+            return;
+        }
+
+        await ValidateAsync(dbContext, exercises, userId, newExercises);
+
+        var idsByKey = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var candidate in newExercises)
+        {
+            var created = await exerciseService.CreatePersonalAsync(
+                ExercisePayloadReader.ToRequest(candidate, candidate.IsPublic));
+
+            idsByKey[candidate.ClientKey] = created.Id;
+        }
+
+        foreach (var exercise in exercises.Where(x => !string.IsNullOrWhiteSpace(x.NewExerciseClientKey)))
+        {
+            if (!idsByKey.TryGetValue(exercise.NewExerciseClientKey!, out var id))
+            {
+                throw new FitMateException(
+                    $"The suggestion references new exercise '{exercise.NewExerciseClientKey}', which was not created.");
+            }
+
+            exercise.ExerciseId = id;
+            exercise.NewExerciseClientKey = null;
         }
     }
 
@@ -94,11 +142,16 @@ public class CreateWorkoutActionExecutor : IAIActionExecutor
 {
     private readonly AppDbContext dbContext;
     private readonly IWorkoutService workoutService;
+    private readonly IExerciseService exerciseService;
 
-    public CreateWorkoutActionExecutor(AppDbContext dbContext, IWorkoutService workoutService)
+    public CreateWorkoutActionExecutor(
+        AppDbContext dbContext,
+        IWorkoutService workoutService,
+        IExerciseService exerciseService)
     {
         this.dbContext = dbContext;
         this.workoutService = workoutService;
+        this.exerciseService = exerciseService;
     }
 
     public AIActionType ActionType => AIActionType.CreateWorkout;
@@ -111,6 +164,8 @@ public class CreateWorkoutActionExecutor : IAIActionExecutor
         var payload = AIJsonSerializer.Deserialize<ProposeWorkoutPayload>(action.PayloadJson)
             ?? throw new FitMateException("The suggestion payload is empty.");
 
+        await ProposedExerciseReader.CreateNewExercisesAsync(
+            dbContext, exerciseService, payload.Exercises, payload.NewExercises, userId);
         await ProposedExerciseReader.ValidateAsync(dbContext, payload.Exercises, userId);
 
         var created = await workoutService.CreateAsync(
@@ -135,13 +190,16 @@ public class CreateWorkoutTemplateActionExecutor : IAIActionExecutor
 {
     private readonly AppDbContext dbContext;
     private readonly IWorkoutTemplateService workoutTemplateService;
+    private readonly IExerciseService exerciseService;
 
     public CreateWorkoutTemplateActionExecutor(
         AppDbContext dbContext,
-        IWorkoutTemplateService workoutTemplateService)
+        IWorkoutTemplateService workoutTemplateService,
+        IExerciseService exerciseService)
     {
         this.dbContext = dbContext;
         this.workoutTemplateService = workoutTemplateService;
+        this.exerciseService = exerciseService;
     }
 
     public AIActionType ActionType => AIActionType.CreateWorkoutTemplate;
@@ -154,6 +212,8 @@ public class CreateWorkoutTemplateActionExecutor : IAIActionExecutor
         var payload = AIJsonSerializer.Deserialize<ProposeWorkoutTemplatePayload>(action.PayloadJson)
             ?? throw new FitMateException("The suggestion payload is empty.");
 
+        await ProposedExerciseReader.CreateNewExercisesAsync(
+            dbContext, exerciseService, payload.Exercises, payload.NewExercises, userId);
         await ProposedExerciseReader.ValidateAsync(dbContext, payload.Exercises, userId);
 
         // The template service enforces the CustomWorkoutTemplates quota, so a user who has hit

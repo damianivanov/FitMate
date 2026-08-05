@@ -58,10 +58,14 @@ public class ProposeWorkoutToolHandler : IAIToolHandler
 
         var visibleIds = await ProposedExerciseReader.GetVisibleExerciseIdsAsync(
             dbContext,
-            payload.Exercises.Select(x => x.ExerciseId),
+            payload.Exercises.Where(x => string.IsNullOrWhiteSpace(x.NewExerciseClientKey)).Select(x => x.ExerciseId),
             context.UserId);
 
-        var errors = AIProposalValidator.ValidateExercises(payload.Exercises, visibleIds);
+        var errors = AIProposalValidator.ValidateNewExercises(payload.NewExercises);
+        errors.AddRange(AIProposalValidator.ValidateExercises(
+            payload.Exercises,
+            visibleIds,
+            payload.NewExercises.Select(x => x.ClientKey).ToList()));
         if (errors.Count > 0)
         {
             return AIToolExecutionResult.Fail("validation_failed", string.Join(" ", errors));
@@ -127,7 +131,8 @@ public class ProposeWorkoutToolHandler : IAIToolHandler
         var lines = await ProposalSchemas.BuildExerciseLinesAsync(
             dbContext,
             payload.Exercises,
-            cancellationToken);
+            cancellationToken,
+            payload.NewExercises);
 
         lines.Add(new AIActionPreviewLineModel
         {

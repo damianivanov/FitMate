@@ -64,7 +64,7 @@ public class AIActionServiceTests
         return new AIActionService(context, [
             new CreatePersonalExerciseActionExecutor(context, exerciseService),
             new CreateGlobalExerciseActionExecutor(context, exerciseService),
-            new CreateWorkoutTemplateActionExecutor(context, templateService),
+            new CreateWorkoutTemplateActionExecutor(context, templateService, exerciseService),
         ]);
     }
 

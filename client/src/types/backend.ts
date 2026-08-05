@@ -1086,6 +1086,7 @@ export namespace JsonModels.AIActions {
 		title: string;
 		notes?: string;
 		exercises: JsonModels.AIActions.ProposedExercise[];
+		newExercises: JsonModels.AIActions.ProposedNewExercise[];
 	}
 	export interface ProposeWorkoutTemplatePayload
 	{
@@ -1094,10 +1095,16 @@ export namespace JsonModels.AIActions {
 		estimatedDurationMinutes?: number;
 		isPublic: boolean;
 		exercises: JsonModels.AIActions.ProposedExercise[];
+		newExercises: JsonModels.AIActions.ProposedNewExercise[];
+	}
+	export interface ProposedNewExercise extends JsonModels.AIActions.ProposeExercisePayload
+	{
+		clientKey: string;
 	}
 	export interface ProposedExercise
 	{
 		exerciseId: number;
+		newExerciseClientKey?: string;
 		sets: JsonModels.AIActions.ProposedSet[];
 	}
 	export interface ProposedSet

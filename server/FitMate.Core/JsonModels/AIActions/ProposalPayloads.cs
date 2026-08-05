@@ -28,6 +28,7 @@ public class ProposeWorkoutPayload
     public string Title { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public List<ProposedExercise> Exercises { get; set; } = [];
+    public List<ProposedNewExercise> NewExercises { get; set; } = [];
 }
 
 public class ProposeWorkoutTemplatePayload
@@ -37,11 +38,27 @@ public class ProposeWorkoutTemplatePayload
     public int? EstimatedDurationMinutes { get; set; }
     public bool IsPublic { get; set; }
     public List<ProposedExercise> Exercises { get; set; } = [];
+    public List<ProposedNewExercise> NewExercises { get; set; } = [];
+}
+
+/// <summary>
+/// An exercise that does not exist yet, created as part of the same confirmation as the workout or
+/// template that uses it. Mirrors how a program proposal carries its new templates.
+/// </summary>
+public class ProposedNewExercise : ProposeExercisePayload
+{
+    /// <summary>Short handle the exercise list refers to, e.g. "skull-crusher".</summary>
+    public string ClientKey { get; set; } = string.Empty;
 }
 
 public class ProposedExercise
 {
+    /// <summary>An existing exercise. Zero when NewExerciseClientKey is used instead.</summary>
     public long ExerciseId { get; set; }
+
+    /// <summary>The clientKey of one of the newExercises carried by the same proposal.</summary>
+    public string? NewExerciseClientKey { get; set; }
+
     public List<ProposedSet> Sets { get; set; } = [];
 }
 

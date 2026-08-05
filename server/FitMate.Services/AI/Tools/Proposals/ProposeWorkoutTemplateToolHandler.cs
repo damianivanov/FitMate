@@ -57,10 +57,14 @@ public class ProposeWorkoutTemplateToolHandler : IAIToolHandler
 
         var visibleIds = await ProposedExerciseReader.GetVisibleExerciseIdsAsync(
             dbContext,
-            payload.Exercises.Select(x => x.ExerciseId),
+            payload.Exercises.Where(x => string.IsNullOrWhiteSpace(x.NewExerciseClientKey)).Select(x => x.ExerciseId),
             context.UserId);
 
-        var errors = AIProposalValidator.ValidateExercises(payload.Exercises, visibleIds);
+        var errors = AIProposalValidator.ValidateNewExercises(payload.NewExercises);
+        errors.AddRange(AIProposalValidator.ValidateExercises(
+            payload.Exercises,
+            visibleIds,
+            payload.NewExercises.Select(x => x.ClientKey).ToList()));
         if (string.IsNullOrWhiteSpace(payload.Name))
         {
             errors.Add("The template needs a name.");
@@ -85,7 +89,8 @@ public class ProposeWorkoutTemplateToolHandler : IAIToolHandler
             var lines = await ProposalSchemas.BuildExerciseLinesAsync(
                 dbContext,
                 payload.Exercises,
-                cancellationToken);
+                cancellationToken,
+            payload.NewExercises);
 
             lines.Add(new AIActionPreviewLineModel
             {
