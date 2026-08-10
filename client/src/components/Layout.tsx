@@ -9,9 +9,7 @@ export default function Layout() {
   const { userLoaded, isAuthenticated } = useUserStore();
   const isBannerOpen = useConsentStore((state) => state.isBannerOpen);
   const isReadyAuthenticated = userLoaded && isAuthenticated;
-  const bannerClearanceClassName = isBannerOpen
-    ? "liquid-main-shell-banner-open pb-40 md:pb-28"
-    : "";
+  const bannerClearanceClassName = isBannerOpen ? "liquid-banner-clearance" : "";
 
   if (isReadyAuthenticated) {
     return (
@@ -32,7 +30,7 @@ export default function Layout() {
     <div className="liquid-shell">
       <div className={`pwa-safe-top relative z-10 flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain ${bannerClearanceClassName}`}>
         <Sidebar />
-        <main className="flex min-w-0 flex-1 flex-col min-h-0">
+        <main className="flex min-w-0 flex-1 flex-col">
           <Outlet />
         </main>
       </div>

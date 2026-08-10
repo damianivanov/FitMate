@@ -13,7 +13,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="liquid-pill max-w-[85%] rounded-3xl rounded-br-lg px-4 py-2.5">
+        <div className="liquid-static-pill max-w-[85%] rounded-3xl rounded-br-lg px-4 py-2.5">
           <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
         </div>
       </div>

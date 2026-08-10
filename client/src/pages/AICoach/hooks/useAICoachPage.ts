@@ -7,13 +7,11 @@ import {
   type AIConversationModel,
   type AIConversationSummaryModel,
   type AIMessageModel,
-  type AIUsageSummaryModel,
 } from "@/types";
 
 export function useAICoachPage() {
   const [conversations, setConversations] = useState<AIConversationSummaryModel[]>([]);
   const [activeConversation, setActiveConversation] = useState<AIConversationModel | null>(null);
-  const [usage, setUsage] = useState<AIUsageSummaryModel | null>(null);
   const [actions, setActions] = useState<AIActionModel[]>([]);
   const [busyActionId, setBusyActionId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +83,6 @@ export function useAICoachPage() {
         const result = unwrap(response.data, "The assistant could not answer.");
 
         setActiveTools(result.usedTools);
-        setUsage(result.usage);
         setActions((current) => [...current, ...result.actions]);
         await openConversation(target.id, true);
         await loadConversations();
@@ -150,9 +147,6 @@ export function useAICoachPage() {
         if (loaded.length > 0) {
           await openConversation(loaded[0].id);
         }
-
-        const usageResponse = await aiService.getUsage();
-        setUsage(unwrap(usageResponse.data, "Unable to load AI usage."));
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Unable to load the AI coach.");
       } finally {
@@ -167,7 +161,6 @@ export function useAICoachPage() {
     state: {
       conversations,
       activeConversation,
-      usage,
       pendingActions: actions,
       busyActionId,
       isLoading,

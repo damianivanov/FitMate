@@ -45,16 +45,6 @@ export default function AICoach() {
     </p>
   ) : null;
 
-  const usageMessage =
-    state.usage?.limit != null ? (
-      <p
-        className="px-1 pt-2 text-center text-sm font-medium tabular-nums text-tertiary"
-        title="AI messages used this month"
-      >
-        {state.usage.used} / {state.usage.limit}
-      </p>
-    ) : null;
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="shrink-0 px-4 pt-3 md:px-6">
@@ -101,7 +91,6 @@ export default function AICoach() {
             <div className="mx-auto w-full max-w-3xl">
               {errorMessage}
               <ChatComposer isSending={state.isSending} onSend={actions.send} />
-              {usageMessage}
             </div>
           </div>
         </>
@@ -113,7 +102,6 @@ export default function AICoach() {
             <div>
               {errorMessage}
               <ChatComposer isSending={state.isSending} onSend={actions.send} autoFocus />
-              {usageMessage}
             </div>
 
             <CoachSuggestions onPick={actions.send} isSending={state.isSending} />

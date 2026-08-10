@@ -126,6 +126,7 @@ export type { ProgramProgressModel } from "./ProgramPlans/ProgramProgressModel";
 export type { ProgramScheduleRuleRequest } from "./ProgramPlans/ProgramScheduleRuleRequest";
 export type { ProgramTodayModel } from "./ProgramPlans/ProgramTodayModel";
 export type { ProposedExercise } from "./AIActions/ProposedExercise";
+export type { ProposedNewExercise } from "./AIActions/ProposedNewExercise";
 export type { ProposedProgramScheduleItem } from "./AIActions/ProposedProgramScheduleItem";
 export type { ProposedProgramTemplate } from "./AIActions/ProposedProgramTemplate";
 export type { ProposedSet } from "./AIActions/ProposedSet";

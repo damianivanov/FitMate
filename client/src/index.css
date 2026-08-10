@@ -743,10 +743,30 @@ textarea { resize: none; }
   }
 }
 
-/* The cookie banner stacks on top of the tab bar, so it raises the same variable rather than
-   fighting the rule above with a utility class. */
-.liquid-main-shell-banner-open {
-  --mobile-bottom-clearance: calc(env(safe-area-inset-bottom, 0px) + 13rem);
+/* While the banner is open it forms a bottom dock with the page footer stacked beneath it, both
+   pinned to the viewport. Each measures itself into a variable — --cookie-banner-height and
+   --page-footer-height — so the offsets and the clearance stay right as the copy re-wraps.
+   --page-footer-height stays unset on pages that have no footer. */
+.liquid-banner-dock {
+  bottom: calc(var(--page-footer-height, 0px) + 1rem);
+}
+
+/* Scroll containers reserve room for the whole dock, or their last row lands underneath it. */
+.liquid-banner-clearance {
+  padding-bottom: calc(
+    var(--page-footer-height, 0px) + var(--cookie-banner-height, 0px) + 2rem
+  );
+}
+
+/* On mobile the banner sits above the tab bar instead of replacing it, so the authenticated
+   shell adds the banner on top of whatever clearance the tab bar already asked for. */
+@media (max-width: 767px) {
+  .liquid-main-shell.liquid-banner-clearance {
+    padding-bottom: calc(
+      var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6rem)) +
+        var(--cookie-banner-height, 0px) + 1rem
+    );
+  }
 }
 
 /* ----------------------------------------------------------------
@@ -955,6 +975,15 @@ textarea { resize: none; }
 
 :where(.liquid-pill) { color: var(--text-secondary); }
 :where(.liquid-pill:hover) { color: var(--text-primary); }
+
+/* The pill's glass without its press affordances, for surfaces that hold selectable text rather
+   than a click target. The hover lift and :active scale shift the text out from under the pointer
+   mid-drag, which anchors a selection on the wrong character and breaks copying. */
+.liquid-static-pill {
+  border: 1px solid var(--glass-border-soft);
+  background: var(--glass-bg-pill);
+  box-shadow: var(--glass-specular-pill);
+}
 
 .liquid-pill-active {
   border-color: var(--glass-border-hover);

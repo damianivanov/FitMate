@@ -7,4 +7,5 @@ export interface ProposeWorkoutTemplatePayload
 	estimatedDurationMinutes?: number;
 	isPublic: boolean;
 	exercises: JsonModels.AIActions.ProposedExercise[];
+	newExercises: JsonModels.AIActions.ProposedNewExercise[];
 }

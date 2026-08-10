@@ -5,4 +5,5 @@ export interface ProposeWorkoutPayload
 	title: string;
 	notes?: string;
 	exercises: JsonModels.AIActions.ProposedExercise[];
+	newExercises: JsonModels.AIActions.ProposedNewExercise[];
 }
