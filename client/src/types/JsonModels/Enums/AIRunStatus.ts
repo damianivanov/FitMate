@@ -3,5 +3,6 @@ export enum AIRunStatus {
 	Completed = 2,
 	Failed = 3,
 	Cancelled = 4,
-	LimitExceeded = 5
+	LimitExceeded = 5,
+	Queued = 6
 }

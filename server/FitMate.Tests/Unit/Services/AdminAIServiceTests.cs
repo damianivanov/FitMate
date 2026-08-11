@@ -39,6 +39,7 @@ public class AdminAIServiceTests
             Provider = "test",
             Model = model,
             PromptVersion = "v1",
+            ClientRequestId = Guid.NewGuid().ToString(),
             InputTokens = 100,
             OutputTokens = 50,
             EstimatedCost = cost,

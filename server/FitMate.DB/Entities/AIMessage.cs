@@ -13,5 +13,8 @@ public class AIMessage : BaseEntity
     public string? ToolCallId { get; set; }
     public string? MetadataJson { get; set; }
 
+    /// <summary>The run that produced this message. Null for messages written before durable runs.</summary>
+    public long? AIRunId { get; set; }
+
     public AIConversation Conversation { get; set; } = null!;
 }

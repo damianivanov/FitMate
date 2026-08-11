@@ -596,21 +596,6 @@ textarea { resize: none; }
     inset 0 0 0 1px rgba(104, 93, 178, 0.16);
 }
 
-.liquid-modal-surface:has([data-dropdown-open="true"]) {
-  overflow: visible !important;
-}
-
-.liquid-panel:has([data-dropdown-open="true"]) {
-  overflow: visible !important;
-  position: relative;
-  z-index: 20;
-}
-
-.liquid-panel:has([data-dropdown-open="true"]) > *:has([data-dropdown-open="true"]) {
-  position: relative;
-  z-index: 40;
-}
-
 .liquid-info-surface {
   border: 1px solid var(--accent-border);
   background: var(--accent-soft);

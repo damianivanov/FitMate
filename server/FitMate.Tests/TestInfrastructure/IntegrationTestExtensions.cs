@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using FitMate.Core.JsonModels.AI;
 using FitMate.Core.JsonModels.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -63,6 +64,36 @@ public static class IntegrationTestExtensions
             ?? throw new InvalidOperationException("Login did not set a Token cookie.");
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    /// <summary>
+    /// The whole turn as a test wants it: enqueue the message, run the worker's work synchronously,
+    /// then hand back the snapshot the client would have observed.
+    /// </summary>
+    public static async Task<AIRunSnapshotModel> SendAndProcessAsync(
+        this TestWebApplicationFactory factory,
+        HttpClient client,
+        long conversationId,
+        string content)
+    {
+        var sent = await client.PostAsJsonAsync(
+            $"/api/ai/conversations/{conversationId}/messages",
+            new SendAIMessageRequest { Content = content, ClientRequestId = Guid.NewGuid().ToString() });
+
+        var started = await sent.Content.ReadFromJsonAsync<ApiResponse<StartAIRunResponse>>();
+        if (started is not { Success: true, Data: not null })
+        {
+            throw new InvalidOperationException($"Starting the run failed: {started?.Error}");
+        }
+
+        await factory.ProcessPendingAIRunsAsync();
+
+        var snapshotResponse = await client.GetAsync($"/api/ai/runs/{started.Data.RunId}");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<ApiResponse<AIRunSnapshotModel>>();
+
+        return snapshot is { Success: true, Data: not null }
+            ? snapshot.Data
+            : throw new InvalidOperationException($"Reading the run snapshot failed: {snapshot?.Error}");
     }
 
     public static string? ExtractCookie(HttpResponseMessage response, string name)

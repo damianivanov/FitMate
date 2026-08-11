@@ -134,6 +134,7 @@ export default function Analytics() {
                             points={state.progressionPoints}
                             valueSuffix=" kg"
                             emptyText={`No completed sets for ${state.selectedExercise.name} in this range.`}
+                            baseline="data"
                           />
                         )}
                       </div>

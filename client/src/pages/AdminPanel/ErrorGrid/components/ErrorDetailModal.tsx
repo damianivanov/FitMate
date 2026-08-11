@@ -36,7 +36,7 @@ function DetailRow({ label, value, mono }: { label: string; value?: ReactNode; m
 export function ErrorDetailModal({ error, onClose }: ErrorDetailModalProps) {
   return (
     <Modal isOpen={error !== null} onClose={onClose} title="Error Details" maxWidth="3xl">
-      <div className="liquid-scrollbar max-h-[75vh] overflow-y-auto p-5 md:p-6">
+      <div className="p-5 md:p-6">
         {error ? (
           <div className="space-y-4">
             <dl className="liquid-surface rounded-2xl px-4 py-1">

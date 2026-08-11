@@ -1,22 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { unwrap } from "@/lib/unwrap";
 import { aiService } from "@/services/aiService";
-import {
-  AIMessageRole,
-  type AIActionModel,
-  type AIConversationModel,
-  type AIConversationSummaryModel,
-  type AIMessageModel,
+import type {
+  AIActionModel,
+  AIConversationModel,
+  AIConversationSummaryModel,
 } from "@/types";
+import { useAIRunProgress } from "./useAIRunProgress";
 
 export function useAICoachPage() {
   const [conversations, setConversations] = useState<AIConversationSummaryModel[]>([]);
   const [activeConversation, setActiveConversation] = useState<AIConversationModel | null>(null);
   const [actions, setActions] = useState<AIActionModel[]>([]);
+  const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [busyActionId, setBusyActionId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const [activeTools, setActiveTools] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
@@ -26,16 +24,17 @@ export function useAICoachPage() {
     return loaded;
   }, []);
 
-  const openConversation = useCallback(async (id: number, keepActions = false) => {
+  // Everything the UI needs comes from this one read, so a reload, a refresh or a return from
+  // another page all rebuild the same state: messages, pending proposals and any run still going.
+  const openConversation = useCallback(async (id: number) => {
     setError(null);
     try {
       const response = await aiService.getConversation(id);
-      setActiveConversation(unwrap(response.data, "Unable to open the conversation."));
+      const conversation = unwrap(response.data, "Unable to open the conversation.");
 
-      // Suggestion cards belong to the run that produced them, so switching threads clears them.
-      if (!keepActions) {
-        setActions([]);
-      }
+      setActiveConversation(conversation);
+      setActions(conversation.actions ?? []);
+      setActiveRunId(conversation.activeRun?.runId ?? null);
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : "Unable to open the conversation.");
     }
@@ -46,18 +45,34 @@ export function useAICoachPage() {
   const startConversation = useCallback(() => {
     setError(null);
     setActions([]);
+    setActiveRunId(null);
     setActiveConversation(null);
   }, []);
+
+  const handleRunTerminal = useCallback(async () => {
+    const conversationId = activeConversation?.id;
+    setActiveRunId(null);
+
+    if (conversationId == null) {
+      return;
+    }
+
+    await openConversation(conversationId);
+    await loadConversations();
+  }, [activeConversation?.id, loadConversations, openConversation]);
+
+  const { events: progressEvents, currentCode } = useAIRunProgress({
+    runId: activeRunId,
+    onTerminal: handleRunTerminal,
+  });
 
   const send = useCallback(
     async (content: string) => {
       const trimmed = content.trim();
-      if (!trimmed || isSending) {
+      if (!trimmed || activeRunId != null) {
         return;
       }
 
-      setIsSending(true);
-      setActiveTools([]);
       setError(null);
 
       try {
@@ -68,35 +83,24 @@ export function useAICoachPage() {
           target = unwrap(created.data, "Unable to start a conversation.");
         }
 
-        // Show the user's message immediately; the reload after the reply reconciles ids.
-        const optimistic: AIMessageModel = {
-          id: -Date.now(),
-          role: AIMessageRole.User,
+        const response = await aiService.startMessage(target.id, {
           content: trimmed,
-          toolName: undefined,
-          dateCreated: new Date().toISOString(),
-        };
+          clientRequestId: crypto.randomUUID(),
+        });
+        const started = unwrap(response.data, "The assistant could not accept that message.");
 
-        setActiveConversation({ ...target, messages: [...target.messages, optimistic] });
-
-        const response = await aiService.sendMessage(target.id, { content: trimmed });
-        const result = unwrap(response.data, "The assistant could not answer.");
-
-        setActiveTools(result.usedTools);
-        setActions((current) => [...current, ...result.actions]);
-        await openConversation(target.id, true);
-        await loadConversations();
+        // The 202 already carries the persisted message, so there is nothing to reconcile later.
+        setActiveConversation({ ...target, messages: [...target.messages, started.userMessage] });
+        setActiveRunId(started.runId);
       } catch (sendError) {
         setError(
           sendError instanceof Error
             ? sendError.message
             : "The assistant is unavailable right now. Please try again.",
         );
-      } finally {
-        setIsSending(false);
       }
     },
-    [activeConversation, isSending, loadConversations, openConversation],
+    [activeConversation, activeRunId],
   );
 
   // Confirm and reject share everything except the call, so they run through one helper.
@@ -164,8 +168,9 @@ export function useAICoachPage() {
       pendingActions: actions,
       busyActionId,
       isLoading,
-      isSending,
-      activeTools,
+      isSending: activeRunId != null,
+      progressEvents,
+      currentProgressCode: currentCode,
       error,
     },
     actions: { openConversation, startConversation, send, confirmAction, rejectAction },

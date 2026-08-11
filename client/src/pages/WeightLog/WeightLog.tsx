@@ -70,7 +70,12 @@ export default function WeightLog() {
           >
             <div className="space-y-5">
               <div className="liquid-panel rounded-2xl p-4 md:rounded-lg">
-                <LineChart points={state.chartPoints} valueSuffix=" kg" emptyText="No weight data yet." />
+                <LineChart
+                  points={state.chartPoints}
+                  valueSuffix=" kg"
+                  emptyText="No weight data yet."
+                  baseline="data"
+                />
               </div>
 
               <div className="flex flex-wrap items-start gap-x-8 gap-y-3 px-1">

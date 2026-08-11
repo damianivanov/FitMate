@@ -2,6 +2,10 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || "/api";
 axios.defaults.baseURL = apiBaseUrl;
+
+/// EventSource cannot go through the Axios instance, so it needs the base URL directly.
+export const apiUrl = (path: string) => `${apiBaseUrl.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+
 axios.defaults.timeout = 0;
 
 const api = axios.create({

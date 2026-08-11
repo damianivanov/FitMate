@@ -1,104 +1,27 @@
 using FitMate.Core.Exceptions;
-using FitMate.Core.JsonModels.AI;
-using FitMate.Core.Settings;
-using FitMate.DB;
 using FitMate.DB.Enums;
-using FitMate.Services.AI;
-using FitMate.Services.AI.Tools;
-using FitMate.Services.AIActions;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace FitMate.Tests.Unit.Services;
 
 public class AIOrchestratorTests
 {
-    private sealed record Harness(
-        AIOrchestrator Orchestrator,
-        AppDbContext Context,
-        FakeAICompletionProvider Provider,
-        FakeUsageService Usage,
-        FakeEntitlementService Entitlements,
-        long ConversationId);
-
-    private static async Task<Harness> CreateAsync(
-        SqliteTestDatabase db,
-        FakeAICompletionProvider provider,
-        int maxIterations = 6,
-        int maxToolCalls = 12,
-        IEnumerable<IAIToolHandler>? tools = null)
-    {
-        var context = db.CreateContext();
-        var redaction = new AIRedactionService();
-        var conversationService = new AIConversationService(context, redaction);
-        var conversation = await conversationService.CreateAsync(
-            new CreateAIConversationRequest(),
-            SqliteTestDatabase.UserId);
-
-        var options = Options.Create(new AIOptions
-        {
-            Provider = "OpenAI",
-            DefaultModel = "test-model",
-            MaximumToolIterations = maxIterations,
-            MaximumToolCallsPerRun = maxToolCalls,
-            MaximumConversationMessages = 30,
-            TimeoutSeconds = 30,
-        });
-
-        var registry = new AIToolRegistry(context, redaction, tools ?? []);
-        var usage = new FakeUsageService();
-        var entitlements = new FakeEntitlementService();
-        var promptBuilder = new AIPromptBuilder();
-
-        var budgetResolver = new FakeAIBudgetResolver
-        {
-            Budget = new AIBudget(
-                Model: "test-model",
-                MaximumContextTokens: 32_000,
-                MaximumConversationMessages: 30,
-                MaximumOutputTokens: 4_000,
-                MaximumMessageCharacters: 16_000,
-                TimeoutSeconds: 30,
-                MaximumToolIterations: maxIterations,
-                MaximumToolCallsPerRun: maxToolCalls),
-        };
-
-        var orchestrator = new AIOrchestrator(
-            conversationService,
-            new AIRunService(context, new AICostCalculator(context), redaction),
-            new AIContextBuilder(conversationService, promptBuilder, new AITokenEstimator()),
-            registry,
-            provider,
-            new AIModelRouter(options),
-            promptBuilder,
-            entitlements,
-            usage,
-            new AIActionService(context, []),
-            budgetResolver,
-            options);
-
-        return new Harness(orchestrator, context, provider, usage, entitlements, conversation.Id);
-    }
-
     // Отговор без инструменти: запазва съобщението и таксува веднъж
     [Fact]
     public async Task Send_NoToolCalls_PersistsAssistantMessageAndCommitsUsage()
     {
         using var db = new SqliteTestDatabase();
         var provider = new FakeAICompletionProvider().EnqueueText("Train legs today.");
-        var harness = await CreateAsync(db, provider);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
 
-        var response = await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "What should I train?" },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("What should I train?");
 
-        Assert.Equal("Train legs today.", response.Message.Content);
+        Assert.Equal("Train legs today.", (await harness.LastAssistantMessageAsync()).Content);
         Assert.Single(harness.Usage.Committed);
         Assert.Empty(harness.Usage.Released);
 
-        var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
+        var run = await harness.RunRowAsync();
         Assert.Equal(AIRunStatus.Completed, run.Status);
         Assert.Equal(10, run.InputTokens);
         Assert.Equal("system-v2", run.PromptVersion);
@@ -114,22 +37,19 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", tool.Name, """{"value":"hello"}""")
             .EnqueueText("Done.");
-        var harness = await CreateAsync(db, provider, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [tool]);
 
-        var response = await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Use the tool." },
-            SqliteTestDatabase.UserId);
+        var started = await harness.SendAsync("Use the tool.");
 
-        Assert.Equal("Done.", response.Message.Content);
-        Assert.Contains(tool.Name, response.UsedTools);
+        Assert.Equal("Done.", (await harness.LastAssistantMessageAsync()).Content);
+        Assert.Contains(tool.Name, await harness.UsedToolsAsync(started.RunId));
         Assert.Single(tool.Calls);
 
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
         Assert.Equal(AIToolExecutionStatus.Completed, execution.Status);
         Assert.Equal("call-1", execution.ToolCallId);
 
-        var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
+        var run = await harness.RunRowAsync();
         Assert.Equal(1, run.ToolCallCount);
         Assert.Equal(20, run.InputTokens); // accumulated over both provider calls
     }
@@ -146,21 +66,19 @@ public class AIOrchestratorTests
             provider.EnqueueToolCall($"call-{i}", tool.Name, """{"value":"loop"}""");
         }
 
-        var harness = await CreateAsync(db, provider, maxIterations: 3, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, maxIterations: 3, tools: [tool]);
 
         // The user gets a readable reply rather than an error, so the thread stays coherent, but
         // the run still records that a ceiling stopped it.
-        var response = await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Loop forever." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Loop forever.");
 
-        Assert.Equal(AIMessageRole.Assistant, response.Message.Role);
-        Assert.False(string.IsNullOrWhiteSpace(response.Message.Content));
+        var reply = await harness.LastAssistantMessageAsync();
+        Assert.Equal(AIMessageRole.Assistant, reply.Role);
+        Assert.False(string.IsNullOrWhiteSpace(reply.Content));
 
-        var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
+        var run = await harness.RunRowAsync();
         Assert.Equal(AIRunStatus.LimitExceeded, run.Status);
-        Assert.Equal(response.Message.Id, run.AssistantMessageId);
+        Assert.Equal(reply.Id, run.AssistantMessageId);
         Assert.Single(harness.Usage.Released);
         Assert.Empty(harness.Usage.Committed);
     }
@@ -171,18 +89,20 @@ public class AIOrchestratorTests
     {
         using var db = new SqliteTestDatabase();
         var provider = new FakeAICompletionProvider { ThrowOnCall = new AIProviderException("upstream exploded") };
-        var harness = await CreateAsync(db, provider);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
 
-        await Assert.ThrowsAsync<AIProviderException>(() =>
-            harness.Orchestrator.SendAsync(
-                harness.ConversationId,
-                new SendAIMessageRequest { Content = "Hi" },
-                SqliteTestDatabase.UserId));
+        // The worker has no caller to surface an exception to, so the failure is recorded rather
+        // than thrown; the user reads it back from the run snapshot.
+        await harness.SendAsync("Hi");
 
-        var run = await harness.Context.AIRuns.AsNoTracking().SingleAsync();
+        var run = await harness.RunRowAsync();
         Assert.Equal(AIRunStatus.Failed, run.Status);
         Assert.Single(harness.Usage.Released);
         Assert.Empty(harness.Usage.Committed);
+        Assert.Equal(nameof(AIProviderException), run.ErrorCode);
+
+        // The thread still ends on a reply rather than on the user's unanswered message.
+        Assert.Equal(AIMessageRole.Assistant, (await harness.LastAssistantMessageAsync()).Role);
     }
 
     // Изключена функция: хвърля преди какъвто и да е разговор с доставчика
@@ -191,14 +111,10 @@ public class AIOrchestratorTests
     {
         using var db = new SqliteTestDatabase();
         var provider = new FakeAICompletionProvider();
-        var harness = await CreateAsync(db, provider);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
         harness.Entitlements.DisabledFeatures.Add(SubscriptionFeature.AIChat);
 
-        await Assert.ThrowsAsync<SubscriptionFeatureDisabledException>(() =>
-            harness.Orchestrator.SendAsync(
-                harness.ConversationId,
-                new SendAIMessageRequest { Content = "Hi" },
-                SqliteTestDatabase.UserId));
+        await Assert.ThrowsAsync<SubscriptionFeatureDisabledException>(() => harness.StartAsync("Hi"));
 
         Assert.Empty(provider.Requests);
         Assert.Empty(await harness.Context.AIRuns.ToListAsync());
@@ -213,14 +129,12 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", "no_such_tool", "{}")
             .EnqueueText("Sorry, I could not do that.");
-        var harness = await CreateAsync(db, provider);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
 
-        var response = await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Do the impossible." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Do the impossible.");
 
-        Assert.Equal("Sorry, I could not do that.", response.Message.Content);
+        Assert.Equal("Sorry, I could not do that.", (await harness.LastAssistantMessageAsync()).Content);
+
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
         Assert.Equal(AIToolExecutionStatus.Rejected, execution.Status);
         Assert.Equal("tool_not_found", execution.ErrorCode);
@@ -236,12 +150,9 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", tool.Name, """{"value":"x"}""")
             .EnqueueText("Not available.");
-        var harness = await CreateAsync(db, provider, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [tool]);
 
-        await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Use it." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Use it.");
 
         Assert.Empty(tool.Calls);
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
@@ -258,12 +169,9 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", tool.Name, "not json")
             .EnqueueText("Recovered.");
-        var harness = await CreateAsync(db, provider, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [tool]);
 
-        await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Break it." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Break it.");
 
         Assert.Empty(tool.Calls);
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
@@ -279,14 +187,11 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", tool.Name, """{"value":"x"}""")
             .EnqueueText("Handled.");
-        var harness = await CreateAsync(db, provider, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [tool]);
 
-        var response = await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Use it." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Use it.");
 
-        Assert.Equal("Handled.", response.Message.Content);
+        Assert.Equal("Handled.", (await harness.LastAssistantMessageAsync()).Content);
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
         Assert.Equal(AIToolExecutionStatus.Failed, execution.Status);
         Assert.Equal("tool_failed", execution.ErrorCode);
@@ -298,18 +203,18 @@ public class AIOrchestratorTests
     {
         using var db = new SqliteTestDatabase();
         var provider = new FakeAICompletionProvider().EnqueueText("nope");
-        var harness = await CreateAsync(db, provider);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
 
-        await Assert.ThrowsAsync<FitMateException>(() =>
-            harness.Orchestrator.SendAsync(
-                harness.ConversationId,
-                new SendAIMessageRequest { Content = "Hi" },
-                SqliteTestDatabase.OtherUserId));
+        await Assert.ThrowsAsync<FitMateException>(() => harness.Starter.StartAsync(
+            harness.ConversationId,
+            new Core.JsonModels.AI.SendAIMessageRequest { Content = "Hi", ClientRequestId = "req-other" },
+            SqliteTestDatabase.OtherUserId));
 
         Assert.Empty(provider.Requests);
+        Assert.Empty(await harness.Context.AIRuns.ToListAsync());
     }
 
-    // Аргументите на инструмента се редактират, преди да се запишат
+    // Аргументите на инструмента се редактират преди запис
     [Fact]
     public async Task Send_ToolArguments_AreRedactedBeforeStorage()
     {
@@ -318,12 +223,9 @@ public class AIOrchestratorTests
         var provider = new FakeAICompletionProvider()
             .EnqueueToolCall("call-1", tool.Name, """{"value":"x","apiKey":"sk-live-0123456789abcdefghij"}""")
             .EnqueueText("Done.");
-        var harness = await CreateAsync(db, provider, tools: [tool]);
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [tool]);
 
-        await harness.Orchestrator.SendAsync(
-            harness.ConversationId,
-            new SendAIMessageRequest { Content = "Use it." },
-            SqliteTestDatabase.UserId);
+        await harness.SendAsync("Use it.");
 
         var execution = await harness.Context.AIToolExecutions.AsNoTracking().SingleAsync();
         Assert.DoesNotContain("sk-live-0123456789abcdefghij", execution.ArgumentsJson);
@@ -333,5 +235,34 @@ public class AIOrchestratorTests
             .ToListAsync();
         Assert.All(storedMessages, message =>
             Assert.DoesNotContain("sk-live-0123456789abcdefghij", message.Content));
+    }
+
+    // Няколко инструмента в един прогон: таксува се веднъж, всяко изпълнение се записва
+    [Fact]
+    public async Task Send_MultipleToolCalls_CommitsUsageOnceAndRecordsEveryExecution()
+    {
+        using var db = new SqliteTestDatabase();
+        var profileTool = new FakeEchoToolHandler("get_training_profile");
+        var workoutsTool = new FakeEchoToolHandler("get_recent_workouts");
+        var provider = new FakeAICompletionProvider()
+            .EnqueueToolCall("call-1", profileTool.Name, "{}")
+            .EnqueueToolCall("call-2", workoutsTool.Name, "{}")
+            .EnqueueText("Here is your plan.");
+
+        var harness = await WorkerHarness.CreateAsync(db, provider, tools: [profileTool, workoutsTool]);
+
+        var started = await harness.SendAsync("Plan my week.");
+
+        Assert.Single(harness.Usage.Committed);
+        Assert.Empty(harness.Usage.Released);
+
+        var run = await harness.RunRowAsync();
+        Assert.Equal(AIRunStatus.Completed, run.Status);
+        Assert.Equal(2, run.ToolCallCount);
+        Assert.NotNull(run.AssistantMessageId);
+
+        Assert.Equal(
+            ["get_training_profile", "get_recent_workouts"],
+            await harness.UsedToolsAsync(started.RunId));
     }
 }

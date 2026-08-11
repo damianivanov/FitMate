@@ -45,6 +45,7 @@ public class AppDbContext : IdentityDbContext<User, Role, long>, IDataProtection
     public DbSet<AIMessage> AIMessages => Set<AIMessage>();
     public DbSet<AIRun> AIRuns => Set<AIRun>();
     public DbSet<AIToolExecution> AIToolExecutions => Set<AIToolExecution>();
+    public DbSet<AIProgressEvent> AIProgressEvents => Set<AIProgressEvent>();
     public DbSet<UserAIPreferences> UserAIPreferences => Set<UserAIPreferences>();
     public DbSet<AIModelPricing> AIModelPricings => Set<AIModelPricing>();
     public DbSet<AISettings> AISettings => Set<AISettings>();

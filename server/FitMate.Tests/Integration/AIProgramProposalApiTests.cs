@@ -92,13 +92,10 @@ public class AIProgramProposalApiTests
         var created = await client.PostAsJsonAsync("/api/ai/conversations", new CreateAIConversationRequest());
         var conversation = await created.Content.ReadFromJsonAsync<ApiResponse<AIConversationModel>>();
 
-        var sent = await client.PostAsJsonAsync(
-            $"/api/ai/conversations/{conversation!.Data!.Id}/messages",
-            new SendAIMessageRequest { Content = "Build me an upper/lower program." });
-        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<SendAIMessageResponse>>();
+        var snapshot = await factory.SendAndProcessAsync(
+            client, conversation!.Data!.Id, "Build me an upper/lower program.");
 
-        Assert.True(body!.Success);
-        var action = Assert.Single(body.Data!.Actions);
+        var action = Assert.Single(snapshot.Actions);
         return (client, action, seed);
     }
 
@@ -231,11 +228,8 @@ public class AIProgramProposalApiTests
             new CreateAIConversationRequest());
         var conversation = await conversationResponse.Content.ReadFromJsonAsync<ApiResponse<AIConversationModel>>();
 
-        var sent = await client.PostAsJsonAsync(
-            $"/api/ai/conversations/{conversation!.Data!.Id}/messages",
-            new SendAIMessageRequest { Content = "Make it lighter." });
-        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<SendAIMessageResponse>>();
-        var action = Assert.Single(body!.Data!.Actions);
+        var snapshot = await factory.SendAndProcessAsync(client, conversation!.Data!.Id, "Make it lighter.");
+        var action = Assert.Single(snapshot.Actions);
 
         Assert.Equal(AIActionType.UpdateProgramPlan, action.ActionType);
         Assert.Contains(action.Preview.Lines, x => x.Label == "Why");
@@ -289,12 +283,9 @@ public class AIProgramProposalApiTests
         var created = await client.PostAsJsonAsync("/api/ai/conversations", new CreateAIConversationRequest());
         var conversation = await created.Content.ReadFromJsonAsync<ApiResponse<AIConversationModel>>();
 
-        var sent = await client.PostAsJsonAsync(
-            $"/api/ai/conversations/{conversation!.Data!.Id}/messages",
-            new SendAIMessageRequest { Content = "Use that other person's template." });
-        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<SendAIMessageResponse>>();
+        var snapshot = await factory.SendAndProcessAsync(
+            client, conversation!.Data!.Id, "Use that other person's template.");
 
-        Assert.True(body!.Success);
-        Assert.Empty(body.Data!.Actions);
+        Assert.Empty(snapshot.Actions);
     }
 }

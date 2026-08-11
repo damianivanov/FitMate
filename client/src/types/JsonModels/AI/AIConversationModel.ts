@@ -8,4 +8,6 @@ export interface AIConversationModel
 	status: AIConversationStatus;
 	lastMessageAt: string;
 	messages: JsonModels.AI.AIMessageModel[];
+	activeRun?: JsonModels.AI.AIActiveRunModel;
+	actions: JsonModels.AIActions.AIActionModel[];
 }

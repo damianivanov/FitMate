@@ -55,7 +55,9 @@ public class SubscriptionApiTests
         Assert.True(body!.Success);
         Assert.Equal(PlanCodes.Free, body.Data!.PlanCode);
         Assert.NotEmpty(body.Data.Features);
-        Assert.Equal(10, body.Data.Features.Single(x => x.Feature == SubscriptionFeature.AIChat).Limit);
+        Assert.Equal(
+            SqliteTestDatabase.FreeAIChatMonthlyLimit,
+            body.Data.Features.Single(x => x.Feature == SubscriptionFeature.AIChat).Limit);
     }
 
     // Публичните планове се връщат подредени

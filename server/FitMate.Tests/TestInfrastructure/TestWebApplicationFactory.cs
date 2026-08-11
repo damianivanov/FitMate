@@ -3,6 +3,8 @@ using FitMate.DB;
 using FitMate.Integrations.AI.Abstractions;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using FitMate.Services.AI;
+using FitMate.Services.AI.Runs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -47,6 +49,10 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Jwt__ExpirationMinutes", "60");
         Environment.SetEnvironmentVariable("RefreshToken__SigningKey", TestSigningKey);
         Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "DataSource=:memory:");
+
+        // A background poller racing the test's own assertions makes every integration test
+        // non-deterministic. Tests drive runs explicitly through ProcessPendingAIRunsAsync.
+        Environment.SetEnvironmentVariable("AI__AsyncRuns__WorkerEnabled", "false");
 
         ownsConnection = sharedConnection is null;
         connection = sharedConnection ?? new SqliteConnection("DataSource=:memory:");
@@ -118,6 +124,28 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         var host = base.CreateHost(builder);
         SeedAsync(host.Services).GetAwaiter().GetResult();
         return host;
+    }
+
+    /// <summary>
+    /// Runs every queued AI run to a terminal state, the way the worker would, but synchronously so
+    /// a test can assert on the outcome instead of polling for it.
+    /// </summary>
+    public async Task ProcessPendingAIRunsAsync(int maximumRuns = 10)
+    {
+        for (var processed = 0; processed < maximumRuns; processed++)
+        {
+            using var scope = Services.CreateScope();
+            var queue = scope.ServiceProvider.GetRequiredService<IAIRunQueue>();
+
+            var runId = await queue.ClaimNextAsync("test-host-worker", DateTime.UtcNow, CancellationToken.None);
+            if (runId == null)
+            {
+                return;
+            }
+
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IAIOrchestrator>();
+            await orchestrator.ProcessAsync(runId.Value, "test-host-worker", CancellationToken.None);
+        }
     }
 
     private static async Task SeedAsync(IServiceProvider services)

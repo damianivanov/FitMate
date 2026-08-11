@@ -148,6 +148,14 @@ export namespace Enums {
 		Olympic = 5,
 		Other = 6
 	}
+	export enum AIRunStatus {
+		Running = 1,
+		Completed = 2,
+		Failed = 3,
+		Cancelled = 4,
+		LimitExceeded = 5,
+		Queued = 6
+	}
 	export enum AIConversationStatus {
 		Active = 1,
 		Archived = 2,
@@ -177,13 +185,6 @@ export namespace Enums {
 		Rejected = 5,
 		Expired = 6,
 		Failed = 7
-	}
-	export enum AIRunStatus {
-		Running = 1,
-		Completed = 2,
-		Failed = 3,
-		Cancelled = 4,
-		LimitExceeded = 5
 	}
 	export enum AIToolExecutionStatus {
 		Running = 1,
@@ -975,6 +976,13 @@ export namespace JsonModels.Analytics {
 	}
 }
 export namespace JsonModels.AI {
+	export interface AIActiveRunModel
+	{
+		runId: number;
+		status: Enums.AIRunStatus;
+		currentProgressCode: string;
+		lastEventId: number;
+	}
 	export interface AIConversationModel
 	{
 		id: number;
@@ -982,6 +990,8 @@ export namespace JsonModels.AI {
 		status: Enums.AIConversationStatus;
 		lastMessageAt: string;
 		messages: JsonModels.AI.AIMessageModel[];
+		activeRun?: JsonModels.AI.AIActiveRunModel;
+		actions: JsonModels.AIActions.AIActionModel[];
 	}
 	export interface AIConversationSummaryModel
 	{
@@ -999,6 +1009,26 @@ export namespace JsonModels.AI {
 		toolName?: string;
 		dateCreated: string;
 	}
+	export interface AIProgressEventModel
+	{
+		id: number;
+		code: string;
+		toolName?: string;
+		occurredAt: string;
+	}
+	export interface AIRunSnapshotModel
+	{
+		id: number;
+		conversationId: number;
+		status: Enums.AIRunStatus;
+		currentProgressCode: string;
+		lastEventId: number;
+		events: JsonModels.AI.AIProgressEventModel[];
+		assistantMessage?: JsonModels.AI.AIMessageModel;
+		actions: JsonModels.AIActions.AIActionModel[];
+		usage?: JsonModels.AI.AIUsageSummaryModel;
+		publicErrorCode?: string;
+	}
 	export interface AIUsageSummaryModel
 	{
 		feature: string;
@@ -1013,14 +1043,14 @@ export namespace JsonModels.AI {
 	export interface SendAIMessageRequest
 	{
 		content: string;
+		clientRequestId: string;
 	}
-	export interface SendAIMessageResponse
+	export interface StartAIRunResponse
 	{
 		conversationId: number;
-		message: JsonModels.AI.AIMessageModel;
-		usedTools: string[];
-		actions: JsonModels.AIActions.AIActionModel[];
-		usage: JsonModels.AI.AIUsageSummaryModel;
+		runId: number;
+		status: Enums.AIRunStatus;
+		userMessage: JsonModels.AI.AIMessageModel;
 	}
 }
 export namespace JsonModels.AIActions {

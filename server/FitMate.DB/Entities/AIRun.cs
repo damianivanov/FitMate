@@ -28,6 +28,33 @@ public class AIRun : BaseEntity
     public DateTime StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>Browser idempotency key, unique per user.</summary>
+    public string ClientRequestId { get; set; } = string.Empty;
+
+    /// <summary>Links the queued run to the AI chat unit reserved when it was accepted.</summary>
+    public long? UsageReservationId { get; set; }
+
+    public DateTime? QueuedAt { get; set; }
+
+    /// <summary>Worker start, so queue delay is not counted as run duration.</summary>
+    public DateTime? ProcessingStartedAt { get; set; }
+
+    public DateTime? HeartbeatAt { get; set; }
+    public string? LeaseOwner { get; set; }
+    public DateTime? LeaseExpiresAt { get; set; }
+    public int AttemptCount { get; set; }
+    public DateTime? NextAttemptAt { get; set; }
+
+    /// <summary>Budget frozen at enqueue, so a settings change mid-queue cannot alter a run.</summary>
+    public string? ExecutionBudgetJson { get; set; }
+
+    /// <summary>
+    /// Set once a tool has run. A run past this point is never replayed: a second pass could create
+    /// a duplicate proposal or charge generation quota twice.
+    /// </summary>
+    public bool HasSideEffects { get; set; }
+
     public AIConversation Conversation { get; set; } = null!;
     public ICollection<AIToolExecution> ToolExecutions { get; set; } = [];
+    public ICollection<AIProgressEvent> ProgressEvents { get; set; } = [];
 }

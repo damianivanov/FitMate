@@ -2,6 +2,7 @@ using FitMate.Core.JsonModels.AI;
 using FitMate.DB;
 using FitMate.DB.Enums;
 using FitMate.Services.AI;
+using FitMate.Services.AI.Runs;
 using FitMate.Services.Subscriptions;
 using FitMate.Services.Users;
 using FitMate.Web.Controllers.Base;
@@ -16,7 +17,7 @@ namespace FitMate.Web.Controllers;
 public class AIController : BaseApiController
 {
     private readonly IAIConversationService conversationService;
-    private readonly IAIOrchestrator orchestrator;
+    private readonly IAIRunStarter runStarter;
     private readonly IEntitlementService entitlementService;
 
     public AIController(
@@ -24,12 +25,12 @@ public class AIController : BaseApiController
         AppDbContext dbContext,
         IUserService userService,
         IAIConversationService conversationService,
-        IAIOrchestrator orchestrator,
+        IAIRunStarter runStarter,
         IEntitlementService entitlementService)
         : base(logger, dbContext, userService)
     {
         this.conversationService = conversationService;
-        this.orchestrator = orchestrator;
+        this.runStarter = runStarter;
         this.entitlementService = entitlementService;
     }
 
@@ -85,6 +86,10 @@ public class AIController : BaseApiController
         return this.ReturnJson(await conversationService.DeleteAsync(conversationId, userId.Value));
     }
 
+    /// <summary>
+    /// Accepts the message and returns immediately. The run is executed by the worker, so the
+    /// answer is read back from the run snapshot rather than from this response.
+    /// </summary>
     [HttpPost("conversations/{conversationId:long}/messages")]
     public async Task<ActionResult> SendMessage(long conversationId, [FromBody] SendAIMessageRequest request)
     {
@@ -94,7 +99,19 @@ public class AIController : BaseApiController
             return this.ReturnJsonError("Unauthorized.");
         }
 
-        return this.ReturnJson(await orchestrator.SendAsync(conversationId, request, userId.Value));
+        try
+        {
+            var started = await runStarter.StartAsync(conversationId, request, userId.Value);
+            Response.StatusCode = StatusCodes.Status202Accepted;
+
+            return this.ReturnJson(started);
+        }
+        catch (AIRunAlreadyActiveException)
+        {
+            Response.StatusCode = StatusCodes.Status409Conflict;
+
+            return this.ReturnJsonError("This conversation is still working on the previous message.");
+        }
     }
 
     [HttpGet("usage")]

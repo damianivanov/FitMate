@@ -1,5 +1,5 @@
 using FitMate.Integrations.AI.Serialization;
-using FitMate.Services.Workouts;
+using FitMate.Services.AI.Context;
 
 namespace FitMate.Services.AI.Tools.ReadOnly;
 
@@ -12,11 +12,11 @@ public class GetRecentWorkoutsToolHandler : IAIToolHandler
 {
     private const int MaxResults = 20;
 
-    private readonly IWorkoutService workoutService;
+    private readonly IAITrainingContextQuery contextQuery;
 
-    public GetRecentWorkoutsToolHandler(IWorkoutService workoutService)
+    public GetRecentWorkoutsToolHandler(IAITrainingContextQuery contextQuery)
     {
-        this.workoutService = workoutService;
+        this.contextQuery = contextQuery;
     }
 
     public string Name => "get_recent_workouts";
@@ -46,32 +46,29 @@ public class GetRecentWorkoutsToolHandler : IAIToolHandler
             ?? new GetRecentWorkoutsArguments();
 
         var take = Math.Clamp(arguments.Take ?? 10, 1, MaxResults);
-        var workouts = await workoutService.ListAsync(context.UserId);
 
-        // Compact projection: shape and volume are useful, every set row is not.
-        var recent = workouts
-            .OrderByDescending(x => x.StartedAt ?? x.FinishedAt ?? DateTime.MinValue)
-            .Take(take)
-            .Select(x => new
+        // Ordering and limiting happen in SQL: the old path loaded the user's whole workout graph
+        // and then took ten of them in memory.
+        var recent = await contextQuery.GetRecentWorkoutsAsync(context.UserId, take, cancellationToken);
+
+        return AIToolExecutionResult.Ok(new
+        {
+            count = recent.Count,
+            workouts = recent.Select(workout => new
             {
-                x.Id,
-                x.Title,
-                x.StartedAt,
-                x.FinishedAt,
-                x.TotalVolumeKg,
-                x.DurationSeconds,
-                exercises = x.Groups
-                    .SelectMany(group => group.Exercises)
-                    .Select(exercise => new
-                    {
-                        exercise.ExerciseId,
-                        exercise.ExerciseName,
-                        setCount = exercise.Sets.Count,
-                    })
-                    .ToList(),
-            })
-            .ToList();
-
-        return AIToolExecutionResult.Ok(new { count = recent.Count, workouts = recent });
+                workout.Id,
+                workout.Title,
+                workout.StartedAt,
+                workout.FinishedAt,
+                workout.TotalVolumeKg,
+                workout.DurationSeconds,
+                exercises = workout.Exercises.Select(exercise => new
+                {
+                    exercise.ExerciseId,
+                    exercise.ExerciseName,
+                    setCount = exercise.SetCount,
+                }).ToList(),
+            }).ToList(),
+        });
     }
 }

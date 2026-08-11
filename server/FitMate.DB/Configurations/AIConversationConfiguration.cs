@@ -9,6 +9,7 @@ public class AIConversationConfiguration : IEntityTypeConfiguration<AIConversati
     public void Configure(EntityTypeBuilder<AIConversation> builder)
     {
         builder.Property(x => x.Title).HasMaxLength(200);
+        builder.Property(x => x.Summary).HasMaxLength(4000);
 
         builder.HasOne(x => x.User)
             .WithMany()

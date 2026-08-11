@@ -21,9 +21,16 @@ public class AIRunConfiguration : IEntityTypeConfiguration<AIRun>
             .HasForeignKey(x => x.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Property(x => x.ClientRequestId).HasMaxLength(64);
+        builder.Property(x => x.LeaseOwner).HasMaxLength(100);
+        builder.Property(x => x.ExecutionBudgetJson).HasColumnType("jsonb");
+
         builder.HasIndex(x => new { x.UserId, x.StartedAt });
         builder.HasIndex(x => x.ConversationId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.StartedAt);
+
+        builder.HasIndex(x => new { x.UserId, x.ClientRequestId }).IsUnique();
+        builder.HasIndex(x => new { x.Status, x.NextAttemptAt, x.LeaseExpiresAt });
     }
 }

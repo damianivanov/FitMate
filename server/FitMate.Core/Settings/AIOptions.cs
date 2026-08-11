@@ -13,7 +13,11 @@ public class AIOptions
     public int TimeoutSeconds { get; set; } = 90;
     public int MaximumToolIterations { get; set; } = 6;
     public int MaximumToolCallsPerRun { get; set; } = 12;
-    public int MaximumConversationMessages { get; set; } = 30;
+    /// <summary>
+    /// Global ceiling on replayed conversation messages. Plans ask for less, never more, so this
+    /// must not sit below the highest plan value or it silently caps it.
+    /// </summary>
+    public int MaximumConversationMessages { get; set; } = 50;
     public bool StoreRawProviderPayload { get; set; }
     public AIRetentionOptions Retention { get; set; } = new();
 }

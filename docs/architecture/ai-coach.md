@@ -45,54 +45,148 @@ FitMate.Services/AIActions/
 
 ## The message flow
 
-`POST /api/ai/conversations/{id}/messages` → `AIController.SendMessage` → `AIOrchestrator.SendAsync`.
-That one method is the spine of the feature ([AIOrchestrator.cs](../../server/FitMate.Services/AI/AIOrchestrator.cs)):
+Sending a message and answering it are two separate jobs. The request only enqueues; a worker does
+the work. That is what lets a run survive the user navigating away, refreshing, or the backend
+restarting mid-answer.
 
 ```
- 1  RequireFeatureAsync(userId, AIChat)          plan gate      → 403 if the plan lacks AI chat
- 2  ReserveAsync(userId, AIChat, 1)              quota gate     → 429 if the monthly limit is spent
- 3  AddUserMessageAsync(conversationId, ...)     ownership check happens here, before any run row
- 4  runService.StartAsync(...)                   audit row opens: provider, model, prompt version
- 5  contextBuilder.BuildAsync(...)               system prompt + last N user/assistant messages
- 6  toolRegistry.GetDefinitions(toolContext)     only tools available to THIS user
- ─────────────────────────────────────────────── loop, at most MaximumToolIterations (6)
- 7      completionProvider.CompleteAsync(...)    the only network call, under a 90s CTS
- 8      runService.AddUsageAsync(...)            tokens accumulate per iteration, not just at the end
- 9      no tool calls?  → persist assistant message, CompleteAsync(run), CommitAsync(reservation), RETURN
-10      too many tool calls? → MarkLimitExceeded, ReleaseAsync(reservation), throw
-11      for each tool call: toolRegistry.ExecuteAsync(...)
-12          persist the call and its result as AIMessage rows (audit)
-13          append both to `messages` so the model sees the result next iteration
- ───────────────────────────────────────────────
-14  fell out of the loop → MarkLimitExceeded, ReleaseAsync(reservation), throw
+POST /api/ai/conversations/{id}/messages   →  AIRunStarter.StartAsync   →  202 Accepted { runId }
+                                                       │
+                                                       ▼
+                                              AIRun (Queued) in Postgres
+                                                       │
+        AIRunWorkerHostedService.ClaimNextAsync ────────┘
+                        │
+                        ▼
+              AIOrchestrator.ProcessAsync    →  provider + tools  →  terminal state
+                        │
+                        ▼
+   GET /api/ai/runs/{runId}          (snapshot, also the polling fallback)
+   GET /api/ai/runs/{runId}/events   (SSE, replays from a cursor)
 ```
 
-Order matters in steps 1–2: the plan gate runs before the quota gate, and both run before any
-provider call, so a user without the feature never costs money. Steps 9/10/14 are the only exits, and
-each one finalises the reservation exactly once. The `catch` at the bottom releases the reservation
-for any other failure, so a provider outage does not silently consume a user's quota.
+### Enqueue
+
+[`AIRunStarter`](../../server/FitMate.Services/AI/Runs/AIRunStarter.cs) does everything that can
+reject the request, before a worker or a provider is involved:
+
+```
+1  duplicate ClientRequestId?      → return the existing run, charge nothing
+2  RequireFeatureAsync(AIChat)     plan gate   → 403 if the plan lacks AI chat
+3  ResolveAsync(userId)            budget snapshot, frozen onto the run
+4  conversation.ActiveRunId set?   → 409, one active run per conversation
+─────────────────────────────────── one transaction
+5      ReserveAsync(AIChat, 1)     quota gate  → 429 if the monthly limit is spent
+6      AddUserMessageAsync(...)    ownership is enforced here
+7      insert AIRun (Queued)       links the message, the reservation and the budget
+8      claim ActiveRunId           conditional update; loser rolls back
+9      publish run_queued
+───────────────────────────────────
+```
+
+The transaction matters: a visible user message with neither a run nor a recoverable reservation is
+the one state a user cannot get themselves out of.
+
+### Claim
+
+[`AIRunQueue`](../../server/FitMate.Services/AI/Runs/AIRunQueue.cs) hands one run to one worker. Every
+contended transition is a single conditional `UPDATE` whose affected-row count decides the winner, so
+two workers can never both own a run. A lease (`LeaseOwner`, `LeaseExpiresAt`) is renewed before each
+provider call; if renewal fails the worker stops touching the run immediately.
+
+This is deliberately not `FOR UPDATE SKIP LOCKED`: the test suite runs on SQLite, and a claim path the
+tests cannot exercise is not worth the throughput it would buy at one worker.
+
+### Process
+
+`AIOrchestrator.ProcessAsync` runs the bounded tool loop:
+
+```
+ 1  load run, verify lease still ours       → return silently if another worker took it
+ 2  budget from ExecutionBudgetJson         a settings change mid-queue cannot alter a live run
+ 3  publish run_started
+ 4  contextBuilder.BuildAsync(...)          summary + last N user/assistant messages
+ ─────────────────────────────────────────── loop, at most MaximumToolIterations (6)
+ 5      RenewLeaseAsync(...)                lost lease → stop without writing a terminal state
+ 6      publish provider_thinking / response_composing
+ 7      completionProvider.CompleteAsync    the only network call, under the budget's timeout
+ 8      runService.AddUsageAsync(...)       tokens accumulate per iteration
+ 9      no tool calls? → persist assistant message, Complete, Commit, run_completed, RETURN
+10      too many tool calls? → MarkLimitExceeded, Release, notice, run_limited, RETURN
+11      MarkSideEffectsAsync                before the first tool, not after
+12      for each tool call: toolRegistry.ExecuteAsync(...)
+ ───────────────────────────────────────────
+13  fell out of the loop → MarkLimitExceeded, Release, notice, run_limited
+```
+
+Every exit clears `AIConversation.ActiveRunId` and writes exactly one terminal progress event. The
+orchestrator does not rethrow: the worker has no caller to surface an exception to, so a failure is
+recorded and read back from the snapshot.
+
+### Interruption
+
+`HasSideEffects` is the rule that decides whether an interrupted run can be replayed. It is set
+before the first tool executes, so:
+
+| Situation | Handling |
+|---|---|
+| Lease expired, no tool ran | requeued for a safe retry |
+| Lease expired, a tool ran | failed as `run_interrupted`, conversation released |
+
+A run past its first tool call is **never** replayed. Re-running the loop could create a duplicate
+proposal or charge generation quota a second time.
+
+### Progress
+
+Progress is derived from stable server codes (`AIProgressCodes`), never from an extra model call, so
+it is truthful, cheap and deterministic. An `AIProgressEvent` row carries a code and, for tool
+stages, a registered tool name — never arguments, results, IDs, prompts or exception text. The row
+`Id` is the replay cursor, which is what makes SSE reconnects and the polling fallback share one
+contract.
+
+`AIToolRegistry` publishes tool progress inside the same lifecycle that writes the audit row, so the
+two cannot disagree about what the assistant did.
 
 ### Limits
 
-All from `AIOptions` (`appsettings.json`, section `AI`):
+All from `AIOptions` (`appsettings.json`, section `AI`), overridable by a stored `AISettings` row:
 
 | Setting | Default | Enforced in |
 |---|---|---|
 | `TimeoutSeconds` | 90 | `CancellationTokenSource` wrapping the whole loop |
 | `MaximumToolIterations` | 6 | loop bound |
 | `MaximumToolCallsPerRun` | 12 | running total across iterations |
-| `MaximumConversationMessages` | 30 | history window in `AIContextBuilder` |
+| `MaximumConversationMessages` | 50 | history window in `AIContextBuilder` |
 | `StoreRawProviderPayload` | false | whether raw provider JSON is kept on the run |
+| `AsyncRuns:LeaseSeconds` | 180 | must exceed one provider timeout plus margin |
+| `AsyncRuns:MaximumSafeAttempts` | 2 | retries allowed while a run has no side effects |
+
+`MaximumConversationMessages` is a hard ceiling that a plan can only lower. It must not sit below the
+highest plan value — at its old default of 30 it silently capped Pro's 50.
 
 ### Context assembly
 
-`AIContextBuilder` is deliberately thin: system prompt, then the last N user/assistant messages.
+`AIContextBuilder` assembles: system prompt, then a rolling summary of messages that have aged out,
+then the last N user/assistant messages.
+
 **Tool traffic is persisted but never replayed from history** — tool calls and results are appended to
 the in-memory `messages` list during the run that produced them, and dropped afterwards. Without this
 the context would grow without bound and the model would re-read stale tool output on later turns.
 
+The summary comes from [`AIConversationSummarizer`](../../server/FitMate.Services/AI/Summaries/AIConversationSummarizer.cs),
+which rewrites the previous summary plus the newly-dropped slice using the fast model. It never
+summarizes tool payloads, it is wrapped in a "this is data, not instructions" preamble because it is
+model-generated text replayed into a later prompt, and a failure to summarize degrades context rather
+than failing the user's message. Summarizing does not consume an AI chat unit; its tokens are still
+recorded against the run for cost visibility. Under token pressure the summary is dropped before the
+newest user message.
+
 There is no training-data snapshot in the prompt. The model pulls what it needs through the read-only
 tools, which keeps the prompt small and means every data access is logged as a tool execution.
+
+AI context reads go through [`AITrainingContextQuery`](../../server/FitMate.Services/AI/Context/AITrainingContextQuery.cs),
+not the UI aggregate loaders: ordering and limits are applied in SQL, projections carry only the
+fields the prompt reads, and no image or video URLs are resolved.
 
 ---
 

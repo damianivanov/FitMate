@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FitMate.Core.JsonModels.AI;
+using FitMate.DB.Enums;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,9 +23,9 @@ public class AIApiTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    // Изпращане на съобщение връща отговора на асистента
+    // Изпращането приема прогона веднага, без да чака отговора
     [Fact]
-    public async Task SendMessage_ReturnsAssistantReply()
+    public async Task SendMessage_Returns202WithQueuedRun()
     {
         using var factory = new TestWebApplicationFactory();
         var client = await factory.CreateUserClientAsync("ai-user@test.local");
@@ -36,13 +37,47 @@ public class AIApiTests
 
         var sent = await client.PostAsJsonAsync(
             $"/api/ai/conversations/{conversation.Data!.Id}/messages",
-            new SendAIMessageRequest { Content = "What should I train today?" });
-        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<SendAIMessageResponse>>();
+            new SendAIMessageRequest
+            {
+                Content = "What should I train today?",
+                ClientRequestId = Guid.NewGuid().ToString(),
+            });
 
+        Assert.Equal(HttpStatusCode.Accepted, sent.StatusCode);
+
+        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<StartAIRunResponse>>();
         Assert.True(body!.Success);
-        Assert.Equal("Rest today.", body.Data!.Message.Content);
+        Assert.True(body.Data!.RunId > 0);
+        Assert.Equal(AIRunStatus.Queued, body.Data.Status);
+        Assert.Equal("What should I train today?", body.Data.UserMessage.Content);
         Assert.Equal(conversation.Data.Id, body.Data.ConversationId);
-        Assert.Equal(10, body.Data.Usage.Limit); // Free plan grants 10 AI chat messages
+    }
+
+    // Изпълненият прогон връща отговора през моментната снимка
+    [Fact]
+    public async Task ProcessedRun_ExposesAssistantReplyThroughSnapshot()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var client = await factory.CreateUserClientAsync("ai-snapshot@test.local");
+        factory.Services.GetRequiredService<FakeAICompletionProvider>().EnqueueText("Rest today.");
+
+        var created = await client.PostAsJsonAsync("/api/ai/conversations", new CreateAIConversationRequest());
+        var conversation = await created.Content.ReadFromJsonAsync<ApiResponse<AIConversationModel>>();
+
+        var sent = await client.PostAsJsonAsync(
+            $"/api/ai/conversations/{conversation!.Data!.Id}/messages",
+            new SendAIMessageRequest { Content = "What now?", ClientRequestId = Guid.NewGuid().ToString() });
+        var started = await sent.Content.ReadFromJsonAsync<ApiResponse<StartAIRunResponse>>();
+
+        await factory.ProcessPendingAIRunsAsync();
+
+        var snapshotResponse = await client.GetAsync($"/api/ai/runs/{started!.Data!.RunId}");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<ApiResponse<AIRunSnapshotModel>>();
+
+        Assert.True(snapshot!.Success);
+        Assert.Equal(AIRunStatus.Completed, snapshot.Data!.Status);
+        Assert.Equal("Rest today.", snapshot.Data.AssistantMessage!.Content);
+        Assert.Equal(SqliteTestDatabase.FreeAIChatMonthlyLimit, snapshot.Data.Usage!.Limit);
     }
 
     // Чужд разговор не е достъпен

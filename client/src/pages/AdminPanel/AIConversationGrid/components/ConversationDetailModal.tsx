@@ -75,9 +75,7 @@ export function ConversationDetailModal({
       title={conversation?.title ?? "Conversation"}
       maxWidth="3xl"
     >
-      {/* The shared Modal renders children bare inside an overflow-hidden panel, so a long
-          conversation would be clipped with no way to reach the rest. */}
-      <div className="liquid-scrollbar max-h-[70vh] overflow-y-auto overscroll-contain px-5 py-4">
+      <div className="px-5 py-4">
         {isLoading || !conversation ? (
           <p className="text-sm text-muted">Loading...</p>
         ) : (

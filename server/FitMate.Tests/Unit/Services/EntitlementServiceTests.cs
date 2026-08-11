@@ -48,7 +48,9 @@ public class EntitlementServiceTests
 
         Assert.Equal(PlanCodes.Free, entitlements.PlanCode);
         Assert.Equal(EntitlementSource.FreePlan, entitlements.Source);
-        Assert.Equal(10, entitlements.Features.Single(x => x.Feature == SubscriptionFeature.AIChat).Limit);
+        Assert.Equal(
+            SqliteTestDatabase.FreeAIChatMonthlyLimit,
+            entitlements.Features.Single(x => x.Feature == SubscriptionFeature.AIChat).Limit);
     }
 
     // Активен абонамент дава плана на абонамента
@@ -179,10 +181,10 @@ public class EntitlementServiceTests
         var availability = await service.GetAvailabilityAsync(SqliteTestDatabase.UserId, SubscriptionFeature.AIChat);
 
         Assert.True(availability.IsEnabled);
-        Assert.Equal(10, availability.Limit);
+        Assert.Equal(SqliteTestDatabase.FreeAIChatMonthlyLimit, availability.Limit);
         Assert.Equal(3, availability.Used);
         Assert.Equal(1, availability.Reserved);
-        Assert.Equal(6, availability.Remaining);
+        Assert.Equal(SqliteTestDatabase.FreeAIChatMonthlyLimit - 4, availability.Remaining);
         Assert.NotNull(availability.ResetsAt);
     }
 

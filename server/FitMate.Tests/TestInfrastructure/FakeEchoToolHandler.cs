@@ -5,7 +5,12 @@ namespace FitMate.Tests.TestInfrastructure;
 /// <summary>A trivial read-only tool used to exercise the orchestration loop.</summary>
 public sealed class FakeEchoToolHandler : IAIToolHandler
 {
-    public string Name => "echo";
+    public FakeEchoToolHandler(string name = "echo")
+    {
+        Name = name;
+    }
+
+    public string Name { get; }
 
     public bool Available { get; set; } = true;
 

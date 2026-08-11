@@ -4,6 +4,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   ReactNode,
 } from "react";
+import { FloatingPortal, autoUpdate, offset, shift, size, useFloating } from "@floating-ui/react";
 import { LuCheck, LuChevronDown, LuSearch, LuX } from "react-icons/lu";
 import { FormField } from "./FormField";
 
@@ -196,6 +197,31 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
     return selectedOptions[0]?.label ?? placeholder;
   }, [isMulti, placeholder, selectedOptions]);
 
+  const { refs, floatingStyles } = useFloating({
+    open,
+    strategy: "fixed",
+    placement: menuPlacement === "top" ? "top-start" : "bottom-start",
+    middleware: [
+      offset(MENU_OFFSET_PX),
+      shift({ padding: VIEWPORT_PADDING_PX }),
+      size({
+        padding: VIEWPORT_PADDING_PX,
+        apply: ({ rects, elements }) => {
+          elements.floating.style.width = `${rects.reference.width}px`;
+        },
+      }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const setRootNode = useCallback(
+    (node: HTMLDivElement | null) => {
+      rootRef.current = node;
+      refs.setReference(node);
+    },
+    [refs],
+  );
+
   const closeMenu = useCallback(() => {
     if (!open) {
       return;
@@ -230,16 +256,19 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
 
   useEffect(() => {
     const handleDocumentMouseDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        closeMenu();
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || refs.floating.current?.contains(target)) {
+        return;
       }
+
+      closeMenu();
     };
 
     document.addEventListener("mousedown", handleDocumentMouseDown);
     return () => {
       document.removeEventListener("mousedown", handleDocumentMouseDown);
     };
-  }, [closeMenu]);
+  }, [closeMenu, refs]);
 
   useEffect(() => {
     if (open && searchable) {
@@ -438,7 +467,6 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
     hideScrollbar ? "liquid-scrollbar-hidden" : "liquid-scrollbar",
     optionsContainerClassName,
   );
-  const menuPositionClassName = menuPlacement === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5";
   const menuAnimationClassName =
     menuPlacement === "top"
       ? "origin-bottom lookup-dropdown-menu-enter-up"
@@ -458,7 +486,7 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
       labelClassName={labelClassName}
     >
       <div
-        ref={rootRef}
+        ref={setRootNode}
         className={cn("relative w-full", className)}
         data-dropdown-open={open ? "true" : undefined}
         onKeyDown={handleKeyDown}
@@ -497,15 +525,16 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
         </div>
 
         {open ? (
-          <div
-            className={cn(
-              "liquid-panel liquid-modal-surface absolute z-50 w-full overflow-hidden rounded-2xl p-1",
-              menuPositionClassName,
-              menuAnimationClassName,
-              menuClassName,
-            )}
-            style={{ maxHeight: menuMaxHeight }}
-          >
+          <FloatingPortal>
+            <div
+              ref={refs.setFloating}
+              className={cn(
+                "liquid-panel liquid-modal-surface z-75 overflow-hidden rounded-2xl p-1",
+                menuAnimationClassName,
+                menuClassName,
+              )}
+              style={{ ...floatingStyles, maxHeight: menuMaxHeight }}
+            >
             {searchable ? (
               <div className="liquid-divider mb-1 border-b pb-1">
                 <div className="liquid-input flex h-10 items-center gap-2 rounded-xl px-3 my-1">
@@ -587,8 +616,9 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
                   );
                 })
               )}
-            </ul>
-          </div>
+              </ul>
+            </div>
+          </FloatingPortal>
         ) : null}
       </div>
     </FormField>

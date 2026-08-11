@@ -131,6 +131,14 @@ checked the same way against the plan's requested length, and applies only to fi
 `plans.json` in `FitMate.Web/SeedData/`, applied on startup by `SeedPlans` in `ApplicationBuilder`.
 Blank cell = unlimited.
 
+> **Editing a limit in `plans.json` does not change any existing database.** `SeedPlans` inserts a
+> plan's entitlements only when that feature is not already present — it never updates one. The file
+> therefore seeds a *new* database and is inert everywhere else. This has already bitten once: Free
+> `AIChat` was raised from 10 to 25 in the seed file and the change never reached a single running
+> environment, leaving the file, the docs and the database each claiming something different.
+> To actually change a limit, edit `plans.json` **and** write a migration that updates the existing
+> `PlanEntitlements` rows.
+
 | Feature | Free | Plus | Pro |
 |---|---|---|---|
 | AIChat (monthly) | 10 | 100 | 500 |

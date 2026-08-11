@@ -38,8 +38,9 @@ public class ProposeWorkoutToolHandler : IAIToolHandler
     {
         Name = Name,
         Description =
-            "Propose a workout for the user to confirm. Use search_exercises and get_exercise_history "
-            + "first so the exercise ids are real and the loads follow what the user actually lifts.",
+            "Propose a workout for the user to confirm. Call get_workout_creation_context first — it "
+            + "supplies the valid exercise ids and the user's recent performance, so the loads follow "
+            + "what they actually lift. Do not call search_exercises or get_exercise_history as well.",
         ParametersJsonSchema = ProposalSchemas.WorkoutSchema,
     };
 

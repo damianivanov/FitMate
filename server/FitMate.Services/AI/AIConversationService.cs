@@ -3,6 +3,7 @@ using FitMate.Core.JsonModels.AI;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
+using FitMate.Services.AIActions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.AI;
@@ -17,11 +18,16 @@ public class AIConversationService : IAIConversationService
 
     private readonly AppDbContext dbContext;
     private readonly IAIRedactionService redactionService;
+    private readonly IAIActionService? actionService;
 
-    public AIConversationService(AppDbContext dbContext, IAIRedactionService redactionService)
+    public AIConversationService(
+        AppDbContext dbContext,
+        IAIRedactionService redactionService,
+        IAIActionService? actionService = null)
     {
         this.dbContext = dbContext;
         this.redactionService = redactionService;
+        this.actionService = actionService;
     }
 
     public async Task<IReadOnlyList<AIConversationSummaryModel>> ListAsync(long userId)
@@ -92,6 +98,34 @@ public class AIConversationService : IAIConversationService
             })
             .ToListAsync();
 
+        AIActiveRunModel? activeRun = null;
+        if (conversation.ActiveRunId is { } activeRunId)
+        {
+            activeRun = await dbContext.AIRuns
+                .AsNoTracking()
+                .Where(x => x.Id == activeRunId)
+                .Select(x => new AIActiveRunModel
+                {
+                    RunId = x.Id,
+                    Status = x.Status,
+                    CurrentProgressCode = x.ProgressEvents
+                        .OrderByDescending(e => e.Id)
+                        .Select(e => e.Code)
+                        .FirstOrDefault() ?? string.Empty,
+                    LastEventId = x.ProgressEvents
+                        .OrderByDescending(e => e.Id)
+                        .Select(e => e.Id)
+                        .FirstOrDefault(),
+                })
+                .FirstOrDefaultAsync();
+        }
+
+        // Returned on every read because a proposal raised while the user was on another page is
+        // otherwise unreachable once the run that produced it has finished.
+        var actions = actionService == null
+            ? []
+            : await actionService.ListForConversationAsync(conversationId, userId);
+
         return new AIConversationModel
         {
             Id = conversation.Id,
@@ -99,6 +133,8 @@ public class AIConversationService : IAIConversationService
             Status = conversation.Status,
             LastMessageAt = conversation.LastMessageAt,
             Messages = messages,
+            ActiveRun = activeRun,
+            Actions = [.. actions],
         };
     }
 
@@ -118,10 +154,14 @@ public class AIConversationService : IAIConversationService
         return true;
     }
 
-    public async Task<AIMessageModel> AddUserMessageAsync(long conversationId, string content, long userId)
+    public async Task<AIMessageModel> AddUserMessageAsync(
+        long conversationId,
+        string content,
+        long userId,
+        long? runId = null)
     {
         var conversation = await RequireOwnedAsync(conversationId, userId);
-        var message = await AddMessageAsync(conversation, userId, AIMessageRole.User, content);
+        var message = await AddMessageAsync(conversation, userId, AIMessageRole.User, content, runId: runId);
 
         if (string.IsNullOrWhiteSpace(conversation.Title))
         {
@@ -136,7 +176,8 @@ public class AIConversationService : IAIConversationService
         long conversationId,
         string content,
         long userId,
-        string? metadataJson = null)
+        string? metadataJson = null,
+        long? runId = null)
     {
         var conversation = await RequireOwnedAsync(conversationId, userId);
         var message = await AddMessageAsync(
@@ -144,7 +185,8 @@ public class AIConversationService : IAIConversationService
             userId,
             AIMessageRole.Assistant,
             content,
-            metadataJson: metadataJson);
+            metadataJson: metadataJson,
+            runId: runId);
 
         return ToModel(message);
     }
@@ -154,7 +196,8 @@ public class AIConversationService : IAIConversationService
         long userId,
         string toolName,
         string toolCallId,
-        string argumentsJson)
+        string argumentsJson,
+        long? runId = null)
     {
         var conversation = await RequireOwnedAsync(conversationId, userId);
         await AddMessageAsync(
@@ -163,7 +206,8 @@ public class AIConversationService : IAIConversationService
             AIMessageRole.ToolCall,
             redactionService.RedactJson(argumentsJson),
             toolName,
-            toolCallId);
+            toolCallId,
+            runId: runId);
     }
 
     public async Task AddToolResultMessageAsync(
@@ -171,7 +215,8 @@ public class AIConversationService : IAIConversationService
         long userId,
         string toolName,
         string toolCallId,
-        string resultJson)
+        string resultJson,
+        long? runId = null)
     {
         var conversation = await RequireOwnedAsync(conversationId, userId);
         await AddMessageAsync(
@@ -180,7 +225,15 @@ public class AIConversationService : IAIConversationService
             AIMessageRole.ToolResult,
             redactionService.RedactJson(resultJson),
             toolName,
-            toolCallId);
+            toolCallId,
+            runId: runId);
+    }
+
+    public async Task SetRunOnMessageAsync(long messageId, long runId)
+    {
+        await dbContext.AIMessages
+            .Where(x => x.Id == messageId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AIRunId, runId));
     }
 
     public async Task<IReadOnlyList<AIMessage>> GetContextMessagesAsync(
@@ -225,7 +278,8 @@ public class AIConversationService : IAIConversationService
         string content,
         string? toolName = null,
         string? toolCallId = null,
-        string? metadataJson = null)
+        string? metadataJson = null,
+        long? runId = null)
     {
         var message = new AIMessage
         {
@@ -236,6 +290,7 @@ public class AIConversationService : IAIConversationService
             ToolName = toolName,
             ToolCallId = toolCallId,
             MetadataJson = metadataJson,
+            AIRunId = runId,
         };
 
         dbContext.AIMessages.Add(message);

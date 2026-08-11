@@ -83,7 +83,7 @@ export default function AICoach() {
                 </div>
               ) : null}
 
-              <ToolActivityIndicator tools={state.activeTools} isSending={state.isSending} />
+              <ToolActivityIndicator events={state.progressEvents} isSending={state.isSending} />
             </div>
           </div>
 

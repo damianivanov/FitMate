@@ -157,7 +157,7 @@ export function Modal({
   ].join(" ");
 
   const panelClassName = [
-    `liquid-surface liquid-modal-surface relative w-full ${sizeClasses[maxWidth]} overflow-hidden rounded-3xl shadow-2xl`,
+    `liquid-surface liquid-modal-surface relative flex w-full ${sizeClasses[maxWidth]} max-h-full flex-col overflow-hidden rounded-3xl shadow-2xl`,
     "transition-all duration-200 ease-out",
     isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0",
   ].join(" ");
@@ -176,7 +176,7 @@ export function Modal({
         onTransitionEnd={handlePanelTransitionEnd}
       >
         {variant === "image" ? null : title ? (
-          <div className="liquid-divider flex items-center justify-between gap-3 border-b px-5 py-4">
+          <div className="liquid-divider flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4">
             <div className="flex min-w-0 items-center gap-2">
               {titleIcon ? (
                 <span className="inline-flex shrink-0 items-center justify-center text-danger">
@@ -207,7 +207,9 @@ export function Modal({
           </button>
         )}
 
-        {children}
+        <div className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

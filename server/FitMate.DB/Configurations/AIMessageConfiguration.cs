@@ -18,5 +18,6 @@ public class AIMessageConfiguration : IEntityTypeConfiguration<AIMessage>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => new { x.ConversationId, x.DateCreated });
+        builder.HasIndex(x => new { x.AIRunId, x.Id });
     }
 }

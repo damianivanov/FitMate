@@ -34,6 +34,7 @@ export type { AIActionPreviewLineModel } from "./AIActions/AIActionPreviewLineMo
 export type { AIActionPreviewModel } from "./AIActions/AIActionPreviewModel";
 export type { AIActionResultModel } from "./AIActions/AIActionResultModel";
 export type { AIActionValidationSummaryModel } from "./AIActions/AIActionValidationSummaryModel";
+export type { AIActiveRunModel } from "./AI/AIActiveRunModel";
 export type { AIAdminActionModel } from "./AdminAI/AIAdminActionModel";
 export type { AIAdminFeatureUsageModel } from "./AdminAI/AIAdminFeatureUsageModel";
 export type { AIAdminMessageModel } from "./AdminAI/AIAdminMessageModel";
@@ -51,7 +52,9 @@ export type { AICostByModelModel } from "./AdminAI/AICostByModelModel";
 export type { AICostByPlanModel } from "./AdminAI/AICostByPlanModel";
 export type { AICostSummaryModel } from "./AdminAI/AICostSummaryModel";
 export type { AIMessageModel } from "./AI/AIMessageModel";
+export type { AIProgressEventModel } from "./AI/AIProgressEventModel";
 export type { AIRunQueryRequest } from "./AdminAI/AIRunQueryRequest";
+export type { AIRunSnapshotModel } from "./AI/AIRunSnapshotModel";
 export type { AISettingsModel } from "./AdminAI/AISettingsModel";
 export type { AIToolUsageModel } from "./AdminAI/AIToolUsageModel";
 export type { AIUsageSummaryModel } from "./AI/AIUsageSummaryModel";
@@ -144,7 +147,7 @@ export type { SaveProgramPlanRequest } from "./ProgramPlans/SaveProgramPlanReque
 export type { SaveTrainingProfileRequest } from "./TrainingProfiles/SaveTrainingProfileRequest";
 export type { SaveWorkoutRequest } from "./Workouts/SaveWorkoutRequest";
 export type { SendAIMessageRequest } from "./AI/SendAIMessageRequest";
-export type { SendAIMessageResponse } from "./AI/SendAIMessageResponse";
+export type { StartAIRunResponse } from "./AI/StartAIRunResponse";
 export type { SubscriptionLimitErrorModel } from "./Subscriptions/SubscriptionLimitErrorModel";
 export type { SubscriptionPlanAdminModel } from "./AdminSubscriptions/SubscriptionPlanAdminModel";
 export type { SubscriptionPlanModel } from "./Subscriptions/SubscriptionPlanModel";

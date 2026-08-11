@@ -17,6 +17,12 @@ public sealed class SqliteTestDatabase : IDisposable
     public const long PlusPlanId = 102;
     public const long ProPlanId = 103;
 
+    /// <summary>
+    /// Mirrors SeedData/plans.json. Referenced instead of hard-coded in tests, because this value
+    /// silently drifted from the seed file once already.
+    /// </summary>
+    public const int FreeAIChatMonthlyLimit = 10;
+
     public const long ChestId = 1;
     public const long BackId = 2;
     public const long LegsId = 3;
@@ -79,7 +85,7 @@ public sealed class SqliteTestDatabase : IDisposable
 
         context.Plans.AddRange(
             NewPlan(FreePlanId, PlanCodes.Free, "Free", 1,
-                (SubscriptionFeature.AIChat, true, 10, null),
+                (SubscriptionFeature.AIChat, true, FreeAIChatMonthlyLimit, null),
                 (SubscriptionFeature.AIWorkoutGeneration, true, 2, null),
                 (SubscriptionFeature.AIProgramGeneration, false, null, null),
                 (SubscriptionFeature.AIExerciseRecognition, false, null, null),

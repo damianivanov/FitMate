@@ -16,6 +16,9 @@ using FitMate.Services.ProgramPlans.Schedules;
 using FitMate.Services.Storage.Blobs;
 using FitMate.Integrations.AI.OpenAI;
 using FitMate.Services.AI;
+using FitMate.Services.AI.Context;
+using FitMate.Services.AI.Runs;
+using FitMate.Services.AI.Summaries;
 using FitMate.Services.AI.Tools;
 using FitMate.Services.AI.Unsupported;
 using FitMate.Services.AIActions;
@@ -326,13 +329,24 @@ builder.Services.AddScoped<IAIRunService, AIRunService>();
 
 // AI prompting and model selection.
 builder.Services.AddSingleton<IAIPromptBuilder, AIPromptBuilder>();
+builder.Services.AddScoped<IAIConversationSummarizer, AIConversationSummarizer>();
 builder.Services.AddScoped<IAIContextBuilder, AIContextBuilder>();
-builder.Services.AddSingleton<IAIModelRouter, AIModelRouter>();
 
 // AI orchestration and the tool allow-list (see AIToolServiceCollectionExtensions).
 builder.Services.AddScoped<IAIToolRegistry, AIToolRegistry>();
 builder.Services.AddScoped<IAIOrchestrator, AIOrchestrator>();
 builder.Services.AddFitMateAITools();
+
+// Durable runs: enqueue on the request thread, execute on the worker, observe over SSE/polling.
+builder.Services.Configure<AIRunOptions>(builder.Configuration.GetSection(AIRunOptions.SectionName));
+builder.Services.AddScoped<IAIProgressService, AIProgressService>();
+builder.Services.AddScoped<IAIRunQueue, AIRunQueue>();
+builder.Services.AddScoped<IAIRunStarter, AIRunStarter>();
+builder.Services.AddScoped<IAIRunSnapshotService, AIRunSnapshotService>();
+
+// Bounded, AI-shaped reads. Deliberately not the UI aggregate loaders.
+builder.Services.AddScoped<IAITrainingContextQuery, AITrainingContextQuery>();
+builder.Services.AddHostedService<AIRunWorkerHostedService>();
 
 // AI actions: proposals the user confirms before anything is written.
 builder.Services.AddFitMateAIActions();

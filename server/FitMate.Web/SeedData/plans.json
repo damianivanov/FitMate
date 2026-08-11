@@ -9,7 +9,7 @@
       {
         "feature": "AIChat",
         "isEnabled": true,
-        "monthlyLimit": 25
+        "monthlyLimit": 10
       },
       {
         "feature": "AIWorkoutGeneration",

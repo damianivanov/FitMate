@@ -44,13 +44,10 @@ public class AIActionApiTests
         var created = await client.PostAsJsonAsync("/api/ai/conversations", new CreateAIConversationRequest());
         var conversation = await created.Content.ReadFromJsonAsync<ApiResponse<AIConversationModel>>();
 
-        var sent = await client.PostAsJsonAsync(
-            $"/api/ai/conversations/{conversation!.Data!.Id}/messages",
-            new SendAIMessageRequest { Content = "Add an incline cable press." });
-        var body = await sent.Content.ReadFromJsonAsync<ApiResponse<SendAIMessageResponse>>();
+        var snapshot = await factory.SendAndProcessAsync(
+            client, conversation!.Data!.Id, "Add an incline cable press.");
 
-        Assert.True(body!.Success);
-        var action = Assert.Single(body.Data!.Actions);
+        var action = Assert.Single(snapshot.Actions);
         return (client, action);
     }
 

@@ -100,6 +100,9 @@ namespace FitMate.DB.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("ActiveRunId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp without time zone");
 
@@ -111,6 +114,16 @@ namespace FitMate.DB.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<long?>("SummaryThroughMessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("SummaryUpdatedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
@@ -137,6 +150,9 @@ namespace FitMate.DB.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AIRunId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -169,6 +185,8 @@ namespace FitMate.DB.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AIRunId", "Id");
 
                     b.HasIndex("ConversationId", "DateCreated");
 
@@ -228,6 +246,39 @@ namespace FitMate.DB.Migrations
                     b.ToTable("AIModelPricings");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.AIProgressEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AIRunId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ToolName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AIRunId", "Id");
+
+                    b.ToTable("AIProgressEvents");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.AIRun", b =>
                 {
                     b.Property<long>("Id")
@@ -239,8 +290,16 @@ namespace FitMate.DB.Migrations
                     b.Property<long?>("AssistantMessageId")
                         .HasColumnType("bigint");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CachedInputTokens")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ClientRequestId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp without time zone");
@@ -269,16 +328,38 @@ namespace FitMate.DB.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("numeric(18,6)");
 
+                    b.Property<string>("ExecutionBudgetJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("HasSideEffects")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("HeartbeatAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("InputTokens")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("LeaseOwner")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Model")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("OutputTokens")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ProcessingStartedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PromptVersion")
                         .IsRequired()
@@ -294,6 +375,9 @@ namespace FitMate.DB.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<DateTime?>("QueuedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -302,6 +386,9 @@ namespace FitMate.DB.Migrations
 
                     b.Property<int>("ToolCallCount")
                         .HasColumnType("integer");
+
+                    b.Property<long?>("UsageReservationId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -317,7 +404,12 @@ namespace FitMate.DB.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("UserId", "ClientRequestId")
+                        .IsUnique();
+
                     b.HasIndex("UserId", "StartedAt");
+
+                    b.HasIndex("Status", "NextAttemptAt", "LeaseExpiresAt");
 
                     b.ToTable("AIRuns");
                 });
@@ -2318,6 +2410,17 @@ namespace FitMate.DB.Migrations
                     b.Navigation("Conversation");
                 });
 
+            modelBuilder.Entity("FitMate.DB.Entities.AIProgressEvent", b =>
+                {
+                    b.HasOne("FitMate.DB.Entities.AIRun", "AIRun")
+                        .WithMany("ProgressEvents")
+                        .HasForeignKey("AIRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AIRun");
+                });
+
             modelBuilder.Entity("FitMate.DB.Entities.AIRun", b =>
                 {
                     b.HasOne("FitMate.DB.Entities.AIConversation", "Conversation")
@@ -2823,6 +2926,8 @@ namespace FitMate.DB.Migrations
 
             modelBuilder.Entity("FitMate.DB.Entities.AIRun", b =>
                 {
+                    b.Navigation("ProgressEvents");
+
                     b.Navigation("ToolExecutions");
                 });
 

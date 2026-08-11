@@ -36,7 +36,7 @@ public class UsageServiceTests
         var bucket = await context.UsageBuckets.SingleAsync();
         Assert.Equal(1, bucket.Reserved);
         Assert.Equal(0, bucket.Used);
-        Assert.Equal(10, bucket.EffectiveLimit);
+        Assert.Equal(SqliteTestDatabase.FreeAIChatMonthlyLimit, bucket.EffectiveLimit);
         Assert.Equal(UsageEntryType.Reservation, context.UsageEntries.Single().Type);
     }
 

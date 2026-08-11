@@ -30,7 +30,7 @@ function TriageForm({ request, isSaving, onSave, onClose }: TriageFormProps) {
   const [trackingUrl, setTrackingUrl] = useState(request.externalTrackingUrl ?? "");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-5 md:p-6">
       <div>
         <p className="text-base font-semibold text-foreground">{request.requestedFunctionality}</p>
         <p className="mt-1 text-sm text-muted">

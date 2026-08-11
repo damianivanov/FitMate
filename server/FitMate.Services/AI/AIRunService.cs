@@ -119,10 +119,40 @@ public class AIRunService : IAIRunService
         await dbContext.SaveChangesAsync();
     }
 
+    public async Task MarkSideEffectsAsync(long runId)
+    {
+        await dbContext.AIRuns
+            .Where(x => x.Id == runId && !x.HasSideEffects)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.HasSideEffects, true));
+    }
+
+    public async Task ClearActiveRunAsync(long conversationId, long runId)
+    {
+        await dbContext.AIConversations
+            .Where(x => x.Id == conversationId && x.ActiveRunId == runId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ActiveRunId, (long?)null));
+    }
+
+    public async Task MarkCancelledAsync(long runId)
+    {
+        var run = await RequireRunAsync(runId);
+        run.Status = AIRunStatus.Cancelled;
+        run.ErrorCode = "run_cancelled";
+        Finish(run);
+        await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>Duration measures worker execution, so time spent waiting in the queue is excluded.</summary>
     private static void Finish(AIRun run)
     {
         run.CompletedAt = DateTime.UtcNow;
-        run.DurationMilliseconds = (int)Math.Max(0, (run.CompletedAt.Value - run.StartedAt).TotalMilliseconds);
+        var from = run.ProcessingStartedAt ?? run.StartedAt;
+        run.DurationMilliseconds = (int)Math.Max(0, (run.CompletedAt.Value - from).TotalMilliseconds);
+
+        // A finished run holds no lease. Leaving one behind is harmless to the reclaim query, which
+        // only looks at Running rows, but it reads as "still owned" in the admin grid.
+        run.LeaseOwner = null;
+        run.LeaseExpiresAt = null;
     }
 
     private async Task<AIRun> RequireRunAsync(long runId) =>

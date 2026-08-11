@@ -56,6 +56,48 @@ is not stable.
 
 ---
 
+## Background work: the AI run worker
+
+AI coach runs are executed by `AIRunWorkerHostedService`, an in-process `BackgroundService` that
+claims queued `AIRun` rows from Postgres. The queue is the durability mechanism: work survives a
+deploy or a crash because it lives in the database, not in the memory of whichever request started
+it.
+
+The queue only advances while a backend instance is running. **Scale-to-zero is currently enabled on
+the backend service**, which bounds the guarantee:
+
+| Interruption | Outcome |
+|---|---|
+| User navigates to another page in the app | Run continues. The SSE/polling connection keeps the container awake. |
+| User refreshes the page | Run continues, and the client re-attaches via the run snapshot. |
+| Backend redeploys or restarts | Run resumes if no tool ran, or is failed coherently if one did. |
+| User closes the app entirely | Container sleeps and the run stops progressing until the next request wakes it. |
+
+That last row is the cost of scale-to-zero and no amount of application code changes it. To close it,
+either disable scale-to-zero on the backend service, or run a second always-on instance against the
+same database with `AI:AsyncRuns:WorkerEnabled` set to true. A database queue makes restart recovery
+possible; it cannot execute while every worker process is stopped.
+
+`AI:AsyncRuns:WorkerEnabled` is set to `false` in the integration test host — a background poller
+racing a test's assertions makes the whole suite non-deterministic. Tests drive runs explicitly
+through `TestWebApplicationFactory.ProcessPendingAIRunsAsync`.
+
+### Streaming through the proxy
+
+`/api/ai/runs/` has its own nginx location with `proxy_buffering off`. The general `/api/` proxy
+buffers, which would hold progress events until the response completed and defeat the point of
+streaming them. The client falls back to polling the run snapshot if the stream never opens, so a
+misconfigured proxy degrades to slower updates rather than a stuck UI.
+
+### Worth monitoring
+
+None of these have dashboards yet; they are the signals that would matter first if runs misbehave:
+queued run age, stale lease reclaims (logged as a warning by the worker), failed run rate, run
+duration, tool count per run, and tokens/cost per run. All are queryable from `AIRuns` and
+`AIProgressEvents`.
+
+---
+
 ## Data protection
 
 The key ring is persisted to the database, not the filesystem:

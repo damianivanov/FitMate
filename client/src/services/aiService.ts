@@ -1,13 +1,14 @@
-import api from "@/lib/api";
+import api, { apiUrl } from "@/lib/api";
 import type {
   AIActionModel,
   AIConversationModel,
   AIConversationSummaryModel,
+  AIRunSnapshotModel,
   AIUsageSummaryModel,
   CreateAIConversationRequest,
   JsonData,
   SendAIMessageRequest,
-  SendAIMessageResponse,
+  StartAIRunResponse,
 } from "@/types";
 
 export const aiService = {
@@ -27,8 +28,16 @@ export const aiService = {
     return api.delete<JsonData<boolean>>(`ai/conversations/${id}`);
   },
 
-  async sendMessage(id: number, payload: SendAIMessageRequest) {
-    return api.post<JsonData<SendAIMessageResponse>>(`ai/conversations/${id}/messages`, payload);
+  async startMessage(id: number, payload: SendAIMessageRequest) {
+    return api.post<JsonData<StartAIRunResponse>>(`ai/conversations/${id}/messages`, payload);
+  },
+
+  async getRunSnapshot(runId: number, afterEventId = 0) {
+    return api.get<JsonData<AIRunSnapshotModel>>(`ai/runs/${runId}?afterEventId=${afterEventId}`);
+  },
+
+  runEventsUrl(runId: number, afterEventId = 0) {
+    return apiUrl(`ai/runs/${runId}/events?afterEventId=${afterEventId}`);
   },
 
   async getUsage() {

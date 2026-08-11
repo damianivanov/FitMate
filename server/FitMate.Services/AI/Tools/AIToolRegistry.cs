@@ -4,6 +4,7 @@ using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Integrations.AI.Models;
 using FitMate.Integrations.AI.Serialization;
+using FitMate.Services.AI.Runs;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -17,15 +18,18 @@ public class AIToolRegistry : IAIToolRegistry
 {
     private readonly AppDbContext dbContext;
     private readonly IAIRedactionService redactionService;
+    private readonly IAIProgressService progressService;
     private readonly IReadOnlyDictionary<string, IAIToolHandler> handlers;
 
     public AIToolRegistry(
         AppDbContext dbContext,
         IAIRedactionService redactionService,
+        IAIProgressService progressService,
         IEnumerable<IAIToolHandler> handlers)
     {
         this.dbContext = dbContext;
         this.redactionService = redactionService;
+        this.progressService = progressService;
         this.handlers = handlers.ToDictionary(handler => handler.Name, StringComparer.Ordinal);
     }
 
@@ -53,6 +57,11 @@ public class AIToolRegistry : IAIToolRegistry
 
         dbContext.AIToolExecutions.Add(execution);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Published from the same lifecycle as the audit row, so the two can never disagree about
+        // what the assistant actually did.
+        await progressService.PublishAsync(
+            context.AIRunId, AIProgressCodes.ToolStarted, toolCall.Name, cancellationToken);
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -130,6 +139,12 @@ public class AIToolRegistry : IAIToolRegistry
         execution.ErrorMessage = errorMessage;
         execution.CompletedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await progressService.PublishAsync(
+            execution.AIRunId,
+            status == AIToolExecutionStatus.Completed ? AIProgressCodes.ToolCompleted : AIProgressCodes.ToolFailed,
+            execution.ToolName,
+            cancellationToken);
     }
 
     private static string SerializeResult(AIToolExecutionResult result) =>

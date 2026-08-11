@@ -1,11 +1,8 @@
-using FitMate.Core.JsonModels.Exercises;
 using FitMate.Integrations.AI.Serialization;
-using FitMate.Services.Exercises;
+using FitMate.Services.AI.Context;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.ProgramPlans.Plans;
 using FitMate.Services.TrainingProfiles;
-using FitMate.Services.WorkoutTemplates;
-using FitMate.Services.Workouts;
 
 namespace FitMate.Services.AI.Tools.ReadOnly;
 
@@ -27,31 +24,26 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
 {
     private const int DefaultExerciseLimit = 12;
     private const int MaxExerciseLimit = 24;
+    private const int MatchingTemplateLimit = 10;
 
     /// <summary>Recent workouts scanned to work out when the focus muscles were last hit.</summary>
     private const int RecentWorkoutsScanned = 12;
 
     private readonly ITrainingProfileService trainingProfileService;
     private readonly IMuscleGroupService muscleGroupService;
-    private readonly IExerciseService exerciseService;
-    private readonly IWorkoutService workoutService;
-    private readonly IWorkoutTemplateService workoutTemplateService;
     private readonly IProgramPlanService programPlanService;
+    private readonly IAITrainingContextQuery contextQuery;
 
     public GetWorkoutCreationContextToolHandler(
         ITrainingProfileService trainingProfileService,
         IMuscleGroupService muscleGroupService,
-        IExerciseService exerciseService,
-        IWorkoutService workoutService,
-        IWorkoutTemplateService workoutTemplateService,
-        IProgramPlanService programPlanService)
+        IProgramPlanService programPlanService,
+        IAITrainingContextQuery contextQuery)
     {
         this.trainingProfileService = trainingProfileService;
         this.muscleGroupService = muscleGroupService;
-        this.exerciseService = exerciseService;
-        this.workoutService = workoutService;
-        this.workoutTemplateService = workoutTemplateService;
         this.programPlanService = programPlanService;
+        this.contextQuery = contextQuery;
     }
 
     public string Name => "get_workout_creation_context";
@@ -105,34 +97,32 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
         var today = await programPlanService.GetTodayAsync(context.UserId, DateOnly.FromDateTime(date));
 
         // Pull more than we return so previously-performed exercises can be ranked to the top.
-        var candidates = await exerciseService.GetAllAsync(new ExerciseLookupRequest
-        {
-            MuscleGroupIds = focusIds.Count > 0 ? focusIds : null,
-            Take = Math.Max(limit * 3, limit),
-        });
+        var candidates = await contextQuery.GetExerciseCandidatesAsync(
+            context.UserId, focusIds, Math.Max(limit * 3, limit), cancellationToken);
 
-        var previousSets = candidates.Count == 0
-            ? []
-            : (await workoutService.GetPreviousSetsAsync(
-                context.UserId,
-                candidates.Select(x => x.Id).ToList())).Items;
+        var candidateIds = candidates.Select(x => x.Id).ToList();
 
-        var lastPerformed = previousSets.ToDictionary(x => x.ExerciseId, x => x);
+        // Skipped entirely when history is not wanted. The old path ran this query regardless and
+        // merely suppressed the field, which meant paying for it either way. The trade-off is that
+        // ranking then loses its "performed before" signal and falls back to alphabetical.
+        var lastPerformed = includeHistory
+            ? await contextQuery.GetLatestPerformanceAsync(context.UserId, candidateIds, cancellationToken)
+            : new Dictionary<long, AILatestExercisePerformanceModel>();
 
         var ranked = candidates
             .OrderByDescending(x => lastPerformed.ContainsKey(x.Id))
             .ThenByDescending(x => lastPerformed.TryGetValue(x.Id, out var previous)
-                ? previous.WorkoutStartedAt
+                ? previous.PerformedAt
                 : DateTime.MinValue)
             .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .Take(limit)
             .ToList();
 
-        var workouts = await workoutService.ListAsync(context.UserId);
-        var recentExposure = BuildRecentExposure(workouts, candidates, muscleGroups, focusIds);
+        var exposure = await contextQuery.GetRecentMuscleExposureAsync(
+            context.UserId, focusIds, RecentWorkoutsScanned, cancellationToken);
 
-        var templates = await workoutTemplateService.ListAsync(context.UserId);
-        var candidateIds = candidates.Select(x => x.Id).ToHashSet();
+        var templates = await contextQuery.GetMatchingTemplatesAsync(
+            context.UserId, candidateIds, MatchingTemplateLimit, cancellationToken);
 
         return AIToolExecutionResult.Ok(new
         {
@@ -148,11 +138,16 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
                 hasScheduledWorkout = today != null,
                 scheduled = today,
             },
-            recentMuscleExposure = recentExposure,
+            recentMuscleExposure = exposure
+                .Select(entry => new
+                {
+                    muscleGroup = muscleGroups.FirstOrDefault(group => group.Id == entry.MuscleGroupId)?.Name
+                        ?? "Unknown",
+                    lastTrainedAt = entry.LastTrainedAt.ToString("yyyy-MM-dd"),
+                    daysAgo = (int)Math.Floor((DateTime.UtcNow - entry.LastTrainedAt).TotalDays),
+                })
+                .ToList(),
             matchingTemplates = templates
-                .Where(template => template.Groups
-                    .SelectMany(group => group.Exercises)
-                    .Any(exercise => candidateIds.Contains(exercise.ExerciseId)))
                 .Select(template => new { template.Id, template.Name, template.ExerciseCount })
                 .ToList(),
             exercises = ranked.Select(exercise => new
@@ -161,66 +156,21 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
                 exercise.Name,
                 primaryMuscle = exercise.PrimaryMuscleGroupName,
                 secondaryMuscle = exercise.SecondaryMuscleGroupName,
-                equipment = exercise.Equipment?.ToString(),
-                movementPattern = exercise.MovementPattern?.ToString(),
-                lastPerformance = includeHistory && lastPerformed.TryGetValue(exercise.Id, out var previous)
+                equipment = exercise.Equipment,
+                movementPattern = exercise.MovementPattern,
+                lastPerformance = lastPerformed.TryGetValue(exercise.Id, out var previous)
                     ? BuildLastPerformance(previous)
                     : null,
             }).ToList(),
         });
     }
 
-    private static object BuildLastPerformance(Core.JsonModels.Workouts.PreviousExerciseSetsModel previous) => new
+    private static object BuildLastPerformance(AILatestExercisePerformanceModel previous) => new
     {
-        performedAt = previous.WorkoutStartedAt.ToString("yyyy-MM-dd"),
-        weightKg = previous.Sets.Select(set => set.WeightKg).FirstOrDefault(weight => weight != null),
-        reps = previous.Sets.Where(set => set.Reps != null).Select(set => set.Reps!.Value).ToList(),
+        performedAt = previous.PerformedAt.ToString("yyyy-MM-dd"),
+        weightKg = previous.WeightKg,
+        reps = previous.Reps,
     };
-
-    /// <summary>
-    /// When each focus muscle was last trained, derived from the candidate exercises that appear in
-    /// recent workouts. Enough to stop the model programming a muscle it hit yesterday.
-    /// </summary>
-    private static List<object> BuildRecentExposure(
-        IReadOnlyList<Core.JsonModels.Workouts.WorkoutModel> workouts,
-        IReadOnlyList<ExerciseLookupModel> candidates,
-        IReadOnlyList<Core.JsonModels.MuscleGroups.MuscleGroupModel> muscleGroups,
-        IReadOnlyCollection<long> focusIds)
-    {
-        var exerciseMuscles = candidates.ToDictionary(x => x.Id, x => x.PrimaryMuscleGroupId);
-        var lastTrained = new Dictionary<long, DateTime>();
-
-        foreach (var workout in workouts
-            .Where(x => x.StartedAt != null)
-            .OrderByDescending(x => x.StartedAt)
-            .Take(RecentWorkoutsScanned))
-        {
-            foreach (var exercise in workout.Groups.SelectMany(group => group.Exercises))
-            {
-                if (!exerciseMuscles.TryGetValue(exercise.ExerciseId, out var muscleGroupId))
-                {
-                    continue;
-                }
-
-                var startedAt = workout.StartedAt!.Value;
-                if (!lastTrained.TryGetValue(muscleGroupId, out var existing) || startedAt > existing)
-                {
-                    lastTrained[muscleGroupId] = startedAt;
-                }
-            }
-        }
-
-        return lastTrained
-            .Where(entry => focusIds.Count == 0 || focusIds.Contains(entry.Key))
-            .OrderByDescending(entry => entry.Value)
-            .Select(entry => (object)new
-            {
-                muscleGroup = muscleGroups.FirstOrDefault(group => group.Id == entry.Key)?.Name ?? "Unknown",
-                lastTrainedAt = entry.Value.ToString("yyyy-MM-dd"),
-                daysAgo = (int)Math.Floor((DateTime.UtcNow - entry.Value).TotalDays),
-            })
-            .ToList();
-    }
 
     private static DateTime ParseDate(string? value) =>
         DateTime.TryParse(value, out var parsed) ? parsed.Date : DateTime.UtcNow.Date;
