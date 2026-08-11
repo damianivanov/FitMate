@@ -843,6 +843,16 @@ export namespace JsonModels.Common {
 		pageSize: number;
 	}
 }
+export namespace JsonModels.Build {
+	export interface BuildInfoModel
+	{
+		buildTimeUtc?: string;
+		version: string;
+		commitSha?: string;
+		environmentName: string;
+		startedAtUtc?: string;
+	}
+}
 export namespace JsonModels.BodyMetrics {
 	export interface BodyMetricEntryModel
 	{

@@ -54,6 +54,46 @@ public class AIOrchestratorTests
         Assert.Equal(20, run.InputTokens); // accumulated over both provider calls
     }
 
+    // Празен отговор от модела: не записва празно съобщение, а обяснява какво стана
+    [Fact]
+    public async Task Send_EmptyCompletion_ReplacesBlankReplyWithNoticeAndReleasesUsage()
+    {
+        using var db = new SqliteTestDatabase();
+        var provider = new FakeAICompletionProvider().EnqueueEmpty();
+        var harness = await WorkerHarness.CreateAsync(db, provider);
+
+        await harness.SendAsync("Build me a 14 week program.");
+
+        // The blank bubble was the bug: the user could not tell a finished run from a hung one.
+        var reply = await harness.LastAssistantMessageAsync();
+        Assert.Equal(AIMessageRole.Assistant, reply.Role);
+        Assert.False(string.IsNullOrWhiteSpace(reply.Content));
+
+        var run = await harness.RunRowAsync();
+        Assert.Equal(AIRunStatus.LimitExceeded, run.Status);
+        Assert.Equal("output_token_limit", run.ErrorCode);
+        Assert.Equal(reply.Id, run.AssistantMessageId);
+        Assert.Single(harness.Usage.Released);
+        Assert.Empty(harness.Usage.Committed);
+    }
+
+    // Празен отговор без "Length": пак не записва празно съобщение
+    [Fact]
+    public async Task Send_EmptyCompletionWithoutLengthReason_IsStillReportedAsEmpty()
+    {
+        using var db = new SqliteTestDatabase();
+        var provider = new FakeAICompletionProvider().EnqueueEmpty(finishReason: "Stop", outputTokens: 12);
+        var harness = await WorkerHarness.CreateAsync(db, provider);
+
+        await harness.SendAsync("Hello?");
+
+        Assert.False(string.IsNullOrWhiteSpace((await harness.LastAssistantMessageAsync()).Content));
+
+        var run = await harness.RunRowAsync();
+        Assert.Equal(AIRunStatus.LimitExceeded, run.Status);
+        Assert.Equal("empty_response", run.ErrorCode);
+    }
+
     // Достигнат лимит на итерации: маркира LimitExceeded и освобождава квотата
     [Fact]
     public async Task Send_ToolIterationLimitReached_MarksLimitExceededAndReleasesUsage()

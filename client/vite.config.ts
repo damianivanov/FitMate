@@ -5,6 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  // Inlined at build time so the admin panel can report which bundle the browser is actually
+  // running — the service worker can keep serving an older one after a deploy.
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     tailwindcss(),

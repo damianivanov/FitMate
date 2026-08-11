@@ -38,4 +38,15 @@
     <UserSecretsId>FitMate.Web-50df1e43-4d0e-4ef0-ad9f-6f6dc08023eb</UserSecretsId>
   </PropertyGroup>
 
+  <!-- Baked into the assembly so a running container can report which build it is, and read back
+       through AssemblyMetadata at /api/admin/build-info. GIT_COMMIT is optional: Railway can inject
+       it as a build arg, and the endpoint just omits the SHA when it is missing. -->
+  <PropertyGroup>
+    <BuildTimestampUtc>$([System.DateTime]::UtcNow.ToString("O"))</BuildTimestampUtc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="BuildTimestampUtc" Value="$(BuildTimestampUtc)" />
+  </ItemGroup>
+
 </Project>

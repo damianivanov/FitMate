@@ -7,4 +7,7 @@ public class AICompletionResponse
     public AIProviderUsage Usage { get; set; } = new();
     public string? ProviderRequestId { get; set; }
     public string Model { get; set; } = string.Empty;
+
+    /// <summary>Provider stop reason. "Length" means the output budget ran out mid-answer.</summary>
+    public string? FinishReason { get; set; }
 }

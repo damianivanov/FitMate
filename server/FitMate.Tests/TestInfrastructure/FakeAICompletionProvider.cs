@@ -28,6 +28,24 @@ public sealed class FakeAICompletionProvider : IAICompletionProvider
         return this;
     }
 
+    /// <summary>
+    /// A reasoning model that burns its whole output budget on hidden reasoning returns no text and
+    /// no tool calls, with the provider reporting "Length".
+    /// </summary>
+    public FakeAICompletionProvider EnqueueEmpty(string finishReason = "Length", int outputTokens = 4_000)
+    {
+        responses.Enqueue(new AICompletionResponse
+        {
+            Text = string.Empty,
+            Usage = new AIProviderUsage { InputTokens = 10, OutputTokens = outputTokens },
+            ProviderRequestId = $"fake-{responses.Count}",
+            Model = "test-model",
+            FinishReason = finishReason,
+        });
+
+        return this;
+    }
+
     public FakeAICompletionProvider EnqueueToolCall(string toolCallId, string toolName, string argumentsJson)
     {
         responses.Enqueue(new AICompletionResponse

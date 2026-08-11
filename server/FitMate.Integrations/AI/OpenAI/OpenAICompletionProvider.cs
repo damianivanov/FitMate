@@ -79,6 +79,7 @@ public class OpenAICompletionProvider : IAICompletionProvider
             },
             ProviderRequestId = completion.Id,
             Model = completion.Model ?? request.Model,
+            FinishReason = completion.FinishReason.ToString(),
         };
     }
 

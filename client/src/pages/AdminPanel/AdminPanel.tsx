@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { BuildInfoPanel } from "./components/BuildInfoPanel";
 
 const gridLinks = [
   {
@@ -60,6 +61,7 @@ export default function AdminPanel() {
         <header className="space-y-2 py-5 px-3 rounded-xl">
           <h1 className="text-3xl font-extrabold text-primary">Admin Dashboard</h1>
           <p className="text-sm text-secondary">Central place for management grids and tools.</p>
+          <BuildInfoPanel />
         </header>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

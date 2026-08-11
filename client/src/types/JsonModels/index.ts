@@ -67,6 +67,7 @@ export type { AnalyticsQueryRequest } from "./Analytics/AnalyticsQueryRequest";
 export type { AssignPlanOverrideRequest } from "./AdminSubscriptions/AssignPlanOverrideRequest";
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { BodyMetricEntryModel } from "./BodyMetrics/BodyMetricEntryModel";
+export type { BuildInfoModel } from "./Build/BuildInfoModel";
 export type { ChangePasswordRequest } from "./Auth/ChangePasswordRequest";
 export type { ConfirmImageUploadRequest } from "./Exercises/ConfirmImageUploadRequest";
 export type { CookieConsentRequest } from "./Auth/CookieConsentRequest";

@@ -170,6 +170,29 @@ public class AIOrchestrator : IAIOrchestrator
 
             if (providerResponse.ToolCalls.Count == 0)
             {
+                // A reasoning model can spend its whole output budget on hidden reasoning tokens and
+                // come back with no visible text. Persisting that verbatim stores a blank assistant
+                // message, which the user reads as a chat that hung rather than as a failure.
+                if (string.IsNullOrWhiteSpace(providerResponse.Text))
+                {
+                    var ranOutOfTokens = string.Equals(
+                        providerResponse.FinishReason, "Length", StringComparison.OrdinalIgnoreCase);
+
+                    await runService.MarkLimitExceededAsync(
+                        run.Id,
+                        ranOutOfTokens ? "output_token_limit" : "empty_response",
+                        ranOutOfTokens
+                            ? "The model used its entire output budget before writing a reply."
+                            : "The model returned an empty reply.");
+                    await ReleaseAsync(run);
+
+                    await StopWithNoticeAsync(
+                        run,
+                        "I ran out of room before I could write that answer. Ask me for a smaller "
+                            + "piece of it — one training week at a time, say — and I'll get through it.");
+                    return;
+                }
+
                 var assistantMessage = await conversationService.AddAssistantMessageAsync(
                     conversationId,
                     providerResponse.Text,

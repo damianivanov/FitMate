@@ -14,6 +14,7 @@ import type {
   AIRunQueryRequest,
   AIAdminUsageSummaryModel,
   AssignPlanOverrideRequest,
+  BuildInfoModel,
   CreateMuscleGroupRequest,
   ErrorModel,
   ErrorQueryRequest,
@@ -37,6 +38,10 @@ import type {
 } from "@/types";
 
 export const adminService = {
+  async buildInfo() {
+    return api.get<JsonData<BuildInfoModel>>("admin/build-info");
+  },
+
   users: {
     async list(params: UserQueryRequest) {
       return api.get<JsonData<PagedResponse<AdminUserModel>>>("admin/users", { params });
