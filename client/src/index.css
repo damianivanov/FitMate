@@ -1524,6 +1524,21 @@ input[type="number"] {
   .liquid-hover-lift:hover { transform: translateY(-4px); }
 }
 
+/* Hover affordance for cards that carry a backdrop-filter.
+   Deliberately shadow-only, no transform: moving a backdrop-filtered element makes the
+   browser re-resolve where its backdrop is sampled from, and it routinely grabs the wrong
+   region — which paints as a bright band across the card. Depth without displacement. */
+.liquid-card-hover {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .liquid-card-hover:hover {
+    border-color: var(--primary-300);
+    box-shadow: var(--hover-lift-shadow);
+  }
+}
+
 .liquid-hover-row { transition: background 0.15s; }
 .liquid-hover-row:hover { background: var(--glass-hover-row-bg); }
 
@@ -1637,6 +1652,225 @@ input[type="number"] {
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ----------------------------------------------------------------
+   SEGMENTED CONTROL
+
+   The thumb is inset by the track's padding and fully rounded, so
+   it reads as a pill sitting inside a groove rather than a block
+   filling one end of it. Segments are equal width, which is what
+   lets the thumb animate on x alone — animating its width would
+   cost a layout every frame.
+---------------------------------------------------------------- */
+
+.liquid-segmented {
+  position: relative;
+  display: flex;
+  padding: 0.25rem;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 9999px;
+  background: var(--glass-bg-pill);
+  box-shadow: var(--glass-specular-pill);
+}
+
+/* One segment wide, inset by the track's padding on every side, so it nests concentrically
+   however many segments there are. Travel is a multiple of its own width. */
+.liquid-segment-thumb {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / var(--liquid-segment-count, 1));
+  border-radius: 9999px;
+  background: linear-gradient(
+    140deg,
+    rgba(var(--primary-rgb), 0.98),
+    rgba(var(--primary-rgb), 0.78)
+  );
+  box-shadow:
+    0 6px 16px rgba(var(--primary-rgb), 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.liquid-segment {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  font-family: inherit;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+  /* Paced to the thumb's travel so the ink hands over as the pill arrives under it. */
+  transition: color 300ms var(--ease-out), transform 130ms var(--ease-out);
+  touch-action: manipulation;
+}
+
+.liquid-segment:hover {
+  color: var(--text-secondary);
+}
+
+.liquid-segment[aria-selected="true"],
+.liquid-segment[aria-selected="true"]:hover {
+  color: #ffffff;
+}
+
+/* Feedback lands on the press, not on the release. */
+.liquid-segment:active {
+  transform: scale(0.94);
+}
+
+.liquid-segment:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-segment:active {
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------
+   PAGE TITLE TYPE
+
+   Tracking is size-specific: display sizes need pulling in, small
+   uppercase labels need opening up. One letter-spacing for both is
+   wrong somewhere.
+---------------------------------------------------------------- */
+
+.liquid-page-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.liquid-page-title {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.75rem, 6vw, 2.125rem);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -0.034em;
+  color: var(--text-primary);
+}
+
+.liquid-page-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.002em;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------
+   REUSABLE MOTION
+
+   Enters that follow a deliberate action get a little overshoot;
+   nothing that appears on its own does. Reduced motion keeps the
+   fade and drops every translation.
+---------------------------------------------------------------- */
+
+:root {
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.45);
+}
+
+/* A value that changed — rises into place so the change is visible. */
+@keyframes liquid-jump {
+  0% {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.liquid-jump {
+  animation: liquid-jump 320ms var(--ease-spring) both;
+}
+
+/* `clip` rather than `hidden`: hidden on one axis forces the other to compute to auto,
+   which would trade a horizontal scrollbar for a vertical one. clip leaves the y axis
+   visible, so card shadows and hover lifts still overflow upward as they should. */
+.liquid-swap-clip {
+  overflow-x: clip;
+}
+
+/* Tab and filter swaps. Enter and exit share a path: content that arrives from the right
+   leaves to the right, so the two views stay spatially related. */
+@keyframes liquid-swap-forward {
+  0% {
+    opacity: 0;
+    transform: translateX(1.25rem);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes liquid-swap-back {
+  0% {
+    opacity: 0;
+    transform: translateX(-1.25rem);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.liquid-swap-forward {
+  animation: liquid-swap-forward 300ms var(--ease-out) both;
+}
+
+.liquid-swap-back {
+  animation: liquid-swap-back 300ms var(--ease-out) both;
+}
+
+/* For a surface arriving as a material rather than as paint: blur and scale resolve together. */
+@keyframes liquid-materialize {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+.liquid-materialize {
+  animation: liquid-materialize 420ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-jump,
+  .liquid-swap-forward,
+  .liquid-swap-back,
+  .liquid-materialize {
+    animation: liquid-fade 200ms var(--ease-out) both;
+  }
+}
+
+@keyframes liquid-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @layer base {

@@ -1,51 +1,124 @@
-import { LuPlus, LuScale } from "react-icons/lu";
-import { formatNumber } from "@/lib/helpers";
-import {
-  AsyncSection,
-  DeleteConfirmationModal,
-  LineChart,
-  PageBody,
-} from "@/shared/components";
+import { useEffect, useRef, useState } from "react";
+import { LuArrowDown, LuArrowUp, LuMinus, LuPlus, LuScale } from "react-icons/lu";
+import { formatNumber, normalizeUtcIsoString } from "@/lib/helpers";
+import { AsyncSection, DeleteConfirmationModal, LineChart, PageBody } from "@/shared/components";
+import { ChartRangeControl } from "./components/ChartRangeControl";
 import { LogWeightModal } from "./components/LogWeightModal";
 import { WeightHistoryList } from "./components/WeightHistoryList";
 import { useWeightLogPage } from "./hooks/useWeightLogPage";
+import "./weight-log.css";
+
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
 
 function formatWeight(value: number | null): string {
   return value != null ? `${formatNumber(value, 1)} kg` : "—";
 }
 
-function formatChange(value: number | null): string {
+function formatSignedWeight(value: number | null): string {
   if (value == null) {
     return "—";
   }
 
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${formatNumber(value, 1)} kg`;
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return `${sign}${formatNumber(Math.abs(value), 1)} kg`;
 }
 
-function formatBodyFat(value: number | null): string {
-  return value != null ? `${formatNumber(value, 1)}%` : "—";
+function formatLoggedDate(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(normalizeUtcIsoString(value));
+  return Number.isNaN(date.getTime()) ? null : SHORT_DATE_FORMATTER.format(date);
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function DeltaChip({ value }: { value: number | null }) {
+  if (value == null) {
+    return null;
+  }
+
+  const Icon = value > 0 ? LuArrowUp : value < 0 ? LuArrowDown : LuMinus;
+
   return (
-    <div className="min-w-0">
-      <p className="text-2xs font-semibold uppercase tracking-widest text-muted">{label}</p>
-      <p className="mt-0.5 truncate text-base font-bold text-foreground">{value}</p>
+    <span className="liquid-chip wl-delta">
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {formatSignedWeight(value)}
+      <span className="sr-only"> since the previous entry</span>
+    </span>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="wl-stat min-w-0">
+      <p className="wl-stat-label">{label}</p>
+      <p className="wl-stat-value truncate">{value}</p>
     </div>
   );
 }
 
 export default function WeightLog() {
   const { state, actions } = useWeightLogPage();
+  const topbarRef = useRef<HTMLElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Which element scrolls depends on the breakpoint, so measure the two edges against each
+  // other instead of binding to one container.
+  useEffect(() => {
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
+      const topbar = topbarRef.current;
+      const sentinel = sentinelRef.current;
+      if (!topbar || !sentinel) {
+        return;
+      }
+
+      setIsScrolled(sentinel.getBoundingClientRect().top < topbar.getBoundingClientRect().bottom);
+    };
+
+    const schedule = () => {
+      if (frame === 0) {
+        frame = requestAnimationFrame(measure);
+      }
+    };
+
+    measure();
+    window.addEventListener("scroll", schedule, { capture: true, passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+    };
+  }, []);
+
+  const latestDate = formatLoggedDate(state.latestLoggedAt);
+  const caption = [
+    state.latestBodyFat != null ? `${formatNumber(state.latestBodyFat, 1)}% body fat` : null,
+    latestDate ? `Logged ${latestDate}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <>
-      <header className="flex items-center justify-end px-4 py-3 md:px-8">
+      <header ref={topbarRef} className="wl-topbar" data-scrolled={isScrolled}>
+        <div>
+          <p className="wl-eyebrow">Body</p>
+          <h1 className="wl-title">Weight</h1>
+        </div>
+
         <button
           type="button"
           onClick={actions.openLogModal}
-          className="liquid-primary-btn inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold sm:w-auto"
+          className="liquid-primary-btn inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold"
         >
           <LuPlus className="h-4 w-4" />
           <span>Log weight</span>
@@ -53,7 +126,9 @@ export default function WeightLog() {
       </header>
 
       <PageBody>
-        <div className="mx-auto max-w-2xl space-y-5">
+        <div ref={sentinelRef} className="wl-sentinel" aria-hidden="true" />
+
+        <div className="wl-body mx-auto w-full max-w-2xl">
           <AsyncSection
             isLoading={state.isLoading}
             error={state.error}
@@ -61,28 +136,58 @@ export default function WeightLog() {
             loadingLabel="Loading weight history..."
             isEmpty={state.entryCount === 0}
             emptyState={
-              <div className="liquid-panel rounded-2xl px-5 py-10 text-center md:rounded-lg">
-                <LuScale className="mx-auto h-8 w-8 text-secondary" />
-                <p className="mt-3 text-base font-bold text-foreground">No entries yet</p>
-                <p className="mt-1 text-sm text-secondary">Log your weight to start tracking progress.</p>
+              <div className="liquid-panel wl-empty">
+                <LuScale className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
+                <p className="wl-empty-title">No entries yet</p>
+                <p className="wl-empty-body">
+                  Log your weight to start tracking progress. One number a week is enough to see a
+                  trend.
+                </p>
               </div>
             }
           >
-            <div className="space-y-5">
-              <div className="liquid-panel rounded-2xl p-4 md:rounded-lg">
-                <LineChart
-                  points={state.chartPoints}
-                  valueSuffix=" kg"
-                  emptyText="No weight data yet."
-                  baseline="data"
-                />
+            <section className="wl-hero wl-materialize">
+              <p className="wl-eyebrow">Current</p>
+              <p className="wl-hero-value">
+                <span className="wl-hero-number">
+                  {state.latestWeight != null ? formatNumber(state.latestWeight, 1) : "—"}
+                </span>
+                <span className="wl-hero-unit">kg</span>
+              </p>
+              <div className="wl-hero-meta">
+                <DeltaChip value={state.weightChange} />
+                {caption ? <p className="wl-hero-caption">{caption}</p> : null}
+              </div>
+            </section>
+
+            <section className="liquid-panel wl-card">
+              <div className="wl-card-head">
+                <p className="wl-card-title">Trend</p>
+                <ChartRangeControl value={state.range} onChange={actions.setRange} />
               </div>
 
-              <div className="flex flex-wrap items-start gap-x-8 gap-y-3 px-1">
-                <MiniStat label="Latest" value={formatWeight(state.latestWeight)} />
-                <MiniStat label="Change" value={formatChange(state.weightChange)} />
-                <MiniStat label="Body fat" value={formatBodyFat(state.latestBodyFat)} />
-                <MiniStat label="Entries" value={String(state.entryCount)} />
+              <div className="wl-chart">
+                {state.chartPoints.length > 0 ? (
+                  <LineChart points={state.chartPoints} valueSuffix=" kg" baseline="data" />
+                ) : (
+                  <p className="wl-chart-empty">Nothing logged in this range.</p>
+                )}
+              </div>
+
+              <div className="wl-stats">
+                <Stat label="Change" value={formatSignedWeight(state.rangeStats.change)} />
+                <Stat label="Lowest" value={formatWeight(state.rangeStats.low)} />
+                <Stat label="Highest" value={formatWeight(state.rangeStats.high)} />
+              </div>
+            </section>
+
+            <section className="liquid-panel wl-card wl-card-flush">
+              <div className="wl-card-head">
+                <p className="wl-card-title">History</p>
+                <p className="wl-card-note">
+                  {state.entryCount} {state.entryCount === 1 ? "entry" : "entries"} · swipe a row to
+                  delete
+                </p>
               </div>
 
               <WeightHistoryList
@@ -92,7 +197,7 @@ export default function WeightLog() {
                 onLoadMore={actions.loadMore}
                 onDelete={actions.requestDelete}
               />
-            </div>
+            </section>
           </AsyncSection>
         </div>
       </PageBody>

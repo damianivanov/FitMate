@@ -10,6 +10,22 @@ import { useActiveWorkoutStore } from "@/stores/activeWorkoutStore";
 import { useSaveWorkoutAsTemplate } from "@/shared/hooks/useSaveWorkoutAsTemplate";
 import type { Workout } from "@/types";
 
+export type WorkoutFilter = "all" | "active" | "finished";
+
+export const WORKOUT_FILTERS: WorkoutFilter[] = ["all", "active", "finished"];
+
+function matchesFilter(workout: Workout, filter: WorkoutFilter): boolean {
+  if (filter === "finished") {
+    return Boolean(workout.finishedAt);
+  }
+
+  if (filter === "active") {
+    return !workout.finishedAt;
+  }
+
+  return true;
+}
+
 function getWorkoutTitle(workout: Workout | null): string {
   return workout?.title.trim() || "Untitled Workout";
 }
@@ -58,12 +74,28 @@ export function useWorkoutsPage() {
     onSaved: (template) => navigate(`/templates/view/${template.id}`),
   });
 
+  const [filter, setFilter] = useState<WorkoutFilter>("all");
+
   const workouts = useMemo(
     () =>
       (allWorkouts ?? [])
         .slice()
         .sort((left, right) => getStartedTime(right) - getStartedTime(left)),
     [allWorkouts],
+  );
+
+  const filteredWorkouts = useMemo(
+    () => workouts.filter((workout) => matchesFilter(workout, filter)),
+    [filter, workouts],
+  );
+
+  const filterCounts = useMemo(
+    () => ({
+      all: workouts.length,
+      active: workouts.filter((workout) => !workout.finishedAt).length,
+      finished: workouts.filter((workout) => Boolean(workout.finishedAt)).length,
+    }),
+    [workouts],
   );
 
   const open = useCallback(
@@ -163,6 +195,10 @@ export function useWorkoutsPage() {
   const state = useMemo(
     () => ({
       workouts,
+      filteredWorkouts,
+      filter,
+      filterCounts,
+      filterIndex: WORKOUT_FILTERS.indexOf(filter),
       isLoading,
       error,
       deletingWorkoutId,
@@ -174,6 +210,9 @@ export function useWorkoutsPage() {
     }),
     [
       workouts,
+      filteredWorkouts,
+      filter,
+      filterCounts,
       isLoading,
       error,
       deletingWorkoutId,
@@ -189,6 +228,7 @@ export function useWorkoutsPage() {
       open,
       create,
       repeat,
+      setFilter,
       requestDelete,
       cancelDelete,
       confirmDelete,

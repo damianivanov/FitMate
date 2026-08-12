@@ -1,0 +1,436 @@
+/* ----------------------------------------------------------------
+   WEIGHT LOG — page-scoped material, type and motion.
+   Everything here is prefixed wl- and used only by this route.
+---------------------------------------------------------------- */
+
+.wl-topbar,
+.wl-body {
+  --wl-action-width: 5.25rem;
+  --wl-inset: 0.9rem;
+  --wl-edge-shadow: rgba(12, 16, 26, 0.13);
+  --wl-lane: linear-gradient(180deg, #ff5f52, #f0372b);
+}
+
+.dark .wl-topbar,
+.dark .wl-body {
+  --wl-edge-shadow: rgba(0, 0, 0, 0.34);
+  --wl-lane: linear-gradient(180deg, #ff4b58, #d92c3c);
+}
+
+/* ---------------- Floating chrome ---------------- */
+
+/* Content scrolls underneath rather than being pushed below an opaque strip. */
+.wl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  background: var(--glass-bg-nav);
+  backdrop-filter: blur(24px) saturate(1.7);
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+}
+
+@media (min-width: 768px) {
+  .wl-topbar {
+    padding: 0.9rem 2rem;
+  }
+}
+
+/* Scroll edge effect instead of a permanent 1px rule: the separation only appears once
+   there is content passing under the bar. */
+.wl-topbar::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: 1.25rem;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--wl-edge-shadow), transparent);
+  transition: opacity 240ms var(--ease-out);
+}
+
+.wl-topbar[data-scrolled="true"]::after {
+  opacity: 1;
+}
+
+.wl-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em; /* small type reads better opened up */
+  color: var(--text-tertiary);
+}
+
+.wl-title {
+  margin: 0.1rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.021em;
+  color: var(--text-primary);
+}
+
+.wl-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+.wl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---------------- Hero figure ---------------- */
+
+.wl-hero {
+  padding: 0.75rem 0.25rem 0;
+}
+
+.wl-hero-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+}
+
+/* Large type: tight leading, negative tracking — letters read too far apart as they grow. */
+.wl-hero-number {
+  font-size: clamp(3.25rem, 15vw, 4.5rem);
+  font-weight: 650;
+  line-height: 0.92;
+  letter-spacing: -0.042em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.wl-hero-unit {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: var(--text-tertiary);
+}
+
+.wl-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.wl-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.004em;
+}
+
+.wl-hero-caption {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.wl-materialize {
+  animation: wl-materialize 460ms var(--ease-out) both;
+}
+
+@keyframes wl-materialize {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* ---------------- Cards ---------------- */
+
+.wl-card {
+  border-radius: 1.375rem;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.wl-card-flush {
+  padding: 0.9rem 0 0;
+}
+
+.wl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 var(--wl-inset) 0.75rem;
+}
+
+.wl-card-flush .wl-card-head {
+  padding-bottom: 0.6rem;
+}
+
+.wl-card-title {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  color: var(--text-primary);
+}
+
+.wl-card-note {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Chart ---------------- */
+
+.wl-chart {
+  margin: 0 -0.35rem;
+}
+
+.wl-chart-empty {
+  display: flex;
+  height: 13rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: var(--glass-bg-soft);
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+.wl-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--glass-divider);
+}
+
+.wl-stat + .wl-stat {
+  padding-left: 0.9rem;
+  border-left: 1px solid var(--glass-divider);
+}
+
+.wl-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-tertiary);
+}
+
+.wl-stat-value {
+  margin-top: 0.2rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ---------------- Swipeable history rows ---------------- */
+
+.wl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wl-row {
+  position: relative;
+  overflow: hidden;
+}
+
+/* pan-y hands vertical scrolling back to the browser and keeps horizontal for the gesture. */
+.wl-row-track {
+  position: relative;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+.wl-row-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem var(--wl-inset);
+}
+
+/* Inset hairline that travels with the content it separates. */
+.wl-row + .wl-row .wl-row-face::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--wl-inset);
+  height: 1px;
+  background: var(--glass-divider);
+}
+
+.wl-row-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.016em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.wl-row-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.wl-row-meta {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  color: var(--text-tertiary);
+}
+
+.wl-row-delta {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.004em;
+  color: var(--text-secondary);
+}
+
+.wl-row-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  display: flex;
+  width: var(--wl-action-width);
+}
+
+.wl-row-delete {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border: 0;
+  background: var(--wl-lane);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.wl-row-delete:active {
+  filter: brightness(0.92);
+}
+
+.wl-row-delete:disabled {
+  opacity: 0.7;
+}
+
+.wl-load-more {
+  width: 100%;
+  padding: 0.85rem 0;
+  border: 0;
+  border-top: 1px solid var(--glass-divider);
+  background: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  transition: color 180ms var(--ease-out);
+}
+
+.wl-load-more:hover {
+  color: var(--color-primary);
+}
+
+/* ---------------- Empty state ---------------- */
+
+.wl-empty {
+  border-radius: 1.375rem;
+  padding: 2.75rem 1.5rem;
+  text-align: center;
+}
+
+.wl-empty-title {
+  margin-top: 0.85rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.016em;
+  color: var(--text-primary);
+}
+
+.wl-empty-body {
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* ---------------- Accessibility preferences ---------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-materialize {
+    animation: none;
+  }
+
+  .wl-topbar::after {
+    transition-duration: 1ms;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .wl-topbar {
+    background: var(--color-base);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .wl-topbar {
+    background: var(--color-base);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid var(--text-primary);
+  }
+
+  .wl-row + .wl-row .wl-row-face::after,
+  .wl-stat + .wl-stat {
+    border-color: var(--text-secondary);
+  }
+
+  .wl-eyebrow,
+  .wl-stat-label,
+  .wl-row-meta,
+  .wl-hero-caption {
+    color: var(--text-secondary);
+  }
+}

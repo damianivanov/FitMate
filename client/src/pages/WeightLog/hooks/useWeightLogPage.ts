@@ -7,6 +7,17 @@ import type { BodyMetricEntry } from "@/types";
 
 const WEIGHT_PAGE_SIZE = 10;
 
+export type WeightRange = "30d" | "90d" | "1y" | "all";
+
+const RANGE_DAYS: Record<WeightRange, number | null> = {
+  "30d": 30,
+  "90d": 90,
+  "1y": 365,
+  all: null,
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
@@ -40,6 +51,7 @@ export function useWeightLogPage() {
   const [isLogging, setIsLogging] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(WEIGHT_PAGE_SIZE);
+  const [range, setRange] = useState<WeightRange>("90d");
 
   const [entryPendingDelete, setEntryPendingDelete] = useState<BodyMetricEntry | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -84,9 +96,19 @@ export function useWeightLogPage() {
   const visibleEntries = useMemo(() => entries.slice(0, visibleCount), [entries, visibleCount]);
   const hasMoreEntries = entries.length > visibleCount;
 
+  const rangeEntries = useMemo(() => {
+    const days = RANGE_DAYS[range];
+    if (days === null) {
+      return entries;
+    }
+
+    const cutoff = Date.now() - days * DAY_MS;
+    return entries.filter((entry) => getLoggedTime(entry) >= cutoff);
+  }, [entries, range]);
+
   const chartPoints = useMemo(
     () =>
-      entries
+      rangeEntries
         .slice()
         .reverse()
         .filter((entry) => entry.bodyWeightKg != null)
@@ -94,8 +116,24 @@ export function useWeightLogPage() {
           label: DATE_FORMATTER.format(new Date(normalizeUtcIsoString(entry.loggedAt))),
           value: entry.bodyWeightKg as number,
         })),
-    [entries],
+    [rangeEntries],
   );
+
+  const rangeStats = useMemo(() => {
+    const values = rangeEntries
+      .map((entry) => entry.bodyWeightKg)
+      .filter((value): value is number => value != null);
+
+    if (values.length === 0) {
+      return { change: null, low: null, high: null };
+    }
+
+    return {
+      change: values.length > 1 ? values[0] - values[values.length - 1] : null,
+      low: Math.min(...values),
+      high: Math.max(...values),
+    };
+  }, [rangeEntries]);
 
   const latestWeight = entries[0]?.bodyWeightKg ?? null;
   const previousWeight = entries[1]?.bodyWeightKg ?? null;
@@ -188,8 +226,11 @@ export function useWeightLogPage() {
       note,
       isLogging,
       isLogModalOpen,
+      range,
       chartPoints,
+      rangeStats,
       latestWeight,
+      latestLoggedAt: entries[0]?.loggedAt ?? null,
       weightChange,
       latestBodyFat,
       entryCount: entries.length,
@@ -208,7 +249,9 @@ export function useWeightLogPage() {
       note,
       isLogging,
       isLogModalOpen,
+      range,
       chartPoints,
+      rangeStats,
       latestWeight,
       weightChange,
       latestBodyFat,
@@ -222,6 +265,7 @@ export function useWeightLogPage() {
       setWeightKg,
       setBodyFat,
       setNote,
+      setRange,
       log,
       openLogModal: () => setIsLogModalOpen(true),
       closeLogModal: () => setIsLogModalOpen(false),

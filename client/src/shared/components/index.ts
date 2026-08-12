@@ -4,6 +4,7 @@ export * from "./Dnd";
 export * from "./Inputs";
 export * from "./ExerciseBuilder";
 export * from "./layout";
+export * from "./motion";
 export { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 export { ActivateProgramModal } from "./ActivateProgramModal";
 export { AddExerciseModal } from "./AddExerciseModal";
