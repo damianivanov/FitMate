@@ -19,7 +19,9 @@
 
 /* ---------------- Floating chrome ---------------- */
 
-/* Content scrolls underneath rather than being pushed below an opaque strip. */
+/* Content scrolls underneath rather than being pushed below an opaque strip. The material
+   comes from .liquid-chrome-bar so this reads as a continuation of the app header directly
+   above it, not a second bar in a different glass. */
 .wl-topbar {
   position: sticky;
   top: 0;
@@ -29,9 +31,6 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.7rem 1rem;
-  background: var(--glass-bg-nav);
-  backdrop-filter: blur(24px) saturate(1.7);
-  -webkit-backdrop-filter: blur(24px) saturate(1.7);
 }
 
 @media (min-width: 768px) {
@@ -108,6 +107,9 @@
   letter-spacing: -0.042em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+  /* Grows out of its baseline anchor, so the unit beside it never appears to drift. */
+  transform-origin: left bottom;
+  animation: wl-figure 1100ms var(--ease-drawer) both;
 }
 
 .wl-hero-unit {
@@ -143,20 +145,39 @@
   color: var(--text-tertiary);
 }
 
+/* The block carries only a quiet lift — the blur lives on the figure alone, so the two
+   never stack into a double-strength smear over the number. */
 .wl-materialize {
-  animation: wl-materialize 460ms var(--ease-out) both;
+  animation: wl-materialize 600ms var(--ease-drawer) both;
 }
 
 @keyframes wl-materialize {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.985);
-    filter: blur(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: blur(0);
+  }
+}
+
+/* Legibility resolves in the first half — a number left blurred while it is still moving
+   reads as mush — then the scale keeps easing out for the rest of the run. */
+@keyframes wl-figure {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+    filter: blur(14px);
+  }
+  45% {
+    opacity: 1;
+    filter: none;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
   }
 }
 
@@ -397,7 +418,8 @@
 /* ---------------- Accessibility preferences ---------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .wl-materialize {
+  .wl-materialize,
+  .wl-hero-number {
     animation: none;
   }
 
@@ -406,22 +428,9 @@
   }
 }
 
-@media (prefers-reduced-transparency: reduce) {
-  .wl-topbar {
-    background: var(--color-base);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-}
-
+/* The bar's own material — and the reduced-transparency and high-contrast fallbacks for it —
+   live with .liquid-chrome-bar in index.css, shared with the app header. */
 @media (prefers-contrast: more) {
-  .wl-topbar {
-    background: var(--color-base);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-bottom: 1px solid var(--text-primary);
-  }
-
   .wl-row + .wl-row .wl-row-face::after,
   .wl-stat + .wl-stat {
     border-color: var(--text-secondary);

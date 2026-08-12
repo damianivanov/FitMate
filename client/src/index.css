@@ -127,6 +127,16 @@
   --glass-specular-nav: inset 0 1px 0 rgba(247, 252, 255, 0.70);
   --glass-specular-pill: inset 0 1px 0 rgba(248, 252, 255, 0.74);
 
+  /* ── Top chrome ──
+     The app header and any sticky page bar pinned beneath it are one continuous surface, so
+     they draw from one material. Let them drift apart and the seam reads as a gap with page
+     content bleeding through the weaker of the two. */
+  --chrome-bar-bg: var(--glass-bg-nav);
+  --chrome-bar-blur: var(--glass-blur-nav);
+  --chrome-bar-border: var(--glass-border);
+  --chrome-bar-gloss: var(--glass-gloss-nav);
+  --chrome-bar-shadow: var(--glass-shadow), var(--glass-specular-nav), inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+
   --glass-gloss-card: linear-gradient(180deg, rgba(246, 251, 255, 0.05) 0%, transparent 42%);
   --glass-gloss-nav: linear-gradient(180deg, rgba(246, 251, 255, 0.04) 0%, transparent 42%);
 
@@ -323,6 +333,21 @@
   --glass-specular-card: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --glass-specular-nav: inset 0 1px 0 rgba(255, 255, 255, 0.10);
   --glass-specular-pill: inset 0 0.5px 0 rgba(255, 255, 255, 0.07);
+
+  /* ── Top chrome ──
+     Dark borrows the tab bar's material so the two edges of the screen read as one object;
+     the tab bar has no gloss, so neither does this. Near-opaque by design — a sticky page bar
+     wears the same skin with live content scrolling under it. */
+  --chrome-bar-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.04)),
+    linear-gradient(120deg, rgba(16, 16, 24, 0.86), rgba(30, 32, 46, 0.82), rgba(var(--primary-rgb), 0.12));
+  --chrome-bar-blur: blur(20px) saturate(1.3);
+  --chrome-bar-border: rgba(255, 255, 255, 0.12);
+  --chrome-bar-gloss: none;
+  --chrome-bar-shadow:
+    0 18px 38px rgba(8, 10, 18, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 
   --glass-gloss-card: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 35%);
   --glass-gloss-nav: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, transparent 38%);
@@ -604,8 +629,7 @@ textarea { resize: none; }
 
 /* Nav glass */
 .liquid-nav,
-.liquid-sidebar,
-.liquid-mobile-header {
+.liquid-sidebar {
   position: relative;
   background: var(--glass-bg-nav);
   backdrop-filter: var(--glass-blur-nav);
@@ -614,9 +638,26 @@ textarea { resize: none; }
   box-shadow: var(--glass-shadow), var(--glass-specular-nav), inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
+/* The app header and the page bar that pins under it are one piece of chrome, hence one
+   material. Only the header carries the closing hairline and the cast shadow — the page bar
+   continues the same surface past it and grows its own scroll edge at the content boundary. */
+.liquid-mobile-header,
+.liquid-chrome-bar {
+  background: var(--chrome-bar-bg);
+  backdrop-filter: var(--chrome-bar-blur);
+  -webkit-backdrop-filter: var(--chrome-bar-blur);
+}
+
+/* Consumers of .liquid-chrome-bar position themselves — .wl-topbar is sticky — so the
+   positioning stays off the shared rule and can't race it in the bundle. */
+.liquid-mobile-header {
+  position: relative;
+  border-bottom: 1px solid var(--chrome-bar-border);
+  box-shadow: var(--chrome-bar-shadow);
+}
+
 .liquid-nav::before,
-.liquid-sidebar::before,
-.liquid-mobile-header::before {
+.liquid-sidebar::before {
   content: '';
   position: absolute; inset: 0;
   border-radius: inherit;
@@ -625,28 +666,40 @@ textarea { resize: none; }
   background: var(--glass-gloss-nav);
 }
 
-.liquid-sidebar { border-right: 1px solid var(--glass-border); }
-.liquid-mobile-header { border-bottom: 1px solid var(--glass-border); }
-
-/* TEST — the top bar borrows the tab bar's material in dark mode, so the two edges of the
-   screen read as one object. Light mode already shares --glass-bg-nav with it. Delete this
-   block to go back. */
-.dark .liquid-mobile-header {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 50%, rgba(255, 255, 255, 0.04)),
-    linear-gradient(120deg, rgba(16, 16, 24, 0.74), rgba(30, 32, 46, 0.68), rgba(var(--primary-rgb), 0.12));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 18px 38px rgba(8, 10, 18, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(8px) saturate(1.3);
-  -webkit-backdrop-filter: blur(8px) saturate(1.3);
+.liquid-mobile-header::before,
+.liquid-chrome-bar::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--chrome-bar-gloss);
 }
 
-/* The tab bar has no gloss overlay; leaving it on would stop the two matching. */
-.dark .liquid-mobile-header::before {
-  background: none;
+.liquid-sidebar { border-right: 1px solid var(--glass-border); }
+
+/* Both bars drop to the flat base together — losing the material on only one of them would
+   reopen the seam these rules exist to keep closed. */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-mobile-header,
+  .liquid-chrome-bar {
+    background: var(--color-base);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .liquid-mobile-header,
+  .liquid-chrome-bar {
+    background: var(--color-base);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .liquid-mobile-header {
+    border-bottom-color: var(--text-primary);
+  }
 }
 
 .liquid-mobile-bottom-nav-shell {

@@ -109,7 +109,11 @@ export default function WeightLog() {
 
   return (
     <>
-      <header ref={topbarRef} className="wl-topbar" data-scrolled={isScrolled}>
+      <header
+        ref={topbarRef}
+        className="liquid-chrome-bar wl-topbar"
+        data-scrolled={isScrolled}
+      >
         <div>
           <p className="wl-eyebrow">Body</p>
           <h1 className="wl-title">Weight</h1>
