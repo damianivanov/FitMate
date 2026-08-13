@@ -4,6 +4,12 @@ namespace FitMate.Services.Storage.Blobs;
 
 public static partial class BlobPathBuilder
 {
+    /// <summary>
+    /// Holds bytes the browser PUT directly to storage until the server has validated them. Nested
+    /// under the owner's folder so the same <c>{module}/{id}/</c> prefix delete sweeps it away.
+    /// </summary>
+    public const string StagingFolder = "incoming";
+
     public static string Build(StorageModule module, long id, string fileName, string extension, DateTime utcNow)
     {
         var timestamp = utcNow.ToString("yyyyMMddTHHmmssfffZ");
@@ -26,7 +32,30 @@ public static partial class BlobPathBuilder
         }
 
         return cleaned;
-    }    public static bool IsOwnedBlobPath(string? value)
+    }
+
+    public static string BuildStagingPath(StorageModule module, long id, string extension)
+        => $"{StagingPrefix(module, id)}{Guid.NewGuid():N}.{extension}";
+
+    public static string StagingPrefix(StorageModule module, long id)
+        => $"{module.ToFolder()}/{id}/{StagingFolder}/";
+
+    public static string OwnerPrefix(StorageModule module, long id)
+        => $"{module.ToFolder()}/{id}/";
+
+    /// <summary>
+    /// Guards a client-supplied staging reference: it must sit under the caller's own staging prefix
+    /// and must not traverse out of it, so a confirm can never finalize someone else's blob.
+    /// </summary>
+    public static bool IsOwnStagingPath(StorageModule module, long id, string? blobName)
+    {
+        var trimmed = blobName?.Trim() ?? string.Empty;
+
+        return trimmed.StartsWith(StagingPrefix(module, id), StringComparison.Ordinal)
+            && !trimmed.Contains("..", StringComparison.Ordinal);
+    }
+
+    public static bool IsOwnedBlobPath(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

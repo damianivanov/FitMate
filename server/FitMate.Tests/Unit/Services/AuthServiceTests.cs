@@ -93,7 +93,7 @@ public class AuthServiceTests
         var settings = BuildSettings();
         var nowBoundary = DateTime.UtcNow;
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         Assert.InRange(issued.AccessTokenExpiresAtUtc, nowBoundary.AddMinutes(59), nowBoundary.AddMinutes(61));
@@ -131,7 +131,7 @@ public class AuthServiceTests
         }
 
         // A fresh login (no rotated tokens) adds a new session and must not disturb the existing one.
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
@@ -162,7 +162,7 @@ public class AuthServiceTests
             otherTokenId = SeedToken(arrange, SqliteTestDatabase.OtherUserId, "other-access", DateTime.UtcNow.AddMinutes(30));
         }
 
-        await new AuthService(db.CreateContext(), settings)
+        await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
@@ -185,7 +185,7 @@ public class AuthServiceTests
             expiredTokenId = SeedToken(arrange, SqliteTestDatabase.UserId, "expired-access", DateTime.UtcNow.AddMinutes(-30));
         }
 
-        await new AuthService(db.CreateContext(), settings)
+        await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
@@ -214,7 +214,7 @@ public class AuthServiceTests
         }
 
         // A sixth device login evicts the oldest session; the total stays capped at 5.
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
@@ -244,7 +244,7 @@ public class AuthServiceTests
             otherRefreshId = SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "other-device-refresh", DateTime.UtcNow.AddDays(3));
         }
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User }, "this-access", "this-refresh");
 
         using var assert = db.CreateContext();
@@ -278,7 +278,7 @@ public class AuthServiceTests
             SeedRefreshToken(arrange, SqliteTestDatabase.UserId, "revoked", DateTime.UtcNow.AddDays(3), DateTime.UtcNow.AddMinutes(-5));
         }
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
         using var assert = db.CreateContext();
@@ -299,10 +299,10 @@ public class AuthServiceTests
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
-        var result = new AuthService(db.CreateContext(), settings)
+        var result = new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .TryValidateRefreshToken(issued.RefreshToken, out var principal);
 
         Assert.True(result);
@@ -317,7 +317,7 @@ public class AuthServiceTests
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var result = new AuthService(db.CreateContext(), settings)
+        var result = new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .TryValidateRefreshToken("not-a-jwt", out _);
 
         Assert.False(result);
@@ -329,10 +329,10 @@ public class AuthServiceTests
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
-        var result = new AuthService(db.CreateContext(), settings)
+        var result = new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .TryValidateRefreshToken(issued.AccessToken, out _);
 
         Assert.False(result);
@@ -344,10 +344,10 @@ public class AuthServiceTests
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
-        await new AuthService(db.CreateContext(), settings)
+        await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .RevokeTokensAsync(issued.AccessToken, issued.RefreshToken, SqliteTestDatabase.UserId);
 
         using var assert = db.CreateContext();
@@ -364,10 +364,10 @@ public class AuthServiceTests
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var issued = await new AuthService(db.CreateContext(), settings)
+        var issued = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .IssueTokensAsync(MakeUser(SqliteTestDatabase.UserId), new[] { RoleNames.User });
 
-        await new AuthService(db.CreateContext(), settings)
+        await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
             .RevokeTokensAsync(null, null, SqliteTestDatabase.UserId);
 
         using var assert = db.CreateContext();
@@ -379,7 +379,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public void BuildUserModel_MapsKnownRolesDistinctAndIgnoresUnknown()
+    public async Task BuildUserModel_MapsKnownRolesDistinctAndIgnoresUnknown()
     {
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
@@ -391,8 +391,8 @@ public class AuthServiceTests
             LastName = "User1",
         };
 
-        var model = new AuthService(db.CreateContext(), settings)
-            .BuildUserModel(user, new[] { RoleNames.User, RoleNames.Admin, RoleNames.User.ToLowerInvariant(), "ghost" });
+        var model = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
+            .BuildUserModelAsync(user, new[] { RoleNames.User, RoleNames.Admin, RoleNames.User.ToLowerInvariant(), "ghost" });
 
         Assert.Equal(2, model.Roles.Count);
         Assert.Contains(UserRoleModel.User, model.Roles);
@@ -404,15 +404,43 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public void BuildUserModel_NullEmail_BecomesEmptyString()
+    public async Task BuildUserModel_NullEmail_BecomesEmptyString()
     {
         using var db = new SqliteTestDatabase();
         var settings = BuildSettings();
 
-        var model = new AuthService(db.CreateContext(), settings)
-            .BuildUserModel(new User { Id = 7, Email = null }, System.Array.Empty<string>());
+        var model = await new AuthService(db.CreateContext(), settings, new FakePhotoUrlResolver())
+            .BuildUserModelAsync(new User { Id = 7, Email = null }, System.Array.Empty<string>());
 
         Assert.Equal(string.Empty, model.Email);
         Assert.Empty(model.Roles);
+    }
+
+    // Качен аватар се пази като голо име на файл и се резолвва до пълния път в хранилището
+    [Fact]
+    public async Task BuildUserModel_UploadedAvatar_ResolvesToOwnedBlobPath()
+    {
+        using var db = new SqliteTestDatabase();
+
+        var model = await new AuthService(db.CreateContext(), BuildSettings(), new FakePhotoUrlResolver())
+            .BuildUserModelAsync(
+                new User { Id = 7, Email = "user@test.local", AvatarUrl = "20260813T101500000Z-avatar.jpg" },
+                System.Array.Empty<string>());
+
+        Assert.Equal("users/7/20260813T101500000Z-avatar.jpg", model.AvatarUrl);
+    }
+
+    // Външна снимка (от Google) се подава непроменена, а не се търси в хранилището
+    [Fact]
+    public async Task BuildUserModel_ExternalAvatar_PassesThroughUnchanged()
+    {
+        using var db = new SqliteTestDatabase();
+
+        var model = await new AuthService(db.CreateContext(), BuildSettings(), new FakePhotoUrlResolver())
+            .BuildUserModelAsync(
+                new User { Id = 7, Email = "user@test.local", AvatarUrl = "https://lh3.googleusercontent.com/a/photo" },
+                System.Array.Empty<string>());
+
+        Assert.Equal("https://lh3.googleusercontent.com/a/photo", model.AvatarUrl);
     }
 }

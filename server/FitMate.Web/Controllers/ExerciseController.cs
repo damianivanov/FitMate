@@ -1,3 +1,4 @@
+using FitMate.Core.JsonModels.Common;
 using FitMate.Core.JsonModels.Exercises;
 using FitMate.DB;
 using FitMate.Services.Exercises;

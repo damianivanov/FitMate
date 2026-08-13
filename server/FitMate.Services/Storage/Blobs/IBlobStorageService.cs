@@ -8,7 +8,13 @@ public interface IBlobStorageService
 
     Task DeleteAsync(string path);
 
-    Task<string> GetReadUrlAsync(string path);
+    /// <summary>
+    /// Issues a signed read URL. The signature is snapped to a fixed time grid, so repeated calls
+    /// within the same window return a byte-identical URL and the browser (and the service worker's
+    /// image cache, which keys on the whole URL) can actually reuse what it already downloaded.
+    /// Pass <paramref name="lifetime"/> to widen that window for content worth caching longer.
+    /// </summary>
+    Task<string> GetReadUrlAsync(string path, TimeSpan? lifetime = null);
 
     /// <summary>
     /// Issues a short-lived SAS URL the browser can PUT a single blob to directly, bypassing the

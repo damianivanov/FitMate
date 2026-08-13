@@ -1,45 +1,44 @@
 import { useState } from "react";
 import type { BodyMetricEntry } from "@/types";
+import type { WeightRow } from "../hooks/useWeightLogPage";
 import { WeightEntryRow } from "./WeightEntryRow";
 
 type WeightHistoryListProps = {
-  entries: BodyMetricEntry[];
+  rows: WeightRow[];
   deletingId: number | null;
   hasMore: boolean;
+  isEditing: boolean;
   onLoadMore: () => void;
+  onSelect: (entry: BodyMetricEntry) => void;
   onDelete: (entry: BodyMetricEntry) => void;
 };
 
-function getDelta(entries: BodyMetricEntry[], index: number): number | null {
-  const current = entries[index]?.bodyWeightKg;
-  const previous = entries[index + 1]?.bodyWeightKg;
-
-  return current != null && previous != null ? current - previous : null;
-}
-
 export function WeightHistoryList({
-  entries,
+  rows,
   deletingId,
   hasMore,
+  isEditing,
   onLoadMore,
+  onSelect,
   onDelete,
 }: WeightHistoryListProps) {
-  // One row at a time: opening another closes the last, so the page never holds two
-  // half-finished gestures.
   const [openId, setOpenId] = useState<number | null>(null);
+
+  const revealedId = isEditing ? null : openId;
 
   return (
     <div>
       <ul className="wl-list">
-        {entries.map((entry, index) => (
+        {rows.map((row) => (
           <WeightEntryRow
-            key={entry.id}
-            entry={entry}
-            deltaKg={getDelta(entries, index)}
-            isOpen={openId === entry.id}
-            isDeleting={deletingId === entry.id}
-            onOpenChange={(isOpen) => setOpenId(isOpen ? entry.id : null)}
-            onDelete={() => onDelete(entry)}
+            key={row.entry.id}
+            row={row}
+            isEditing={isEditing}
+            isOpen={revealedId === row.entry.id}
+            isDeleting={deletingId === row.entry.id}
+            onOpenChange={(isOpen) => setOpenId(isOpen ? row.entry.id : null)}
+            onSelect={() => onSelect(row.entry)}
+            onDelete={() => onDelete(row.entry)}
           />
         ))}
       </ul>

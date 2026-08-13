@@ -14,7 +14,7 @@ export function PageHeader({ title, eyebrow, subtitle, actions, className }: Pag
     <header
       // Same horizontal padding as PageBody, so the header action lines up with the
       // content edge below it instead of sitting 0.5rem proud of it.
-      className={`liquid-page-header flex items-center justify-between gap-4 px-4 py-5 md:px-8${className ? ` ${className}` : ""}`}
+      className={`flex items-center justify-between gap-4 px-4 py-5 md:px-8${className ? ` ${className}` : ""}`}
     >
       <div className="min-w-0">
         {eyebrow ? <p className="liquid-page-eyebrow">{eyebrow}</p> : null}

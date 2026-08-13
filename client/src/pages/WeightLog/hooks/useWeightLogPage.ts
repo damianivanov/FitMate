@@ -9,6 +9,12 @@ const WEIGHT_PAGE_SIZE = 10;
 
 export type WeightRange = "30d" | "90d" | "1y" | "all";
 
+export type WeightRow = {
+  entry: BodyMetricEntry;
+  deltaKg: number | null;
+  isLatest: boolean;
+};
+
 const RANGE_DAYS: Record<WeightRange, number | null> = {
   "30d": 30,
   "90d": 90,
@@ -54,6 +60,9 @@ export function useWeightLogPage() {
   const [range, setRange] = useState<WeightRange>("90d");
 
   const [entryPendingDelete, setEntryPendingDelete] = useState<BodyMetricEntry | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const hasPrefilledRef = useRef(false);
 
@@ -93,7 +102,26 @@ export function useWeightLogPage() {
     }
   }, [entries]);
 
-  const visibleEntries = useMemo(() => entries.slice(0, visibleCount), [entries, visibleCount]);
+  useEffect(() => {
+    if (entries.length === 0) {
+      setIsEditing(false);
+    }
+  }, [entries.length]);
+
+  const visibleRows = useMemo<WeightRow[]>(
+    () =>
+      entries.slice(0, visibleCount).map((entry, index) => {
+        const previous = entries[index + 1]?.bodyWeightKg;
+
+        return {
+          entry,
+          deltaKg:
+            entry.bodyWeightKg != null && previous != null ? entry.bodyWeightKg - previous : null,
+          isLatest: index === 0,
+        };
+      }),
+    [entries, visibleCount],
+  );
   const hasMoreEntries = entries.length > visibleCount;
 
   const rangeEntries = useMemo(() => {
@@ -119,8 +147,8 @@ export function useWeightLogPage() {
     [rangeEntries],
   );
 
-  const rangeStats = useMemo(() => {
-    const values = rangeEntries
+  const overallStats = useMemo(() => {
+    const values = entries
       .map((entry) => entry.bodyWeightKg)
       .filter((value): value is number => value != null);
 
@@ -133,7 +161,18 @@ export function useWeightLogPage() {
       low: Math.min(...values),
       high: Math.max(...values),
     };
-  }, [rangeEntries]);
+  }, [entries]);
+
+  const selectedIndex = useMemo(
+    () => (selectedEntryId == null ? -1 : entries.findIndex((entry) => entry.id === selectedEntryId)),
+    [entries, selectedEntryId],
+  );
+
+  const selectedEntry = selectedIndex >= 0 ? entries[selectedIndex] : null;
+  const selectedEntryDelta =
+    selectedEntry?.bodyWeightKg != null && entries[selectedIndex + 1]?.bodyWeightKg != null
+      ? selectedEntry.bodyWeightKg - (entries[selectedIndex + 1].bodyWeightKg as number)
+      : null;
 
   const latestWeight = entries[0]?.bodyWeightKg ?? null;
   const previousWeight = entries[1]?.bodyWeightKg ?? null;
@@ -179,6 +218,7 @@ export function useWeightLogPage() {
         return;
       }
 
+      setIsDetailOpen(false);
       setEntryPendingDelete(entry);
     },
     [deletingId],
@@ -217,7 +257,7 @@ export function useWeightLogPage() {
   const state = useMemo(
     () => ({
       entries,
-      visibleEntries,
+      visibleRows,
       hasMoreEntries,
       isLoading,
       error,
@@ -228,19 +268,23 @@ export function useWeightLogPage() {
       isLogModalOpen,
       range,
       chartPoints,
-      rangeStats,
+      overallStats,
       latestWeight,
       latestLoggedAt: entries[0]?.loggedAt ?? null,
       weightChange,
       latestBodyFat,
       entryCount: entries.length,
       deletingId,
+      isEditing,
+      isDetailOpen,
+      selectedEntry,
+      selectedEntryDelta,
       isDeleteConfirmationOpen: Boolean(entryPendingDelete),
       entryPendingDeleteLabel: formatEntryLabel(entryPendingDelete),
     }),
     [
       entries,
-      visibleEntries,
+      visibleRows,
       hasMoreEntries,
       isLoading,
       error,
@@ -251,11 +295,15 @@ export function useWeightLogPage() {
       isLogModalOpen,
       range,
       chartPoints,
-      rangeStats,
+      overallStats,
       latestWeight,
       weightChange,
       latestBodyFat,
       deletingId,
+      isEditing,
+      isDetailOpen,
+      selectedEntry,
+      selectedEntryDelta,
       entryPendingDelete,
     ],
   );
@@ -270,6 +318,12 @@ export function useWeightLogPage() {
       openLogModal: () => setIsLogModalOpen(true),
       closeLogModal: () => setIsLogModalOpen(false),
       loadMore: () => setVisibleCount((count) => count + WEIGHT_PAGE_SIZE),
+      selectEntry: (entry: BodyMetricEntry) => {
+        setSelectedEntryId(entry.id);
+        setIsDetailOpen(true);
+      },
+      closeDetail: () => setIsDetailOpen(false),
+      toggleEditing: () => setIsEditing((editing) => !editing),
       requestDelete,
       cancelDelete,
       confirmDelete,

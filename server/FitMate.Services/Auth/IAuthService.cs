@@ -25,7 +25,11 @@ public interface IAuthService
     /// or pruned by a concurrent refresh it is a no-op, so it never throws a concurrency exception.
     /// </summary>
     Task RevokeRefreshTokenByIdAsync(long refreshTokenId, long actingUserId);
-    UserModel BuildUserModel(User user, IReadOnlyCollection<string> roles);
+    /// <summary>
+    /// Projects the entity onto the client-facing model, resolving the avatar to a URL the browser
+    /// can render (hence async: an uploaded one needs a freshly signed storage URL).
+    /// </summary>
+    Task<UserModel> BuildUserModelAsync(User user, IReadOnlyCollection<string> roles);
 
     /// <summary>
     /// Verifies a Google ID token (the GIS <c>credential</c>) against the configured client id.

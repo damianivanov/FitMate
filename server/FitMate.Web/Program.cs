@@ -290,6 +290,7 @@ builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 // Identity and accounts.
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<ITrainingProfileService, TrainingProfileService>();
 
 // Exercise catalogue.

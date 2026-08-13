@@ -3,146 +3,179 @@
    Everything here is prefixed wl- and used only by this route.
 ---------------------------------------------------------------- */
 
-.wl-topbar,
 .wl-body {
   --wl-action-width: 5.25rem;
-  --wl-inset: 0.9rem;
-  --wl-edge-shadow: rgba(12, 16, 26, 0.13);
+  /* Matches .wl-card's padding, so the flush History card's rows and head sit on the same
+     content edge as the Trend card above it. */
+  --wl-inset: 1.125rem;
   --wl-lane: linear-gradient(180deg, #ff5f52, #f0372b);
-}
+  --wl-dial-well: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(233, 239, 248, 0.28));
+  --wl-dial-rim: rgba(28, 28, 30, 0.1);
+  --wl-tick: rgba(28, 28, 30, 0.14);
+  --wl-tick-lit: rgba(28, 28, 30, 0.46);
 
-.dark .wl-topbar,
-.dark .wl-body {
-  --wl-edge-shadow: rgba(0, 0, 0, 0.34);
-  --wl-lane: linear-gradient(180deg, #ff4b58, #d92c3c);
-}
-
-/* ---------------- Floating chrome ---------------- */
-
-/* Content scrolls underneath rather than being pushed below an opaque strip. The material
-   comes from .liquid-chrome-bar so this reads as a continuation of the app header directly
-   above it, not a second bar in a different glass. */
-.wl-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.dark .wl-body {
+  --wl-lane: linear-gradient(180deg, #ff4b58, #d92c3c);
+  --wl-dial-well: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  --wl-dial-rim: rgba(255, 255, 255, 0.07);
+  --wl-tick: rgba(255, 255, 255, 0.1);
+  --wl-tick-lit: rgba(255, 255, 255, 0.42);
+}
+
+/* ---------------- Inline header ---------------- */
+
+/* Part of the page rather than a bar above it, so the screen opens on the number instead of
+   on chrome. Aligned to the bottom edge: the action sits on the title's baseline instead of
+   floating in the middle of the two-line title block. */
+.wl-nav {
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 1rem;
+  gap: 0.75rem;
+  padding: 0.25rem 0.25rem 0.35rem;
 }
 
-@media (min-width: 768px) {
-  .wl-topbar {
-    padding: 0.9rem 2rem;
-  }
+/* ---------------- Hero dial ---------------- */
+
+.wl-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0.5rem 0.5rem;
 }
 
-/* Scroll edge effect instead of a permanent 1px rule: the separation only appears once
-   there is content passing under the bar. */
-.wl-topbar::after {
-  content: "";
+.wl-dial {
+  position: relative;
+  width: clamp(13rem, 62vw, 16.5rem);
+  aspect-ratio: 1;
+}
+
+.wl-dial-well {
   position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  height: 1.25rem;
-  opacity: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, var(--wl-edge-shadow), transparent);
-  transition: opacity 240ms var(--ease-out);
+  inset: 7%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(var(--primary-rgb), 0.11), transparent 64%),
+    var(--wl-dial-well);
+  box-shadow: inset 0 0 0 1px var(--glass-border-soft);
 }
 
-.wl-topbar[data-scrolled="true"]::after {
-  opacity: 1;
+.wl-dial-marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.wl-eyebrow {
+.wl-dial-rim {
+  fill: none;
+  stroke: var(--wl-dial-rim);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.wl-dial-tick {
+  stroke: var(--wl-tick);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+}
+
+.wl-dial-tick-lit {
+  stroke: var(--wl-tick-lit);
+}
+
+.wl-dial-head {
+  stroke: var(--color-primary);
+  stroke-width: 3.25;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(var(--primary-rgb), 0.7));
+}
+
+.wl-dial-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.wl-dial-label {
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em; /* small type reads better opened up */
+  letter-spacing: 0.16em;
   color: var(--text-tertiary);
 }
 
-.wl-title {
-  margin: 0.1rem 0 0;
-  font-size: 1.375rem;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.021em;
-  color: var(--text-primary);
-}
-
-.wl-sentinel {
-  height: 1px;
-  margin-bottom: -1px;
-}
-
-.wl-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-/* ---------------- Hero figure ---------------- */
-
-.wl-hero {
-  padding: 0.75rem 0.25rem 0;
-}
-
-.wl-hero-value {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  margin: 0.4rem 0 0;
-}
-
 /* Large type: tight leading, negative tracking — letters read too far apart as they grow. */
-.wl-hero-number {
-  font-size: clamp(3.25rem, 15vw, 4.5rem);
+.wl-dial-number {
+  margin: 0.3rem 0 0.15rem;
+  font-size: clamp(3rem, 13.5vw, 4.25rem);
   font-weight: 650;
   line-height: 0.92;
   letter-spacing: -0.042em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  /* Grows out of its baseline anchor, so the unit beside it never appears to drift. */
-  transform-origin: left bottom;
   animation: wl-figure 1100ms var(--ease-drawer) both;
 }
 
-.wl-hero-unit {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.008em;
-  color: var(--text-tertiary);
-}
-
-.wl-hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.85rem;
-}
-
-.wl-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
-  border-radius: 9999px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.004em;
-}
-
-.wl-hero-caption {
+.wl-dial-unit {
   font-size: 0.8125rem;
   font-weight: 500;
+  letter-spacing: 0.004em;
   color: var(--text-tertiary);
+}
+
+.wl-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3rem;
+  margin-top: -0.5rem;
+  padding: 0 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.006em;
+  cursor: pointer;
+  filter: drop-shadow(0 0.5rem 1.5rem rgba(var(--primary-rgb), 0.42));
+}
+
+.wl-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 1.75rem;
+}
+
+.wl-hero-stat {
+  text-align: center;
+}
+
+.wl-hero-stat-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+
+.wl-hero-stat-value {
+  margin-top: 0.3rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 /* The block carries only a quiet lift — the blur lives on the figure alone, so the two
@@ -184,39 +217,50 @@
 /* ---------------- Cards ---------------- */
 
 .wl-card {
-  border-radius: 1.375rem;
-  padding: 0.9rem 1rem 1rem;
+  border-radius: var(--liquid-r-xl);
+  padding: 1.125rem;
 }
 
 .wl-card-flush {
-  padding: 0.9rem 0 0;
+  padding: 1.125rem 0 0;
 }
 
 .wl-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 var(--wl-inset) 0.75rem;
+  gap: 0.5rem 0.75rem;
+  padding: 0 0 0.75rem;
+}
+
+.wl-card-flush .wl-card-head {
+  padding-left: var(--wl-inset);
+  padding-right: var(--wl-inset);
 }
 
 .wl-card-flush .wl-card-head {
   padding-bottom: 0.6rem;
 }
 
-.wl-card-title {
-  font-size: 0.9375rem;
-  font-weight: 650;
-  letter-spacing: -0.012em;
-  color: var(--text-primary);
+.wl-range {
+  flex: none;
+  margin-left: auto;
 }
 
-.wl-card-note {
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.005em;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
+/* The label's own width is the floor. A flex item with hidden overflow loses its automatic
+   minimum size, which is what lets the shared truncate class shrink "90D" to an ellipsis while
+   the row still has room to spare — restoring visible overflow restores the floor. */
+.wl-range .liquid-segment > span {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.wl-card-title {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.019em;
+  color: var(--text-primary);
 }
 
 /* ---------------- Chart ---------------- */
@@ -236,34 +280,30 @@
   color: var(--text-tertiary);
 }
 
-.wl-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 0.9rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--glass-divider);
-}
+/* ---------------- Measurements ---------------- */
 
-.wl-stat + .wl-stat {
-  padding-left: 0.9rem;
-  border-left: 1px solid var(--glass-divider);
-}
-
-.wl-stat-label {
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-tertiary);
-}
-
-.wl-stat-value {
-  margin-top: 0.2rem;
-  font-size: 1.0625rem;
+.wl-edit-btn {
+  flex: none;
+  padding: 0.1rem 0.15rem;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.875rem;
   font-weight: 650;
-  letter-spacing: -0.018em;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  letter-spacing: -0.006em;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.wl-edit-btn:active {
+  opacity: 0.6;
+}
+
+.wl-edit-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 0.375rem;
 }
 
 /* ---------------- Swipeable history rows ---------------- */
@@ -289,10 +329,104 @@
 .wl-row-face {
   position: relative;
   display: flex;
+  width: 100%;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.875rem;
   padding: 0.8rem var(--wl-inset);
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wl-row-face:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.wl-row-face-static {
+  cursor: default;
+}
+
+/* Squircle plate carrying the entry's glyph. Gives every row a fixed left anchor, so the
+   column of weights lines up and the list scans vertically instead of ragged. */
+.wl-row-tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: var(--liquid-r-sm);
+  color: var(--text-secondary);
+  background: var(--glass-bg-soft);
+  box-shadow: var(--glass-specular-pill), inset 0 0 0 1px var(--glass-border-soft);
+}
+
+.wl-row-tile-latest {
+  color: var(--accent-glow);
+  background:
+    linear-gradient(150deg, rgba(var(--primary-rgb), 0.22), rgba(var(--primary-rgb), 0.06) 72%),
+    var(--glass-bg-soft);
+}
+
+/* Takes the slack so the weight stays pinned to the trailing edge. */
+.wl-row-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.wl-row-title {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  color: var(--text-primary);
+}
+
+.wl-row-sub {
+  margin-top: 0.1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.wl-row-chevron {
+  flex: none;
+  margin-left: 0.15rem;
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.wl-row-remove {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin-left: 0.15rem;
+  border: 0;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: var(--wl-lane);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+
+.wl-row-remove:active {
+  transform: scale(0.9);
+}
+
+.wl-row-remove:disabled {
+  opacity: 0.7;
+}
+
+.wl-row-remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Inset hairline that travels with the content it separates. */
@@ -308,11 +442,12 @@
 
 .wl-row-value {
   display: flex;
+  flex: none;
   align-items: baseline;
   gap: 0.28rem;
-  font-size: 1rem;
-  font-weight: 650;
-  letter-spacing: -0.016em;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.018em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
@@ -321,23 +456,6 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-tertiary);
-}
-
-.wl-row-meta {
-  margin-top: 0.15rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.002em;
-  color: var(--text-tertiary);
-}
-
-.wl-row-delta {
-  flex-shrink: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.004em;
-  color: var(--text-secondary);
 }
 
 .wl-row-actions {
@@ -415,31 +533,147 @@
   color: var(--text-tertiary);
 }
 
+.wl-empty-cta {
+  margin-top: 1.35rem;
+}
+
+/* ---------------- Measurement detail ---------------- */
+
+.wl-detail {
+  padding: 1.25rem 1.25rem 1.35rem;
+}
+
+.wl-detail-date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.wl-detail-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  font-size: 2.75rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.036em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.wl-detail-unit {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: var(--text-tertiary);
+}
+
+.wl-detail-delta {
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.wl-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--glass-divider);
+}
+
+.wl-detail-row-stacked {
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.wl-detail-key {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+
+.wl-detail-fact {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.wl-detail-note {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.wl-detail-delete {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  margin-top: 1.35rem;
+  border: 1px solid var(--chip-rose-bg);
+  border-radius: 9999px;
+  background: var(--chip-rose-bg);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--chip-rose-fg);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out);
+}
+
+.wl-detail-delete:active {
+  transform: scale(0.98);
+}
+
 /* ---------------- Accessibility preferences ---------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .wl-materialize,
-  .wl-hero-number {
+  .wl-dial-number {
     animation: none;
   }
 
-  .wl-topbar::after {
-    transition-duration: 1ms;
+  .wl-row-remove:active,
+  .wl-detail-delete:active {
+    transform: none;
   }
 }
 
-/* The bar's own material — and the reduced-transparency and high-contrast fallbacks for it —
-   live with .liquid-chrome-bar in index.css, shared with the app header. */
 @media (prefers-contrast: more) {
-  .wl-row + .wl-row .wl-row-face::after,
-  .wl-stat + .wl-stat {
-    border-color: var(--text-secondary);
+  .wl-row + .wl-row .wl-row-face::after {
+    background: var(--text-secondary);
   }
 
-  .wl-eyebrow,
-  .wl-stat-label,
-  .wl-row-meta,
-  .wl-hero-caption {
+  .wl-row-tile {
+    box-shadow: inset 0 0 0 1px var(--text-secondary);
+  }
+
+  .wl-dial-tick {
+    stroke: var(--text-tertiary);
+  }
+
+  .wl-dial-tick-lit {
+    stroke: var(--text-primary);
+  }
+
+  .wl-dial-label,
+  .wl-dial-unit,
+  .wl-hero-stat-label,
+  .wl-row-sub,
+  .wl-row-chevron {
     color: var(--text-secondary);
+    opacity: 1;
   }
 }

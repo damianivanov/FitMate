@@ -153,11 +153,20 @@ export const avatarColorSwatches = [
   },
 ] as const;
 
-export function getAvatarColorClassName(userId?: number): string {
+function getAvatarSwatch(userId?: number) {
   const normalizedUserId = Number.isFinite(userId) ? Math.abs(Math.trunc(userId ?? 0)) : 0;
-  const swatch = avatarColorSwatches[normalizedUserId % avatarColorSwatches.length];
+  return avatarColorSwatches[normalizedUserId % avatarColorSwatches.length];
+}
+
+export function getAvatarColorClassName(userId?: number): string {
+  const swatch = getAvatarSwatch(userId);
 
   return `${swatch.className} ${swatch.textClassName}`;
+}
+
+/** The raw tint, for avatars that shade the swatch rather than fill flat with it. */
+export function getAvatarColorHex(userId?: number): string {
+  return getAvatarSwatch(userId).hex;
 }
 
 export function formatDate(

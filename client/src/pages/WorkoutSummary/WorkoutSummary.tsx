@@ -28,7 +28,7 @@ export default function WorkoutSummary() {
 
   return (
     <>
-      <header className="liquid-page-header flex items-center gap-3 px-4 py-3 md:px-8">
+      <header className="flex items-center gap-3 px-4 py-3 md:px-8">
         <button
           type="button"
           onClick={actions.back}

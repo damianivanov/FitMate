@@ -1,0 +1,580 @@
+/* ----------------------------------------------------------------
+   TRAINING (workouts) — page-scoped material, type and motion.
+   Everything here is prefixed wk- and used only by this route.
+---------------------------------------------------------------- */
+
+.wk-body {
+  /* Mirrors PageBody's own horizontal padding, so a full-bleed row inside the page can undo
+     it exactly instead of guessing. */
+  --wk-gutter: 1rem;
+
+  --wk-accent: var(--accent-strong);
+  --wk-accent-soft: rgba(var(--primary-rgb), 0.14);
+  --wk-face: rgba(255, 255, 255, 0.5);
+  --wk-face-border: rgba(146, 160, 180, 0.2);
+  --wk-focus-bg: linear-gradient(150deg, rgba(255, 244, 238, 0.92), rgba(250, 250, 254, 0.86) 58%, rgba(240, 243, 250, 0.9));
+  --wk-focus-border: rgba(255, 176, 138, 0.5);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.dark .wk-body {
+  --wk-face: rgba(255, 255, 255, 0.05);
+  --wk-face-border: rgba(255, 255, 255, 0.08);
+  --wk-focus-bg: linear-gradient(150deg, rgba(63, 42, 47, 0.9), rgba(36, 33, 50, 0.94) 56%, rgba(26, 26, 39, 0.94));
+  --wk-focus-border: rgba(255, 186, 152, 0.2);
+}
+
+@media (min-width: 768px) {
+  .wk-body { --wk-gutter: 2rem; }
+}
+
+.wk-title {
+  padding: 0.25rem 0.25rem 0.35rem;
+}
+
+/* ---------------- Week strip ---------------- */
+
+.wk-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3125rem;
+  margin-bottom: 0.25rem;
+}
+
+.wk-day {
+  display: grid;
+  justify-items: center;
+  align-content: space-between;
+  min-width: 0;
+  height: 4rem;
+  padding: 0.4375rem 0 0.3125rem;
+  border: 1px solid transparent;
+  border-radius: 1.375rem;
+  background: transparent;
+  color: var(--text-tertiary);
+  transition: background 250ms var(--ease-out), color 250ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+.wk-day > span { font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.06em; }
+.wk-day > b { font-size: 0.875rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.wk-day > i {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.wk-day > i.is-trained { background: currentColor; opacity: 0.5; }
+.wk-day.is-future { opacity: 0.55; }
+.wk-day:active { transform: scale(0.9); }
+
+/* Today is marked even when another day is picked, so the strip never loses its anchor. */
+.wk-day.is-today:not(.is-selected) {
+  border-color: var(--wk-face-border);
+  color: var(--text-primary);
+  background: var(--wk-face);
+}
+
+.wk-day.is-selected {
+  color: #ffffff;
+  border-color: rgba(255, 216, 198, 0.38);
+  background: linear-gradient(155deg, rgba(255, 142, 92, 0.96), rgba(230, 74, 22, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0.625rem 1.5rem rgba(235, 98, 38, 0.3);
+  opacity: 1;
+}
+
+.wk-day.is-selected > i.is-trained { background: #ffffff; opacity: 1; }
+
+.wk-day:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------------- Off-today context ---------------- */
+
+.wk-day-context {
+  display: flex;
+  align-items: center;
+  gap: 0.6875rem;
+  width: 100%;
+  min-height: 3.625rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--wk-face-border);
+  border-radius: var(--liquid-r-lg);
+  background: var(--wk-face);
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.wk-day-context-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 0.625rem;
+  color: var(--tint-blue-fg);
+  background: var(--tint-blue-bg);
+}
+
+.wk-day-context > span:nth-child(2) { flex: 1; display: grid; gap: 0.125rem; }
+.wk-day-context b { font-size: 0.8125rem; font-weight: 650; }
+.wk-day-context small { font-size: 0.6875rem; color: var(--text-tertiary); }
+.wk-day-context b,
+.wk-day-context small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.wk-day-context-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  color: var(--wk-accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+/* ---------------- Focus card ---------------- */
+
+/* The one object on the screen that is allowed to be loud. It answers the only question the
+   page exists for — what am I training right now — so it gets the warm face, the depth and
+   the full-width action, and everything below it stays quiet by comparison. */
+.wk-focus {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1.25rem;
+  border: 1px solid var(--wk-focus-border);
+  border-radius: var(--liquid-r-xl);
+  background: var(--wk-focus-bg);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Holds the hero's footprint while the plan request is open, so the week strip above it and
+   the sections below it do not jump when the answer lands. */
+.wk-focus-pending { min-height: 15.5rem; opacity: 0.45; }
+
+.wk-focus.tone-done { --wk-accent: var(--tint-green-fg); --wk-accent-soft: var(--tint-green-bg); }
+.wk-focus.tone-idle { --wk-accent: var(--tint-purple-fg); --wk-accent-soft: var(--tint-purple-bg); }
+
+/* Saturation carries the difference for the quieter states rather than a second palette:
+   the card is recognisably the same object whether you are mid-session or resting. */
+.wk-focus.tone-idle,
+.wk-focus.tone-done { filter: saturate(0.8); }
+
+.wk-focus-light {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(1.875rem);
+}
+
+.wk-focus-light.one {
+  top: -4.6875rem;
+  left: -2.1875rem;
+  width: 9.375rem;
+  height: 9.375rem;
+  background: rgba(var(--primary-rgb), 0.22);
+}
+
+.wk-focus-light.two {
+  top: 3.4375rem;
+  right: -3.125rem;
+  width: 6.25rem;
+  height: 6.25rem;
+  background: rgba(130, 92, 255, 0.16);
+}
+
+.wk-focus-top,
+.wk-focus-body,
+.wk-focus-foot { position: relative; z-index: 1; }
+
+.wk-focus-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.125rem;
+}
+
+.wk-focus-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--wk-accent);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.wk-focus-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.wk-focus-caption {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.wk-focus-title {
+  margin-top: 0.35rem;
+  font-size: clamp(1.5rem, 7vw, 2.0625rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+}
+
+.wk-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 5.6875rem;
+  height: 5.6875rem;
+}
+
+.wk-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.wk-ring circle { fill: none; stroke-width: 5.5; }
+.wk-ring-track { stroke: var(--wk-face-border); }
+
+.wk-ring-value {
+  stroke: var(--wk-accent);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--wk-accent-soft));
+  transition: stroke-dashoffset 700ms var(--ease-out);
+}
+
+.wk-ring > span { display: flex; align-items: baseline; }
+.wk-ring b { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; }
+.wk-ring small { color: var(--text-tertiary); font-size: 0.6875rem; }
+
+.wk-focus-foot { display: flex; flex-direction: column; gap: 0.9375rem; }
+
+.wk-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5625rem;
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+}
+
+.wk-facts span { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+.wk-facts b { color: var(--text-primary); font-size: 0.8125rem; font-weight: 700; }
+
+.wk-facts i {
+  width: 0.1875rem;
+  height: 0.1875rem;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.wk-focus-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 3.125rem;
+  border: 1px solid rgba(255, 215, 195, 0.38);
+  border-radius: 9999px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  background: linear-gradient(120deg, rgba(255, 120, 65, 0.94), rgba(235, 76, 22, 0.96));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.37), 0 0.625rem 1.5rem rgba(235, 98, 38, 0.26);
+  transition: transform 180ms var(--ease-out);
+}
+
+.wk-focus-cta:active { transform: scale(0.97); }
+.wk-focus-cta:disabled { opacity: 0.6; pointer-events: none; }
+
+/* ---------------- Sections ---------------- */
+
+.wk-section { margin-top: 0.75rem; }
+
+.wk-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.25rem 0.625rem;
+}
+
+.wk-section-head h2 {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.wk-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  flex: none;
+  color: var(--wk-accent);
+  background: transparent;
+  border: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.wk-filter { margin-bottom: 0.75rem; }
+
+/* ---------------- Week snapshot ---------------- */
+
+/* Starts on the content edge and bleeds out to the page gutter on both sides, so the first
+   tile lines up with the heading above it while the last is cut rather than fitted — the cut
+   is the cue that the row scrolls. Fitted tiles read as a closed set nobody thinks to swipe.
+
+   The bleed tracks PageBody's own padding, so the alignment holds at both widths; hardcoding
+   the phone gutter left the row a full rem short of the edge on desktop. */
+.wk-snapshots {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 9.75rem;
+  gap: 0.625rem;
+  margin-inline: calc(var(--wk-gutter) * -1);
+  padding-inline: var(--wk-gutter);
+  overflow-x: auto;
+  /* Proximity, not mandatory: a mandatory snap has no stop for the trailing gutter, which
+     leaves the final tile pinned against the edge and the row feeling like it ran out early. */
+  scroll-snap-type: x proximity;
+  scroll-padding-inline-start: var(--wk-gutter);
+  overscroll-behavior-x: contain;
+}
+
+/* Touch has the gesture, so the bar is only noise there. A mouse has neither the gesture nor
+   any other clue the row moves, so it gets a slim one that appears when the pointer is in
+   range — the tiles keep their full height either way. */
+.wk-snapshots { scrollbar-width: none; }
+.wk-snapshots::-webkit-scrollbar { display: none; }
+
+@media (pointer: fine) {
+  .wk-snapshots {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wk-face-border) transparent;
+    padding-bottom: 0.5rem;
+  }
+
+  .wk-snapshots::-webkit-scrollbar { display: block; height: 0.3125rem; }
+  .wk-snapshots::-webkit-scrollbar-track { background: transparent; }
+
+  .wk-snapshots::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: var(--wk-face-border);
+  }
+}
+
+.wk-snapshot {
+  min-height: 8.25rem;
+  padding: 0.9375rem;
+  border: 1px solid var(--wk-face-border);
+  border-radius: var(--liquid-r-lg);
+  background: var(--wk-face);
+  scroll-snap-align: start;
+}
+
+.wk-snapshot > div {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.wk-snapshot.tint-orange svg { color: var(--tint-orange-fg); }
+.wk-snapshot.tint-blue svg { color: var(--tint-blue-fg); }
+.wk-snapshot.tint-purple svg { color: var(--tint-purple-fg); }
+
+.wk-snapshot > b {
+  display: block;
+  margin-top: 1.125rem;
+  font-size: 1.625rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.wk-snapshot > b small {
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.wk-snapshot p { margin-top: 0.3125rem; color: var(--text-tertiary); font-size: 0.625rem; }
+
+/* ---------------- Session list ---------------- */
+
+.wk-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--wk-face-border);
+  border-radius: var(--liquid-r-lg);
+  overflow: hidden;
+  background: var(--wk-face);
+}
+
+.wk-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+  border-bottom: 1px solid var(--glass-divider);
+}
+
+.wk-row:last-child { border-bottom: 0; }
+
+.wk-row-open {
+  display: flex;
+  align-items: center;
+  gap: 0.6875rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.6875rem 0.25rem 0.6875rem 0.875rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.wk-date-tile {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.0625rem;
+  flex: none;
+  width: 2.8125rem;
+  height: 3.0625rem;
+  border: 1px solid var(--wk-face-border);
+  border-radius: var(--liquid-r-sm);
+}
+
+.wk-date-tile small {
+  font-size: 0.5rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wk-date-tile b { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.wk-date-tile.state-finished { color: var(--tint-green-fg); background: var(--tint-green-bg); }
+.wk-date-tile.state-in-progress { color: var(--tint-orange-fg); background: var(--tint-orange-bg); }
+.wk-date-tile.state-not-started { color: var(--tint-gray-fg); background: var(--tint-gray-bg); }
+
+.wk-row-copy { display: grid; gap: 0.1875rem; flex: 1; min-width: 0; }
+.wk-row-copy > b { font-size: 0.875rem; font-weight: 650; }
+.wk-row-copy > small { font-size: 0.6875rem; color: var(--text-tertiary); }
+.wk-row-copy > b,
+.wk-row-copy > small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* The contents of the session, at a glance. Kept on one clipped line: it is a reminder of
+   what the workout was, not a list to read. */
+.wk-row-chips {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.125rem;
+  overflow: hidden;
+}
+
+.wk-row-chips i {
+  flex: none;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 9999px;
+  background: var(--chip-bg);
+  color: var(--text-tertiary);
+  font-size: 0.5625rem;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.wk-row-check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 1px solid var(--color-success-border);
+  border-radius: 9999px;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.wk-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  margin-top: 1.25rem;
+  padding: 0 1rem;
+  border-radius: 9999px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 650;
+  background: linear-gradient(120deg, rgba(255, 120, 65, 0.94), rgba(235, 76, 22, 0.96));
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.37), 0 0.5rem 1.25rem rgba(235, 98, 38, 0.24);
+}
+
+/* ---------------- Coach strip ---------------- */
+
+.wk-coach {
+  display: flex;
+  align-items: center;
+  gap: 0.6875rem;
+  min-height: 4.4375rem;
+  margin-top: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--tint-purple-bg);
+  border-radius: var(--liquid-r-lg);
+  background: linear-gradient(110deg, var(--tint-purple-bg), var(--wk-face) 62%);
+  color: var(--text-primary);
+}
+
+.wk-coach-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.625rem;
+  height: 2.625rem;
+  border-radius: var(--liquid-r-sm);
+  color: var(--tint-purple-fg);
+  background: var(--tint-purple-bg);
+}
+
+.wk-coach > span:nth-child(2) { flex: 1; display: grid; gap: 0.1875rem; }
+.wk-coach b { font-size: 0.8125rem; font-weight: 650; }
+.wk-coach small { font-size: 0.6875rem; color: var(--text-tertiary); }
+.wk-coach b,
+.wk-coach small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wk-coach > svg { color: var(--text-tertiary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-day:active,
+  .wk-focus-cta:active { transform: none; }
+  .wk-ring-value { transition: none; }
+}

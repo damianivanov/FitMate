@@ -6,6 +6,7 @@ export interface UserModel
 	email: string;
 	firstName?: string;
 	lastName?: string;
+	avatarUrl?: string;
 	roles: UserRole[];
 	cookieConsentAnalytics?: boolean;
 	cookieConsentMarketing?: boolean;

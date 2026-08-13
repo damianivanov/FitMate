@@ -11,7 +11,7 @@ public class PhotoUrlResolver : IPhotoUrlResolver
         this.storage = storage;
     }
 
-    public async Task<string?> ResolveAsync(string? value)
+    public async Task<string?> ResolveAsync(string? value, TimeSpan? lifetime = null)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -24,6 +24,6 @@ public class PhotoUrlResolver : IPhotoUrlResolver
             return trimmed;
         }
 
-        return await storage.GetReadUrlAsync(trimmed);
+        return await storage.GetReadUrlAsync(trimmed, lifetime);
     }
 }

@@ -208,7 +208,7 @@ public class ExerciseService : IExerciseService
 
         if (BlobPathBuilder.IsOwnedBlobPath(exercise.ImageUrl))
         {
-            await blobStorage.DeleteByPrefixAsync($"{StorageModule.Exercises.ToFolder()}/{id}/");
+            await blobStorage.DeleteByPrefixAsync(BlobPathBuilder.OwnerPrefix(StorageModule.Exercises, id));
         }
 
         var blobPath = BlobPathBuilder.Build(StorageModule.Exercises, id, fileName, processed.Extension, DateTime.UtcNow);
@@ -228,15 +228,17 @@ public class ExerciseService : IExerciseService
         await LoadImageEditableExerciseAsync(id);
 
         var contentType = request.ContentType?.Trim() ?? string.Empty;
-        if (!UploadConstraints.AllowedContentTypes.Contains(contentType))
+        if (!UploadConstraints.IsAllowed(contentType))
         {
-            throw new FitMateException("Unsupported file type. Upload a JPEG, PNG, WebP, or GIF image.");
+            throw new FitMateException(UploadConstraints.UnsupportedTypeMessage);
         }
 
         // Staging blobs live under exercises/{id}/incoming/ so they stay isolated from the live image
         // and are swept by the same exercises/{id}/ prefix delete on the next successful upload.
-        var stagingPath =
-            $"{StorageModule.Exercises.ToFolder()}/{id}/{IncomingFolder}/{Guid.NewGuid():N}.{ExtensionForContentType(contentType)}";
+        var stagingPath = BlobPathBuilder.BuildStagingPath(
+            StorageModule.Exercises,
+            id,
+            UploadConstraints.ExtensionFor(contentType));
 
         var uploadUrl = await blobStorage.GetWriteUrlAsync(stagingPath, contentType);
 
@@ -252,8 +254,7 @@ public class ExerciseService : IExerciseService
         var exercise = await LoadImageEditableExerciseAsync(id);
 
         var blobName = request.BlobName?.Trim() ?? string.Empty;
-        var expectedPrefix = $"{StorageModule.Exercises.ToFolder()}/{id}/{IncomingFolder}/";
-        if (!blobName.StartsWith(expectedPrefix, StringComparison.Ordinal) || blobName.Contains("..", StringComparison.Ordinal))
+        if (!BlobPathBuilder.IsOwnStagingPath(StorageModule.Exercises, id, blobName))
         {
             throw new FitMateException("Invalid upload reference.");
         }
@@ -336,17 +337,6 @@ public class ExerciseService : IExerciseService
 
         return exercise;
     }
-
-    private const string IncomingFolder = "incoming";
-
-    private static string ExtensionForContentType(string contentType) => contentType.ToLowerInvariant() switch
-    {
-        "image/jpeg" or "image/jpg" => "jpg",
-        "image/png" => "png",
-        "image/webp" => "webp",
-        "image/gif" => "gif",
-        _ => "img",
-    };
 
     public async Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request)
     {

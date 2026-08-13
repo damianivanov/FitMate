@@ -4,5 +4,5 @@ namespace FitMate.Tests.TestInfrastructure;
 
 public sealed class FakePhotoUrlResolver : IPhotoUrlResolver
 {
-    public Task<string?> ResolveAsync(string? value) => Task.FromResult(value);
+    public Task<string?> ResolveAsync(string? value, TimeSpan? lifetime = null) => Task.FromResult(value);
 }

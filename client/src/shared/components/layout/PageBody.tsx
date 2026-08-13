@@ -8,9 +8,10 @@ type PageBodyProps = {
 export function PageBody({ children, className }: PageBodyProps) {
   return (
     <div
-      // Mobile scrolls the whole shell, so content passes behind the floating tab bar and picks
-      // up its clearance. Desktop keeps its own scroll region, which is what pins the header.
-      className={`liquid-scrollbar flex-1 px-4 py-5 md:overflow-y-auto md:px-8 md:py-7${className ? ` ${className}` : ""}`}
+      // The whole shell scrolls at every width, so content passes under the app header and
+      // behind the floating tab bar and picks up their clearance. No nested scroll region:
+      // a second one would keep the page's title from ever reaching the header.
+      className={`flex-1 px-4 py-5 md:px-8 md:py-7${className ? ` ${className}` : ""}`}
     >
       {children}
     </div>

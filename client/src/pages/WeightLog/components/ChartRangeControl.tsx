@@ -20,7 +20,7 @@ export function ChartRangeControl({ value, onChange }: ChartRangeControlProps) {
       options={OPTIONS}
       onChange={onChange}
       size={SegmentControlSize.Sm}
-      className="w-full max-w-56"
+      className="wl-range"
     />
   );
 }

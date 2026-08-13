@@ -8,6 +8,13 @@ namespace FitMate.Services.Storage.Blobs;
 
 public class AzureBlobStorageService : IBlobStorageService
 {
+    /// <summary>
+    /// Every blob path carries a timestamp, so the bytes at a path never change — a replacement is
+    /// written to a new path. That makes the content safe to cache for as long as a signed URL for
+    /// it stays stable, which is what makes an avatar cost one download rather than one per visit.
+    /// </summary>
+    private const string ImmutableCacheControl = "private, max-age=604800, immutable";
+
     private readonly ApplicationSettings settings;
 
     public AzureBlobStorageService(ApplicationSettings settings)
@@ -28,7 +35,7 @@ public class AzureBlobStorageService : IBlobStorageService
             HttpHeaders = new BlobHttpHeaders
             {
                 ContentType = contentType,
-                CacheControl = "private, max-age=0",
+                CacheControl = ImmutableCacheControl,
             },
         });
 
@@ -55,18 +62,28 @@ public class AzureBlobStorageService : IBlobStorageService
         await blob.DeleteIfExistsAsync();
     }
 
-    public Task<string> GetReadUrlAsync(string path)
+    public Task<string> GetReadUrlAsync(string path, TimeSpan? lifetime = null)
     {
         var container = GetContainerClient();
         var blob = container.GetBlobClient(path);
+
+        var window = lifetime ?? TimeSpan.FromMinutes(settings.AzureStorageSasMinutes);
+
+        // Snap the validity to a grid of half the window instead of "now", so every caller inside the
+        // same half-window signs the exact same string and gets the exact same URL back. The cost is
+        // that a URL handed out at the end of a slot still has half a window left on it.
+        var step = TimeSpan.FromTicks(Math.Max(window.Ticks / 2, TimeSpan.TicksPerSecond));
+        var slotStart = new DateTimeOffset(
+            DateTimeOffset.UtcNow.UtcTicks / step.Ticks * step.Ticks,
+            TimeSpan.Zero);
 
         var sasBuilder = new BlobSasBuilder
         {
             BlobContainerName = settings.AzureStorageContainerName,
             BlobName = path,
             Resource = "b",
-            StartsOn = DateTimeOffset.UtcNow.AddMinutes(-2),
-            ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(settings.AzureStorageSasMinutes),
+            StartsOn = slotStart.AddMinutes(-2),
+            ExpiresOn = slotStart + window,
         };
         sasBuilder.SetPermissions(BlobSasPermissions.Read);
 

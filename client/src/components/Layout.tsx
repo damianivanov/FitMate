@@ -2,8 +2,8 @@ import { Outlet } from "react-router";
 import { useConsentStore } from "@/stores/consentStore";
 import { useUserStore } from "@/stores/userStore";
 import { ActiveWorkoutSheetHost } from "./ActiveWorkoutSheetHost";
+import AppNav from "./AppNav";
 import CookieConsentBanner from "./CookieConsentBanner";
-import Sidebar from "./Sidebar";
 
 export default function Layout() {
   const { userLoaded, isAuthenticated } = useUserStore();
@@ -14,12 +14,20 @@ export default function Layout() {
   if (isReadyAuthenticated) {
     return (
       <div className="liquid-shell">
-        <div className="pwa-safe-top relative z-10 flex h-full min-h-0 flex-col md:h-dvh md:min-h-dvh md:flex-row md:overflow-hidden">
-          <Sidebar />
-          <main className={`liquid-main-shell liquid-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain md:h-dvh ${bannerClearanceClassName}`}>
+        {/* One scroll box at every width, with the header floating over it rather than
+            stacked above it — that is what gives the blur lens live content to work on and
+            lets a page's own large title hand its name up to the bar as it leaves. */}
+        <div className="relative z-10 h-dvh min-h-0">
+          <main
+            data-app-scroll
+            className={`liquid-main-shell liquid-app-scroll liquid-scrollbar flex h-full min-w-0 flex-col overflow-y-auto overscroll-contain ${bannerClearanceClassName}`}
+          >
             <Outlet />
           </main>
+
+          <AppNav />
         </div>
+
         <ActiveWorkoutSheetHost />
         <CookieConsentBanner />
       </div>
@@ -29,7 +37,7 @@ export default function Layout() {
   return (
     <div className="liquid-shell">
       <div className={`pwa-safe-top relative z-10 flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain ${bannerClearanceClassName}`}>
-        <Sidebar />
+        <AppNav />
         <main className="flex min-w-0 flex-1 flex-col">
           <Outlet />
         </main>

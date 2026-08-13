@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { isAdmin as hasAdminRole } from "@/lib/access";
-import { buildDisplayName, buildInitials, getAvatarColorClassName } from "@/lib/helpers";
+import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import { useUserStore } from "@/stores/userStore";
 
 export function useProfilePage() {
@@ -15,7 +15,6 @@ export function useProfilePage() {
       displayName: fullName || "FitMate User",
       hasName: Boolean(fullName),
       initials: buildInitials(user.firstName, user.lastName, user.email),
-      avatarColorClassName: getAvatarColorClassName(user.id),
       isAdminUser,
       roleLabel: isAdminUser ? "Admin" : "Member",
     };

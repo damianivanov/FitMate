@@ -704,10 +704,6 @@ export namespace JsonModels.MuscleGroups {
 	}
 }
 export namespace JsonModels.Exercises {
-	export interface ConfirmImageUploadRequest
-	{
-		blobName: string;
-	}
 	export interface CreateAdminExerciseRequest
 	{
 		name: string;
@@ -794,16 +790,6 @@ export namespace JsonModels.Exercises {
 		isGlobal?: boolean;
 		userId?: number;
 	}
-	export interface ImageUploadTicketModel
-	{
-		uploadUrl: string;
-		blobName: string;
-	}
-	export interface ImageUploadTicketRequest
-	{
-		fileName: string;
-		contentType: string;
-	}
 }
 export namespace JsonModels.Errors {
 	export interface ErrorModel
@@ -825,6 +811,20 @@ export namespace JsonModels.Errors {
 	}
 }
 export namespace JsonModels.Common {
+	export interface ConfirmImageUploadRequest
+	{
+		blobName: string;
+	}
+	export interface ImageUploadTicketModel
+	{
+		uploadUrl: string;
+		blobName: string;
+	}
+	export interface ImageUploadTicketRequest
+	{
+		fileName: string;
+		contentType: string;
+	}
 	export interface OffsetPagedRequest
 	{
 		skip: number;
@@ -923,6 +923,7 @@ export namespace JsonModels.Auth {
 		email: string;
 		firstName?: string;
 		lastName?: string;
+		avatarUrl?: string;
 		roles: Enums.UserRole[];
 		cookieConsentAnalytics?: boolean;
 		cookieConsentMarketing?: boolean;

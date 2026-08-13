@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { putToBlobStorage } from "@/lib/blobUpload";
 import { compressImageForUpload } from "@/lib/imageCompression";
 import { unwrap } from "@/lib/unwrap";
 import type {
@@ -12,24 +13,6 @@ import type {
   ImageUploadTicketRequest,
   ConfirmImageUploadRequest,
 } from "@/types";
-
-// Upload the image bytes straight to blob storage using a short-lived SAS URL, bypassing the API
-// ingress. Streaming a large multipart body through the (scale-to-zero) ingress resets the request,
-// so only the small control-plane calls (upload-url / confirm) go through the server.
-async function putToBlobStorage(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "x-ms-blob-type": "BlockBlob",
-      "Content-Type": file.type,
-    },
-    body: file,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Image upload failed (${response.status}). Please try again.`);
-  }
-}
 
 // Keep create atomic: if the image step fails, remove the just-created exercise so a retry
 // doesn't leave an orphan or create a duplicate (mirrors the old server-side behavior).

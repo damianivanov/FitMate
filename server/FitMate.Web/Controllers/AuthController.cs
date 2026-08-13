@@ -1,4 +1,5 @@
 using FitMate.Core.JsonModels.Auth;
+using FitMate.Core.JsonModels.Common;
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
@@ -21,6 +22,7 @@ namespace FitMate.Web.Controllers
         private readonly UserManager<User> userManager;
         private readonly SignInManager<User> signInManager;
         private readonly IAuthService authService;
+        private readonly IAvatarService avatarService;
         private readonly IEmailSender emailSender;
 
         public AuthController(
@@ -30,12 +32,14 @@ namespace FitMate.Web.Controllers
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             IAuthService authService,
+            IAvatarService avatarService,
             IEmailSender emailSender)
             : base(logger, dbContext, userService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.authService = authService;
+            this.avatarService = avatarService;
             this.emailSender = emailSender;
         }
 
@@ -103,7 +107,7 @@ namespace FitMate.Web.Controllers
             var response = new AuthResponse
             {
                 Success = true,
-                User = authService.BuildUserModel(user, [.. roles]),
+                User = await authService.BuildUserModelAsync(user, [.. roles]),
             };
 
             return this.ReturnJson(response);
@@ -190,7 +194,7 @@ namespace FitMate.Web.Controllers
             var response = new AuthResponse
             {
                 Success = true,
-                User = authService.BuildUserModel(user, [.. roles]),
+                User = await authService.BuildUserModelAsync(user, [.. roles]),
             };
 
             return this.ReturnJson(response);
@@ -291,7 +295,7 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
+            return this.ReturnJson(await authService.BuildUserModelAsync(user, [.. roles]));
         }
 
         [Authorize]
@@ -328,7 +332,35 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
+            return this.ReturnJson(await authService.BuildUserModelAsync(user, [.. roles]));
+        }
+
+        // Direct-to-storage avatar upload: the browser asks for a short-lived write URL, PUTs the
+        // image bytes straight to blob storage (bypassing the ingress, which resets streaming
+        // multipart POSTs on the scale-to-zero runtime), then confirms so the server validates,
+        // squares and finalizes it.
+        [Authorize]
+        [HttpPost("avatar/upload-url")]
+        public async Task<ActionResult> CreateAvatarUploadUrl([FromBody] ImageUploadTicketRequest model)
+        {
+            var ticket = await avatarService.CreateUploadTicketAsync(model);
+            return this.ReturnJson(ticket);
+        }
+
+        [Authorize]
+        [HttpPost("avatar/confirm")]
+        public async Task<ActionResult> ConfirmAvatarUpload([FromBody] ConfirmImageUploadRequest model)
+        {
+            await avatarService.ConfirmUploadAsync(model);
+            return await ReturnCurrentUserAsync();
+        }
+
+        [Authorize]
+        [HttpDelete("avatar")]
+        public async Task<ActionResult> RemoveAvatar()
+        {
+            await avatarService.RemoveAsync();
+            return await ReturnCurrentUserAsync();
         }
 
         [Authorize]
@@ -359,7 +391,21 @@ namespace FitMate.Web.Controllers
             }
 
             var roles = await userManager.GetRolesAsync(user);
-            return this.ReturnJson(authService.BuildUserModel(user, [.. roles]));
+            return this.ReturnJson(await authService.BuildUserModelAsync(user, [.. roles]));
+        }
+
+        /// <summary>Re-reads the signed-in user so a mutation answers with the whole updated profile.</summary>
+        private async Task<ActionResult> ReturnCurrentUserAsync()
+        {
+            var userId = UserService.LoggedInUserId;
+            var user = userId == null ? null : await userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null)
+            {
+                return this.ReturnJsonError("Unauthorized.");
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+            return this.ReturnJson(await authService.BuildUserModelAsync(user, [.. roles]));
         }
 
         private static (string FirstName, string? LastName) NormalizeProfileNames(UpdateProfileRequest model)
@@ -462,7 +508,7 @@ namespace FitMate.Web.Controllers
             var response = new AuthResponse
             {
                 Success = true,
-                User = authService.BuildUserModel(user, [.. roles]),
+                User = await authService.BuildUserModelAsync(user, [.. roles]),
             };
 
             return this.ReturnJson(response);

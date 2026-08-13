@@ -9,6 +9,7 @@ public class PhotoUrlResolverTests
     {
         public int ReadUrlCallCount { get; private set; }
         public string? LastRequestedPath { get; private set; }
+        public TimeSpan? LastRequestedLifetime { get; private set; }
 
         public Task<string> UploadAsync(Stream content, string path, string contentType)
             => throw new NotSupportedException();
@@ -17,10 +18,11 @@ public class PhotoUrlResolverTests
 
         public Task DeleteAsync(string path) => throw new NotSupportedException();
 
-        public Task<string> GetReadUrlAsync(string path)
+        public Task<string> GetReadUrlAsync(string path, TimeSpan? lifetime = null)
         {
             ReadUrlCallCount++;
             LastRequestedPath = path;
+            LastRequestedLifetime = lifetime;
             return Task.FromResult($"https://account.blob.core.windows.net/media/{path}?sv=2024&sig=fake&sp=r");
         }
 
@@ -73,5 +75,17 @@ public class PhotoUrlResolverTests
         Assert.Equal(1, storage.ReadUrlCallCount);
         Assert.Equal(blobPath, storage.LastRequestedPath);
         Assert.Contains("sig=fake", result);
+    }
+
+    // Заявеният живот на URL-а стига до хранилището — от него зависи колко дълго URL-ът е кешируем
+    [Fact]
+    public async Task ResolveAsync_PassesTheRequestedLifetimeToStorage()
+    {
+        var storage = new FakeBlobStorageService();
+        var resolver = new PhotoUrlResolver(storage);
+
+        await resolver.ResolveAsync("users/7/20260530T192011921Z-avatar.jpg", TimeSpan.FromHours(24));
+
+        Assert.Equal(TimeSpan.FromHours(24), storage.LastRequestedLifetime);
     }
 }

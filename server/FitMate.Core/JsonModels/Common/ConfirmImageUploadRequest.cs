@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FitMate.Core.JsonModels.Exercises;
+namespace FitMate.Core.JsonModels.Common;
 
 public class ConfirmImageUploadRequest
 {

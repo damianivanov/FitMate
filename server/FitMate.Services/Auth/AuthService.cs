@@ -6,6 +6,9 @@ using FitMate.Core.Settings;
 using FitMate.DB;
 using FitMate.DB.Constants;
 using FitMate.DB.Entities;
+using FitMate.Services.Storage.Blobs;
+using FitMate.Services.Storage.Urls;
+using FitMate.Services.Users;
 using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,11 +22,13 @@ public class AuthService : IAuthService
 
     private readonly AppDbContext dbContext;
     private readonly ApplicationSettings settings;
+    private readonly IPhotoUrlResolver photoUrlResolver;
 
-    public AuthService(AppDbContext dbContext, ApplicationSettings settings)
+    public AuthService(AppDbContext dbContext, ApplicationSettings settings, IPhotoUrlResolver photoUrlResolver)
     {
         this.dbContext = dbContext;
         this.settings = settings;
+        this.photoUrlResolver = photoUrlResolver;
     }
 
     public async Task<IssuedTokens> IssueTokensAsync(
@@ -125,7 +130,7 @@ public class AuthService : IAuthService
         await dbContext.SaveChangesAsync(actingUserId);
     }
 
-    public UserModel BuildUserModel(User user, IReadOnlyCollection<string> roles)
+    public async Task<UserModel> BuildUserModelAsync(User user, IReadOnlyCollection<string> roles)
     {
         return new UserModel
         {
@@ -133,6 +138,11 @@ public class AuthService : IAuthService
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            // An uploaded avatar is stored as a bare file name and resolves to a signed URL; a Google
+            // picture is an absolute URL and passes through untouched.
+            AvatarUrl = await photoUrlResolver.ResolveAsync(
+                BlobPathBuilder.Compose(AvatarStorage.Module, user.Id, user.AvatarUrl),
+                AvatarStorage.UrlLifetime),
             Roles = MapRoles(roles),
             CookieConsentAnalytics = user.CookieConsentAnalytics,
             CookieConsentMarketing = user.CookieConsentMarketing,

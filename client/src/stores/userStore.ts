@@ -17,6 +17,7 @@ export interface UserState {
   userLoaded: boolean;
   isAuthenticated: boolean;
   initUser: () => Promise<void>;
+  setUser: (user: User) => void;
   logout: () => Promise<void>;
 }
 
@@ -74,6 +75,10 @@ export const useUserStore = create<UserState>()((set) => ({
       isAuthenticated: false,
     });
   },
+
+  // A mutation answers with the whole updated profile, so the store takes it as-is rather than
+  // re-fetching the current user just to learn what it was already told.
+  setUser: (user: User) => set({ user }),
 
   logout: async () => {
     try {

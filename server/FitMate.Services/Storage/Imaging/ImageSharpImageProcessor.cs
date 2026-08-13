@@ -11,6 +11,41 @@ public class ImageSharpImageProcessor : IImageProcessor
     private const int MaxEdge = 1200;
     private const int JpegQuality = 80;
 
+    public async Task<ProcessedImage?> ProcessSquareAsync(Stream input, int size)
+    {
+        try
+        {
+            using var image = await Image.LoadAsync(input);
+
+            // Never upscale: a picture smaller than the target stays at its own resolution rather
+            // than being blown up into a soft one.
+            var edge = Math.Min(size, Math.Min(image.Width, image.Height));
+
+            image.Mutate(context => context
+                .Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Crop,
+                    Position = AnchorPositionMode.Center,
+                    Size = new Size(edge, edge),
+                })
+                .BackgroundColor(Color.White));
+
+            var output = new MemoryStream();
+            await image.SaveAsJpegAsync(output, new JpegEncoder { Quality = JpegQuality });
+            output.Position = 0;
+
+            return new ProcessedImage(output, "image/jpeg", "jpg");
+        }
+        catch (UnknownImageFormatException)
+        {
+            return null;
+        }
+        catch (InvalidImageContentException)
+        {
+            return null;
+        }
+    }
+
     public async Task<ProcessedImage?> ProcessAsync(Stream input)
     {
         try
