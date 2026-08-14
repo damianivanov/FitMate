@@ -19,8 +19,23 @@ function getStoredTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/**
+ * The first stop of --scene-gradient in each theme. The status bar sits directly above that
+ * pixel, so anything else leaves a band of a different colour across the top of the app.
+ * Keep these in step with --scene-gradient in index.css.
+ */
+const THEME_COLORS: Record<Theme, string> = {
+  dark: "#1a1e29",
+  light: "#e8edf4",
+};
+
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
+
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", THEME_COLORS[theme]);
+
   try {
     localStorage.setItem("fitmate-theme", theme);
   } catch {

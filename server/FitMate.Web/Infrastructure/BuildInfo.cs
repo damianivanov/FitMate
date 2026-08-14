@@ -29,7 +29,7 @@ public static class BuildInfo
         var buildTimeUtc = DateTime.TryParse(
             stamp,
             CultureInfo.InvariantCulture,
-            DateTimeStyles.RoundtripKind | DateTimeStyles.AdjustToUniversal,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
             out var parsed)
             ? parsed
             : (DateTime?)null;

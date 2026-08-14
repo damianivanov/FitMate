@@ -69,12 +69,12 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
         className="liquid-mobile-bottom-nav-shell pointer-events-none fixed inset-x-0 bottom-0 z-[var(--z-nav)] px-4 md:hidden"
       >
         <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto w-full max-w-2xl rounded-full px-1.5 py-1.5">
-          <ul className="grid grid-cols-5">
+          <ul className="liquid-bottom-nav-grid">
             {leadingTabItems.map((item) => (
               <BottomTab key={item.to} item={item} onNavigate={onNavigate} />
             ))}
 
-            <li className="flex justify-center">
+            <li className="flex justify-center px-2">
               <button
                 type="button"
                 onClick={() => (isWorkoutActive ? expand() : openNewWorkout())}

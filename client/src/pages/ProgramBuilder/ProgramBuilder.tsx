@@ -1,12 +1,12 @@
 import {
   ActivateProgramModal,
   AsyncSection,
-  OutlinedButton,
+  BackHeader,
+  NativePage,
   PageBody,
-  PageHeader,
-  PrimaryButton,
   TemplatePickerModal,
 } from "@/shared/components";
+import { useNavigate } from "react-router";
 import { ProgramScheduleType } from "@/types";
 import { CustomCalendarEditor } from "./components/CustomCalendarEditor";
 import { FixedWeekdaysEditor } from "./components/FixedWeekdaysEditor";
@@ -17,21 +17,32 @@ import { useProgramBuilderPage } from "./hooks/useProgramBuilderPage";
 export default function ProgramBuilder() {
   const { state, actions } = useProgramBuilderPage();
   const { builderState } = state;
+  const navigate = useNavigate();
 
   return (
     <>
-      <PageHeader
-        title={state.isEditing ? "Edit program" : "New program"}
-        subtitle="Build a training plan from your workout templates"
-      />
-
       <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.loadError}
-          loadingLabel="Loading draft..."
-        >
-          <div className="mx-auto grid max-w-3xl gap-4">
+        <NativePage>
+          <BackHeader
+            title={state.isEditing ? "Edit program" : "New program"}
+            onBack={() => navigate("/program")}
+            action={
+              <button
+                type="button"
+                onClick={actions.saveDraft}
+                disabled={state.isSaving}
+                className="native-header-save"
+              >
+                {state.isSaving ? "Saving..." : "Save"}
+              </button>
+            }
+          />
+
+          <AsyncSection
+            isLoading={state.isLoading}
+            error={state.loadError}
+            loadingLabel="Loading draft..."
+          >
             <ProgramMetadataPanel
               builderState={builderState}
               onNameChange={actions.setName}
@@ -73,16 +84,26 @@ export default function ProgramBuilder() {
               />
             ) : null}
 
-            <footer className="flex items-center justify-end gap-3">
-              <OutlinedButton onClick={actions.saveDraft} disabled={state.isSaving}>
-                Save draft
-              </OutlinedButton>
-              <PrimaryButton onClick={actions.requestActivate} disabled={state.isSaving}>
-                {state.isSaving ? "Saving..." : "Activate"}
-              </PrimaryButton>
-            </footer>
-          </div>
-        </AsyncSection>
+            <div className="pd-actions">
+              <button
+                type="button"
+                onClick={actions.requestActivate}
+                disabled={state.isSaving}
+                className="native-primary-action"
+              >
+                {state.isSaving ? "Saving..." : "Activate program"}
+              </button>
+              <button
+                type="button"
+                onClick={actions.saveDraft}
+                disabled={state.isSaving}
+                className="native-ghost-action"
+              >
+                Save as draft
+              </button>
+            </div>
+          </AsyncSection>
+        </NativePage>
       </PageBody>
 
       <TemplatePickerModal

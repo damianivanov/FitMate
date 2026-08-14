@@ -174,46 +174,36 @@ export default function WorkoutBuilder({
   if (!draft || !summary) {
     return (
       <>
-        <header
-          className={`flex items-center gap-3 px-4 py-3 md:px-8 ${isSheet ? "" : "liquid-page-header"}`}
-        >
+        <header className="wb-header">
           <button
             type="button"
             onClick={actions.handleBackClick}
-            className={`liquid-pill inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full ${
-              isSheet ? "h-11 w-11" : "h-9 w-9"
-            }`}
+            className="app-round-btn liquid-press"
             aria-label={isSheet ? "Minimize workout" : "Back to templates"}
           >
-            {isSheet ? <LuChevronDown className="h-5 w-5" /> : <LuArrowLeft className="h-4 w-4" />}
+            {isSheet ? <LuChevronDown className="h-5 w-5" /> : <LuArrowLeft className="h-5 w-5" />}
           </button>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-foreground md:text-2xl">
-            New workout
-          </h1>
+          <h1 className="wb-title">New workout</h1>
         </header>
 
-        <div className="liquid-scrollbar flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-7">
-          <div className="mx-auto max-w-2xl">
-            {isLoadingTemplate ? (
-              <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
-                <p className="text-sm font-semibold text-foreground">Loading template...</p>
-              </div>
-            ) : null}
+        <div className="bd-body">
+          {isLoadingTemplate ? (
+            <div className="native-card bd-status">Loading template...</div>
+          ) : null}
 
-            {!isLoadingTemplate && templateError ? (
-              <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
-                <p className="text-sm font-semibold text-danger">{templateError}</p>
-                <button
-                  type="button"
-                  onClick={actions.handleRetryLoad}
-                  className="liquid-pill mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
-                >
-                  <LuRefreshCw className="h-4 w-4" />
-                  <span>Retry</span>
-                </button>
-              </div>
-            ) : null}
-          </div>
+          {!isLoadingTemplate && templateError ? (
+            <div className="native-card bd-status">
+              <p className="bd-status-error">{templateError}</p>
+              <button
+                type="button"
+                onClick={actions.handleRetryLoad}
+                className="native-ghost-action mx-auto mt-4 max-w-xs"
+              >
+                <LuRefreshCw className="h-4 w-4" />
+                Retry
+              </button>
+            </div>
+          ) : null}
         </div>
       </>
     );
@@ -242,13 +232,7 @@ export default function WorkoutBuilder({
         onTitleCommit={actions.handleTitleCommit}
       />
 
-      <div
-        className={
-          isSheet
-            ? "px-4 pb-24 pt-4"
-            : "liquid-scrollbar flex-1 overflow-y-auto px-3 pb-6 pt-4 md:px-8 md:pt-6"
-        }
-      >
+      <div className={isSheet ? "px-4 pb-24 pt-4" : "bd-body"}>
         <div className="w-full space-y-6">
           <section className="min-w-0 space-y-4">
             <WorkoutSessionSummary

@@ -11,9 +11,6 @@ type ProgramCalendarGridProps = {
   onSelectDay: (dayKey: string) => void;
 };
 
-const CELL_BASE_CLASS =
-  "relative flex aspect-square min-h-11 items-center justify-center rounded-2xl text-sm transition-colors duration-200";
-
 const DAY_TYPE_BADGES: Partial<Record<ProgramPlanDayType, string>> = {
   [ProgramPlanDayType.Recovery]: "R",
   [ProgramPlanDayType.Deload]: "D",
@@ -27,26 +24,19 @@ export function ProgramCalendarGrid({
   onSelectDay,
 }: ProgramCalendarGridProps) {
   return (
-    <div className="liquid-panel rounded-3xl p-3 sm:p-4">
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-        {WEEKDAY_LABELS.map((label) => (
-          <div
-            key={label}
-            className="pb-1 text-center text-2xs font-semibold uppercase tracking-widest text-muted"
-          >
-            {label}
-          </div>
+    <>
+      <div className="cal-weekdays" aria-hidden="true">
+        {WEEKDAY_LABELS.map((label, index) => (
+          <span key={`${label}-${index}`}>{label}</span>
         ))}
+      </div>
 
+      <div className="cal-grid">
         {cells.map((cell) => {
           if (!cell.isCurrentMonth) {
             return (
-              <div
-                key={cell.dayKey}
-                className={`${CELL_BASE_CLASS} text-(--text-disabled) opacity-50`}
-                aria-hidden="true"
-              >
-                {cell.dayOfMonth}
+              <div key={cell.dayKey} className="cal-day is-outside" aria-hidden="true">
+                <span>{cell.dayOfMonth}</span>
               </div>
             );
           }
@@ -55,17 +45,15 @@ export function ProgramCalendarGrid({
           const primaryDay = cellDays[0] ?? null;
           const isSelected = cell.dayKey === selectedKey;
 
-          const classes = [CELL_BASE_CLASS, "cursor-pointer"];
+          const classes = ["cal-day"];
           if (primaryDay) {
             classes.push(DAY_STATUS_CELL_CLASSES[primaryDay.status]);
-          } else {
-            classes.push("text-secondary hover:bg-primary-100/10");
           }
           if (cell.isToday) {
-            classes.push("ring-2 ring-inset ring-primary-400");
+            classes.push("is-today");
           }
           if (isSelected) {
-            classes.push("outline-2 outline-offset-2 outline-primary");
+            classes.push("is-selected");
           }
 
           const badge = primaryDay ? DAY_TYPE_BADGES[primaryDay.dayType] : undefined;
@@ -88,17 +76,13 @@ export function ProgramCalendarGrid({
               }
               className={classes.join(" ")}
             >
-              <span className="leading-none">{cell.dayOfMonth}</span>
-              {badge ? (
-                <span className="absolute right-1 top-1 text-2xs font-bold opacity-80">{badge}</span>
-              ) : null}
-              {cellDays.length > 1 ? (
-                <span className="absolute bottom-1.5 left-1/2 h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-current" />
-              ) : null}
+              <span>{cell.dayOfMonth}</span>
+              {badge ? <em className="cal-day-badge">{badge}</em> : null}
+              {cellDays.length > 1 ? <i aria-hidden="true" /> : null}
             </button>
           );
         })}
       </div>
-    </div>
+    </>
   );
 }

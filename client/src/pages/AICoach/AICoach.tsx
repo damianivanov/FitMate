@@ -7,6 +7,8 @@ import { ConversationList } from "./components/ConversationList";
 import { MessageBubble } from "./components/MessageBubble";
 import { ToolActivityIndicator } from "./components/ToolActivityIndicator";
 import { useAICoachPage } from "./hooks/useAICoachPage";
+import { PageIntro } from "@/shared/components";
+import "./ai-coach.css";
 
 export default function AICoach() {
   const { state, actions } = useAICoachPage();
@@ -47,8 +49,14 @@ export default function AICoach() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className="shrink-0 px-4 pt-3 md:px-6">
-        <div className="mx-auto w-full max-w-3xl">
+      <div className="shrink-0 px-4 pt-3 md:px-8">
+        <div className="mx-auto w-full max-w-2xl">
+          <PageIntro eyebrow="Personal training AI" title="AI Coach" />
+        </div>
+      </div>
+
+      <div className="shrink-0 px-4 pt-3 md:px-8">
+        <div className="mx-auto w-full max-w-2xl">
           <ConversationList
             conversations={state.conversations}
             activeId={conversation?.id ?? null}
@@ -62,9 +70,9 @@ export default function AICoach() {
         <>
           <div
             ref={threadRef}
-            className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 md:px-6"
+            className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 md:px-8"
           >
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 py-6">
+            <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-6">
               {visibleMessages.map((message) => (
                 <MessageBubble key={message.id} message={message} />
               ))}
@@ -87,24 +95,29 @@ export default function AICoach() {
             </div>
           </div>
 
-          <div className="shrink-0 px-4 pt-2 pb-3 md:px-6 md:pb-6">
-            <div className="mx-auto w-full max-w-3xl">
+          <div className="shrink-0 px-4 pt-2 pb-3 md:px-8 md:pb-6">
+            <div className="mx-auto w-full max-w-2xl">
               {errorMessage}
               <ChatComposer isSending={state.isSending} onSend={actions.send} />
             </div>
           </div>
         </>
       ) : (
-        <div className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-3 md:px-6 md:pb-6">
-          <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col justify-center gap-7 py-8">
+        <div className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-3 md:px-8 md:pb-6">
+          <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col gap-4 py-4">
             <CoachWelcome />
 
-            <div>
+            <CoachSuggestions onPick={actions.send} isSending={state.isSending} />
+
+            <p className="cch-hint">
+              The more you give me, the better I answer — name the lift, the weight, and how it
+              felt.
+            </p>
+
+            <div className="mt-auto">
               {errorMessage}
               <ChatComposer isSending={state.isSending} onSend={actions.send} autoFocus />
             </div>
-
-            <CoachSuggestions onPick={actions.send} isSending={state.isSending} />
           </div>
         </div>
       )}

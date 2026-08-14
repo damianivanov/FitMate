@@ -5,9 +5,11 @@ import {
   LuRepeat2,
   LuTrash2,
 } from "react-icons/lu";
+
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import { ActionMenu, type ActionMenuItem } from "@/shared/components";
 import type { Workout } from "@/types";
+import { ExerciseChip } from "./ExerciseChip";
 
 type SessionRowProps = {
   workout: Workout;
@@ -18,7 +20,11 @@ type SessionRowProps = {
   onSaveAsTemplate: (workout: Workout) => void;
 };
 
-const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
 
 type SessionStatus = "finished" | "in-progress" | "not-started";
 
@@ -65,7 +71,10 @@ export function SessionRow({
   const date = resolveDate(workout);
   const title = workout.title.trim() || "Untitled workout";
 
+  // The date moves in here now that the tile is gone — it is context for the title rather
+  // than a column you scan down.
   const meta = [
+    date ? DATE_FORMATTER.format(date) : null,
     `${workout.setCount} set${workout.setCount === 1 ? "" : "s"}`,
     formatDuration(workout.durationSeconds),
     status === "in-progress" ? "In progress" : status === "not-started" ? "Not started" : null,
@@ -73,14 +82,11 @@ export function SessionRow({
     .filter(Boolean)
     .join(" · ");
 
-  const exerciseNames = workout.groups
+  const exercises = workout.groups
     .slice()
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .flatMap((group) =>
-      group.exercises
-        .slice()
-        .sort((left, right) => left.orderIndex - right.orderIndex)
-        .map((exercise) => exercise.exerciseName || `Exercise #${exercise.exerciseId}`),
+      group.exercises.slice().sort((left, right) => left.orderIndex - right.orderIndex),
     );
 
   const menuItems: ActionMenuItem[] = [];
@@ -115,41 +121,42 @@ export function SessionRow({
   });
 
   return (
-    <article className="wk-row">
-      <button
-        type="button"
-        className="wk-row-open"
-        onClick={() => onOpen(workout)}
-        aria-label={`Open ${title}`}
-      >
-        {/* Tinted by state rather than for decoration: green reads as done at a glance, which
-            is the one thing you scan this list for. */}
-        <span className={`wk-date-tile state-${status}`}>
-          <small>{date ? WEEKDAY_FORMATTER.format(date) : "—"}</small>
-          <b>{date ? date.getDate() : "·"}</b>
-        </span>
-
-        <span className="wk-row-copy">
-          <b>{title}</b>
-          <small>{meta}</small>
-          {exerciseNames.length > 0 ? (
-            <span className="wk-row-chips">
-              {exerciseNames.slice(0, 3).map((name) => (
-                <i key={name}>{name}</i>
-              ))}
-              {exerciseNames.length > 3 ? <i>+{exerciseNames.length - 3}</i> : null}
+    <article className="wk-card">
+      {/* The title gets the full width of the card and the status rides on a coloured stripe
+          beside it, so the name is the first and largest thing read — the date tile used to
+          take the room the title needed to be legible at a glance. */}
+      <div className="wk-card-head">
+        <button
+          type="button"
+          className="wk-card-open"
+          onClick={() => onOpen(workout)}
+          aria-label={`Open ${title}`}
+        >
+          <span className={`wk-card-rail state-${status}`} aria-hidden="true" />
+          <span className="wk-card-copy">
+            <b>{title}</b>
+            <small>{meta}</small>
+          </span>
+          {isFinished ? (
+            <span className="wk-card-check" aria-hidden="true">
+              <LuCheck className="h-4 w-4" strokeWidth={3} />
             </span>
           ) : null}
-        </span>
+        </button>
 
-        {isFinished ? (
-          <span className="wk-row-check" aria-hidden="true">
-            <LuCheck className="h-3.5 w-3.5" strokeWidth={3} />
-          </span>
-        ) : null}
-      </button>
+        <ActionMenu triggerAriaLabel={`${title} actions`} items={menuItems} />
+      </div>
 
-      <ActionMenu triggerAriaLabel={`${title} actions`} items={menuItems} />
+      {/* Every exercise, scrolling rather than truncated to a count: the pictures are the
+          quickest way to recognise a session, and a "+3" hides exactly the ones you might
+          be looking for. */}
+      {exercises.length > 0 ? (
+        <div className="wk-card-strip">
+          {exercises.map((exercise) => (
+            <ExerciseChip key={exercise.id} exercise={exercise} />
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }

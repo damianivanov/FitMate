@@ -5,6 +5,16 @@ import type { Workout } from "@/types";
 
 const DAY_INITIAL_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 
+/** How far the day rail reaches back. Four weeks covers a training block without going stale. */
+const WEEKS_BEHIND = 4;
+
+/**
+ * And how far forward. Not for the content — there is rarely anything to see past this week —
+ * but so today has days to its right to be centred against. Without them the rail hits the end
+ * of its scroll and today settles wherever it lands.
+ */
+const WEEKS_AHEAD = 1;
+
 export interface TrainingDay {
   /** "yyyy-MM-dd", the same shape the program endpoints speak. */
   date: string;
@@ -85,10 +95,13 @@ export function useTrainingWeek(workouts: Workout[]) {
   }, [workouts]);
 
   const days = useMemo<TrainingDay[]>(() => {
-    const weekStart = startOfWeek(new Date());
+    // The rail runs back through the past few weeks and forward to the end of this one, so
+    // you can reach a session you logged a fortnight ago by scrolling rather than by leaving
+    // for the calendar. It starts parked on today.
+    const rangeStart = addDays(startOfWeek(new Date()), -7 * WEEKS_BEHIND);
 
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = addDays(weekStart, index);
+    return Array.from({ length: 7 * (WEEKS_BEHIND + WEEKS_AHEAD + 1) }, (_, index) => {
+      const date = addDays(rangeStart, index);
       const dateOnly = toDateOnlyString(date);
 
       return {

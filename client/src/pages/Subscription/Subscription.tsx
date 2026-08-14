@@ -1,7 +1,17 @@
-import { AsyncSection, PageBody, PageHeader } from "@/shared/components";
+import { LuCrown } from "react-icons/lu";
+import {
+  AsyncSection,
+  NativeCard,
+  NativeHero,
+  NativePage,
+  NativeSection,
+  PageBody,
+  PageIntro,
+} from "@/shared/components";
 import { isCustomerFacingFeature } from "./components/features";
 import { UsageBar } from "./components/UsageBar";
 import { useSubscriptionPage } from "./hooks/useSubscriptionPage";
+import "./subscription.css";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
@@ -13,11 +23,15 @@ export default function Subscription() {
   const { state, actions } = useSubscriptionPage();
   const subscription = state.subscription;
 
-  return (
-    <>
-      <PageHeader title="Subscription" subtitle="Your plan and what you have used this month" />
+  const renewalLabel = subscription?.currentPeriodEnd
+    ? `${subscription.cancelAtPeriodEnd ? "Ends" : "Renews"} ${DATE_FORMATTER.format(new Date(subscription.currentPeriodEnd))}`
+    : null;
 
-      <PageBody>
+  return (
+    <PageBody>
+      <NativePage>
+        <PageIntro eyebrow="Your plan" title="Subscription" />
+
         <AsyncSection
           isLoading={state.isLoading}
           error={state.error}
@@ -25,32 +39,29 @@ export default function Subscription() {
           loadingLabel="Loading your subscription..."
         >
           {subscription ? (
-            <div className="flex flex-col gap-4">
-              <section className="liquid-panel rounded-2xl p-4 md:rounded-lg">
-                <p className="text-xs font-semibold tracking-wide text-muted uppercase">Current plan</p>
-                <p className="mt-1 text-xl font-bold text-foreground">{subscription.planName}</p>
-                {subscription.currentPeriodEnd ? (
-                  <p className="mt-1 text-sm text-muted">
-                    {subscription.cancelAtPeriodEnd ? "Ends" : "Renews"} on{" "}
-                    {DATE_FORMATTER.format(new Date(subscription.currentPeriodEnd))}
-                  </p>
-                ) : null}
-              </section>
+            <>
+              <NativeHero centred>
+                <span className="sub-crown" aria-hidden="true">
+                  <LuCrown className="h-6 w-6" />
+                </span>
+                <p>Current plan</p>
+                <h2>{subscription.planName}</h2>
+                {renewalLabel ? <small>{renewalLabel}</small> : null}
+              </NativeHero>
 
-              <section className="liquid-panel rounded-2xl p-4 md:rounded-lg">
-                <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
-                  This month
-                </p>
-                {subscription.features
-                  .filter((feature) => isCustomerFacingFeature(feature.feature))
-                  .map((feature) => (
-                    <UsageBar key={feature.feature} availability={feature} />
-                  ))}
-              </section>
-            </div>
+              <NativeSection title="This month">
+                <NativeCard className="sub-usage-card">
+                  {subscription.features
+                    .filter((feature) => isCustomerFacingFeature(feature.feature))
+                    .map((feature) => (
+                      <UsageBar key={feature.feature} availability={feature} />
+                    ))}
+                </NativeCard>
+              </NativeSection>
+            </>
           ) : null}
         </AsyncSection>
-      </PageBody>
-    </>
+      </NativePage>
+    </PageBody>
   );
 }

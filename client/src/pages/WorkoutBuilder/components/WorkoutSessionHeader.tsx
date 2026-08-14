@@ -49,38 +49,34 @@ export function WorkoutSessionHeader({
     : (isSavingWorkout ? "Starting" : "Start");
 
   return (
-    <header
-      className={`px-4 py-2 md:px-8 md:py-3 ${isMinimizeAction ? "" : "liquid-page-header"}`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onBackClick}
-          className="liquid-pill flex shrink-0 cursor-pointer items-center justify-center rounded-full text-primary-700 transition h-10 w-10"
-          aria-label={isMinimizeAction ? "Minimize workout" : "Back to templates"}
-        >
-          {isMinimizeAction ? (
-            <LuChevronDown className="h-5 w-5" />
-          ) : (
-            <LuArrowLeft className="h-4 w-4" />
-          )}
-        </button>
+    <header className="wb-header">
+      <button
+        type="button"
+        onClick={onBackClick}
+        className="app-round-btn liquid-press"
+        aria-label={isMinimizeAction ? "Minimize workout" : "Back to templates"}
+      >
+        {isMinimizeAction ? (
+          <LuChevronDown className="h-5 w-5" />
+        ) : (
+          <LuArrowLeft className="h-5 w-5" />
+        )}
+      </button>
 
-        <div className="min-w-0 flex-1">
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleInputChange}
-            onBlur={handleTitleInputBlur}
-            className="w-full bg-transparent text-2xl text-center font-extrabold tracking-tight text-foreground outline-none md:text-xl"
-            aria-label="Workout title"
-          />
-        </div>
+      <input
+        type="text"
+        value={title}
+        onChange={handleTitleInputChange}
+        onBlur={handleTitleInputBlur}
+        className="wb-title"
+        aria-label="Workout title"
+      />
 
+      <div className="wb-header-actions">
         {isWorkoutStarted ? (
-          <span className="liquid-pill inline-flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold text-secondary md:h-9">
-            <LuTimer className="h-4 w-4 text-primary" />
-            <span className="mono tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
+          <span className="wb-elapsed">
+            <LuTimer className="h-4 w-4" />
+            <b className="mono">{formatElapsedTime(elapsedSeconds)}</b>
           </span>
         ) : null}
 
@@ -89,7 +85,7 @@ export function WorkoutSessionHeader({
             type="button"
             onClick={onDeleteWorkout}
             disabled={isDeletingWorkout || isSavingWorkout}
-            className="liquid-pill inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-danger disabled:cursor-not-allowed disabled:opacity-60"
+            className="bd-discard"
             aria-label="Delete workout"
             title="Delete workout"
           >
@@ -105,9 +101,9 @@ export function WorkoutSessionHeader({
           type="button"
           onClick={handlePrimaryActionClick}
           disabled={isSavingWorkout || isDeletingWorkout}
-          className="liquid-primary-btn inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          className="native-header-save"
         >
-          <span>{primaryActionLabel}</span>
+          {primaryActionLabel}
         </button>
       </div>
     </header>

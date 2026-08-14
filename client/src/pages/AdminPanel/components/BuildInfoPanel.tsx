@@ -67,11 +67,11 @@ function Row({
       <span className="mt-0.5 shrink-0 text-secondary">{icon}</span>
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-secondary">{label}</p>
-        <p className="truncate text-sm font-semibold text-foreground">
+        <p className="text-sm font-semibold text-balance text-foreground">
           {formatTimestamp(timestamp)}
           {relative ? <span className="ml-2 font-normal text-secondary">({relative})</span> : null}
         </p>
-        {detail ? <p className="mono truncate text-xs text-secondary">{detail}</p> : null}
+        {detail ? <p className="mono text-xs break-words text-secondary">{detail}</p> : null}
       </div>
     </div>
   );
@@ -113,7 +113,7 @@ export function BuildInfoPanel() {
     .join(" · ");
 
   return (
-    <div className="liquid-pill mt-4 grid gap-4 rounded-2xl p-4 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2">
       <Row
         icon={<LuMonitor className="h-4 w-4" />}
         label="Frontend built"

@@ -1,76 +1,179 @@
-import { LuPlus } from "react-icons/lu";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import {
+  LuDumbbell,
+  LuLoaderCircle,
+  LuPencil,
+  LuPlay,
+  LuPlus,
+  LuTrash2,
+} from "react-icons/lu";
+import {
+  ActionMenu,
   AsyncSection,
   DeleteConfirmationModal,
+  NativePage,
+  NativeSearch,
   PageBody,
-  PageHeader,
+  PageIntro,
+  type ActionMenuItem,
+  type NativeTint,
 } from "@/shared/components";
-import { TemplateListItem } from "./components/TemplateListItem";
-import { TemplatePreviewPanel } from "./components/TemplatePreviewPanel";
+import { getTemplateExerciseSummary } from "./utils/templateDisplay";
 import { useTemplatesPage } from "./hooks/useTemplatesPage";
+import type { WorkoutTemplate } from "@/types";
+import "./templates.css";
+
+/** Stable per template, so a card keeps its colour between visits instead of reshuffling. */
+const CARD_TINTS: NativeTint[] = ["orange", "purple", "blue", "green", "cyan", "pink"];
+
+function tintFor(template: WorkoutTemplate): NativeTint {
+  return CARD_TINTS[template.id % CARD_TINTS.length];
+}
+
+function metaFor(template: WorkoutTemplate): string {
+  return [
+    `${template.exerciseCount} exercise${template.exerciseCount === 1 ? "" : "s"}`,
+    template.setCount > 0 ? `${template.setCount} sets` : null,
+    template.estimatedDurationMinutes ? `~${template.estimatedDurationMinutes} min` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 export default function Templates() {
   const { state, actions } = useTemplatesPage();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const visibleTemplates = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return state.templates;
+    }
+
+    return state.templates.filter((template) =>
+      template.name.toLowerCase().includes(normalizedQuery),
+    );
+  }, [query, state.templates]);
+
+  const buildMenu = (template: WorkoutTemplate): ActionMenuItem[] => [
+    {
+      key: "start",
+      label: state.startingTemplateId === template.id ? "Starting…" : "Start workout",
+      icon:
+        state.startingTemplateId === template.id ? (
+          <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <LuPlay className="h-4 w-4 shrink-0" />
+        ),
+      onSelect: () => actions.start(template.id),
+      variant: "primary",
+      disabled: state.startingTemplateId !== null,
+    },
+    {
+      key: "edit",
+      label: "Edit template",
+      icon: <LuPencil className="h-4 w-4 shrink-0" />,
+      onSelect: () => actions.edit(template.id),
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon:
+        state.deletingTemplateId === template.id ? (
+          <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <LuTrash2 className="h-4 w-4 shrink-0" />
+        ),
+      onSelect: () => actions.requestDelete(template),
+      variant: "danger",
+      disabled: state.deletingTemplateId !== null,
+    },
+  ];
 
   return (
     <>
-      <PageHeader
-        title="Templates"
-        subtitle={`${state.templates.length} saved template${state.templates.length === 1 ? "" : "s"}`}
-        actions={
-          <button
-            type="button"
-            onClick={actions.create}
-            className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
-          >
-            <LuPlus className="h-4 w-4" />
-            <span>New</span>
-          </button>
-        }
-      />
-
       <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.error}
-          onRetry={actions.reload}
-          loadingLabel="Loading templates..."
-          isEmpty={state.templates.length === 0}
-          emptyState={
-            <div className="liquid-panel rounded-2xl px-5 py-10 text-center">
-              <p className="italic text-gray-100/70">No templates yet</p>
+        <NativePage>
+          <PageIntro
+            eyebrow="Reusable workouts"
+            title="Templates"
+            action={
               <button
                 type="button"
                 onClick={actions.create}
-                className="liquid-primary-btn mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                className="app-round-btn liquid-press"
+                aria-label="New template"
               >
-                <LuPlus className="h-4 w-4" />
-                <span>Create Template</span>
+                <LuPlus className="h-5 w-5" />
               </button>
-            </div>
-          }
-        >
-          <div className="grid items-start gap-5 lg:grid-cols-2">
-            <section className="space-y-3">
-              {state.templates.map((template) => (
-                <TemplateListItem
-                  key={template.id}
-                  template={template}
-                  isSelected={state.selectedTemplate?.id === template.id}
-                  isStarting={state.startingTemplateId === template.id}
-                  isDeleting={state.deletingTemplateId === template.id}
-                  onSelect={actions.select}
-                  onStart={actions.start}
-                  onEdit={actions.edit}
-                  onDelete={actions.requestDelete}
-                />
+            }
+          />
+
+          <AsyncSection
+            isLoading={state.isLoading}
+            error={state.error}
+            onRetry={actions.reload}
+            loadingLabel="Loading templates..."
+            isEmpty={state.templates.length === 0}
+            emptyState={
+              <button type="button" className="tp-card tp-new" onClick={actions.create}>
+                <span>
+                  <LuPlus className="h-6 w-6" />
+                </span>
+                <b>Create a template</b>
+                <small>Build a reusable training day you can start in one tap</small>
+              </button>
+            }
+          >
+            <NativeSearch
+              value={query}
+              onChange={setQuery}
+              placeholder="Search templates"
+              label="Search templates"
+            />
+
+            <div className="tp-grid">
+              {visibleTemplates.map((template) => (
+                <article className="tp-card" key={template.id}>
+                  <button
+                    type="button"
+                    className="tp-card-open"
+                    onClick={() => navigate(`/templates/view/${template.id}`)}
+                  >
+                    <span className={`native-glyph native-glyph-lg tint-${tintFor(template)}`}>
+                      <LuDumbbell className="h-5 w-5" />
+                    </span>
+                    <span className="tp-card-copy">
+                      <b>{template.name}</b>
+                      <small>{getTemplateExerciseSummary(template)}</small>
+                    </span>
+                    <em>{metaFor(template)}</em>
+                  </button>
+
+                  <ActionMenu
+                    triggerAriaLabel={`${template.name} actions`}
+                    items={buildMenu(template)}
+                  />
+                </article>
               ))}
-            </section>
-            <div className="hidden md:block">
-              <TemplatePreviewPanel template={state.selectedTemplate} />
+
+              {visibleTemplates.length === 0 ? (
+                <p className="tp-empty">No templates match “{query.trim()}”.</p>
+              ) : (
+                <button type="button" className="tp-card tp-new" onClick={actions.create}>
+                  <span>
+                    <LuPlus className="h-6 w-6" />
+                  </span>
+                  <b>Create a template</b>
+                  <small>Build a reusable training day</small>
+                </button>
+              )}
             </div>
-          </div>
-        </AsyncSection>
+          </AsyncSection>
+        </NativePage>
       </PageBody>
 
       <DeleteConfirmationModal

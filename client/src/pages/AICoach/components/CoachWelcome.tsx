@@ -6,10 +6,12 @@ import {
   LuDumbbell,
   LuSparkles,
 } from "react-icons/lu";
+import { NativeCard } from "@/shared/components";
 import { useUserStore } from "@/stores/userStore";
 
 type Suggestion = {
   label: string;
+  hint: string;
   prompt: string;
   icon: IconType;
 };
@@ -19,21 +21,25 @@ type Suggestion = {
 const SUGGESTIONS: Suggestion[] = [
   {
     label: "Train today",
+    hint: "Pick a session from recent work",
     prompt: "What should I train today, based on my recent workouts?",
     icon: LuDumbbell,
   },
   {
     label: "Check progress",
+    hint: "Find trends and plateaus",
     prompt: "How has my bench press progressed over the last two months?",
     icon: LuChartLine,
   },
   {
     label: "Plan a block",
+    hint: "Build a program from your profile",
     prompt: "Build me a 4-week program for strength, training 3 days a week.",
     icon: LuClipboardList,
   },
   {
     label: "Break a plateau",
+    hint: "Change what stopped working",
     prompt: "My squat has been stuck at the same weight for 3 weeks. What should I change?",
     icon: LuCircleHelp,
   },
@@ -66,45 +72,41 @@ export function CoachWelcome() {
   const firstName = user?.firstName?.trim();
 
   return (
-    <div className="flex flex-col items-center text-center">
-      <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-        <LuSparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
-        {firstName ? `${greeting}, ${firstName}` : greeting}
-      </h1>
-      <p className="mt-2 max-w-md text-sm text-secondary">
-        I can see your workouts, programs and progress. Ask me anything about your training.
-      </p>
-    </div>
+    <NativeCard className="cch-welcome">
+      <span className="cch-orb" aria-hidden="true">
+        <LuSparkles className="h-6 w-6" />
+      </span>
+      <div className="min-w-0">
+        <b>{firstName ? `${greeting}, ${firstName}` : greeting}</b>
+        <p>
+          I can see your workouts, programs and progress. Ask me anything about your training.
+        </p>
+      </div>
+    </NativeCard>
   );
 }
 
 export function CoachSuggestions({ onPick, isSending }: CoachSuggestionsProps) {
   return (
-    <div className="flex flex-col items-center gap-3">
-      <ul className="flex flex-wrap justify-center gap-2">
-        {SUGGESTIONS.map((suggestion) => {
-          const Icon = suggestion.icon;
+    <div className="cch-suggestions">
+      {SUGGESTIONS.map((suggestion) => {
+        const Icon = suggestion.icon;
 
-          return (
-            <li key={suggestion.label}>
-              <button
-                type="button"
-                disabled={isSending}
-                onClick={() => onPick(suggestion.prompt)}
-                title={suggestion.prompt}
-                className="liquid-pill liquid-press inline-flex cursor-pointer items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                {suggestion.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <p className="max-w-sm text-center text-xs text-tertiary">
-        The more you give me, the better I answer — name the lift, the weight, and how it felt.
-      </p>
+        return (
+          <button
+            type="button"
+            key={suggestion.label}
+            disabled={isSending}
+            onClick={() => onPick(suggestion.prompt)}
+            title={suggestion.prompt}
+            className="native-tile"
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            <b>{suggestion.label}</b>
+            <small>{suggestion.hint}</small>
+          </button>
+        );
+      })}
     </div>
   );
 }

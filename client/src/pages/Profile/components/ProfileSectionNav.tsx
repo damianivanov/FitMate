@@ -23,7 +23,7 @@ export function ProfileSectionNav() {
   return (
     <nav
       aria-label="Profile sections"
-      className="liquid-segmented w-full lg:w-auto"
+      className="liquid-segmented w-full"
       style={{ "--liquid-segment-count": PROFILE_SECTIONS.length } as CSSProperties}
     >
       <span ref={thumbRef} aria-hidden="true" className="liquid-segment-thumb" />

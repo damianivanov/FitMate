@@ -1,83 +1,158 @@
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
+import type { IconType } from "react-icons";
+import {
+  LuBrain,
+  LuCreditCard,
+  LuDumbbell,
+  LuGauge,
+  LuHeartPulse,
+  LuMessageCircle,
+  LuSettings2,
+  LuSparkles,
+  LuTriangleAlert,
+  LuUsers,
+} from "react-icons/lu";
+import {
+  NativeCard,
+  NativeGlyph,
+  NativePage,
+  NativeSection,
+  PageBody,
+  PageIntro,
+  type NativeTint,
+} from "@/shared/components";
 import { BuildInfoPanel } from "./components/BuildInfoPanel";
+import "./admin.css";
 
-const gridLinks = [
+type AdminLink = {
+  to: string;
+  title: string;
+  description: string;
+  icon: IconType;
+  tint: NativeTint;
+};
+
+const CATALOGUE: AdminLink[] = [
   {
     to: "/management/exercises",
-    title: "Exercise Grid",
-    description: "Manage global exercises and open create/edit modals.",
+    title: "Exercises",
+    description: "Global exercise catalogue",
+    icon: LuDumbbell,
+    tint: "orange",
   },
   {
     to: "/management/muscle-groups",
-    title: "Muscle Group Grid",
-    description: "Manage muscle group names and image URLs.",
+    title: "Muscle groups",
+    description: "Names and images",
+    icon: LuHeartPulse,
+    tint: "pink",
   },
   {
     to: "/management/users",
-    title: "User Grid",
-    description: "Search users, change roles, and activate or remove accounts.",
+    title: "Users",
+    description: "Roles and accounts",
+    icon: LuUsers,
+    tint: "blue",
   },
   {
     to: "/management/errors",
-    title: "Error Grid",
-    description: "Inspect server-side errors, view stack traces, and clear the log.",
-  },
-  {
-    to: "/management/ai",
-    title: "AI Overview",
-    description: "Runs, tool calls, latency and what the assistant costs.",
-  },
-  {
-    to: "/management/ai/conversations",
-    title: "AI Conversations",
-    description: "Browse conversations, runs and proposed actions for support.",
-  },
-  {
-    to: "/management/ai/unsupported-requests",
-    title: "Unsupported Requests",
-    description: "What users keep asking for that FitMate cannot do yet.",
-  },
-  {
-    to: "/management/ai/costs",
-    title: "AI Cost per User",
-    description: "Token spend and money per user, broken down by model.",
-  },
-  {
-    to: "/management/ai/settings",
-    title: "AI Settings",
-    description: "Default models, token ceilings and tool limits for the coach.",
+    title: "Errors",
+    description: "Server-side error log",
+    icon: LuTriangleAlert,
+    tint: "rose",
   },
   {
     to: "/management/subscriptions",
     title: "Subscriptions",
-    description: "Plans, per-user entitlements, admin overrides and metered usage.",
+    description: "Plans and entitlements",
+    icon: LuCreditCard,
+    tint: "green",
   },
-] as const;
+];
 
-export default function AdminPanel() {
+const AI_LINKS: AdminLink[] = [
+  {
+    to: "/management/ai",
+    title: "AI overview",
+    description: "Runs, latency and cost",
+    icon: LuGauge,
+    tint: "purple",
+  },
+  {
+    to: "/management/ai/conversations",
+    title: "Conversations",
+    description: "Runs and proposed actions",
+    icon: LuMessageCircle,
+    tint: "cyan",
+  },
+  {
+    to: "/management/ai/unsupported-requests",
+    title: "Unsupported requests",
+    description: "What users ask for that FitMate cannot do",
+    icon: LuBrain,
+    tint: "yellow",
+  },
+  {
+    to: "/management/ai/costs",
+    title: "Cost per user",
+    description: "Token spend by model",
+    icon: LuSparkles,
+    tint: "orange",
+  },
+  {
+    to: "/management/ai/settings",
+    title: "AI settings",
+    description: "Models, ceilings and tool limits",
+    icon: LuSettings2,
+    tint: "gray",
+  },
+];
+
+function AdminGrid({ links }: { links: AdminLink[] }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="w-full flex-1 p-3 pt-8 md:p-8">
-      <div className="liquid-surface rounded-3xl p-3 md:p-6">
-        <header className="space-y-2 py-5 px-3 rounded-xl">
-          <h1 className="text-3xl font-extrabold text-primary">Admin Dashboard</h1>
-          <p className="text-sm text-secondary">Central place for management grids and tools.</p>
-          <BuildInfoPanel />
-        </header>
+    <div className="ad-grid">
+      {links.map((link) => {
+        const Icon = link.icon;
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {gridLinks.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="liquid-pill block rounded-2xl p-4 transition [@media(hover:hover)and(pointer:fine)]:hover:-translate-y-0.5"
-            >
-              <p className="text-base font-semibold text-primary">{item.title}</p>
-              <p className="mt-1 text-sm text-secondary">{item.description}</p>
-            </Link>
-          ))}
-        </div>
-      </div>
+        return (
+          <button
+            type="button"
+            key={link.to}
+            onClick={() => navigate(link.to)}
+            className="ad-tile"
+          >
+            <NativeGlyph tint={link.tint}>
+              <Icon className="h-5 w-5" />
+            </NativeGlyph>
+            <b>{link.title}</b>
+            <small>{link.description}</small>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
+export default function AdminPanel() {
+  return (
+    <PageBody>
+      <NativePage>
+        <PageIntro eyebrow="Admin" />
+
+        <NativeSection title="Management">
+          <AdminGrid links={CATALOGUE} />
+        </NativeSection>
+
+        <NativeSection title="AI operations">
+          <AdminGrid links={AI_LINKS} />
+        </NativeSection>
+
+        <NativeCard className="ad-build">
+          <BuildInfoPanel />
+        </NativeCard>
+      </NativePage>
+    </PageBody>
+  );
+}

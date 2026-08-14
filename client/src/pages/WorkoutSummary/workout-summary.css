@@ -1,0 +1,139 @@
+/* ----------------------------------------------------------------
+   WORKOUT SUMMARY — page-scoped material. Prefixed ws-.
+---------------------------------------------------------------- */
+
+.ws-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.8125rem 0 0.5rem;
+  text-align: center;
+}
+
+/* Green, not the app's orange: this is the one screen that reports a finished thing rather
+   than offering the next one, and the colour is what says so before any word is read. */
+.ws-seal {
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #64dba7, #2bac79);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 1rem 2.125rem rgba(40, 179, 119, 0.24);
+}
+
+.ws-hero > p {
+  margin-top: 1rem;
+  color: var(--color-success);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ws-hero > h1 {
+  margin: 0.3125rem 0 0.1875rem;
+  font-size: clamp(1.625rem, 7vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+}
+
+.ws-hero > small { color: var(--text-tertiary); font-size: 0.8125rem; }
+
+.ws-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+
+.ws-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3125rem;
+  min-height: 5.875rem;
+  padding: 0.6875rem;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--liquid-r-lg);
+  background: var(--glass-bg-card);
+  box-shadow: var(--glass-specular-card);
+}
+
+.ws-stat > svg { color: var(--tint-orange-fg); }
+.ws-stat > span { color: var(--text-tertiary); font-size: 0.6875rem; }
+
+.ws-stat > b {
+  font-size: 0.9375rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.ws-notes {
+  padding: 0.875rem 1rem;
+  white-space: pre-line;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.ws-group-label {
+  padding: 0 0.25rem;
+  color: var(--accent-strong);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ws-thumb {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex: none;
+  width: 2.4375rem;
+  height: 2.4375rem;
+  border-radius: var(--liquid-r-sm);
+  border: 1px solid var(--glass-divider);
+  background: var(--glass-bg-soft);
+  color: var(--text-tertiary);
+}
+
+.ws-thumb > img { width: 100%; height: 100%; object-fit: cover; }
+
+.ws-sets { display: grid; gap: 0.375rem; padding: 0 0.75rem 0.75rem; }
+
+.ws-set {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--liquid-r-sm);
+  background: var(--glass-bg-soft);
+  font-size: 0.875rem;
+}
+
+.ws-set > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--glass-hover-row-bg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ws-set-type {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ws-set-value { font-weight: 650; font-variant-numeric: tabular-nums; color: var(--text-primary); }

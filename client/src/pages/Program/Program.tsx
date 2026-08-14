@@ -1,109 +1,283 @@
-import { LuCalendarDays, LuPlus } from "react-icons/lu";
-import { AsyncSection, DeleteConfirmationModal, PageBody, PageHeader } from "@/shared/components";
-import { formatDateOnly } from "@/shared/utils/dateOnly";
-import { PlanListItem } from "./components/PlanListItem";
-import { ProgramProgressCard } from "./components/ProgramProgressCard";
+import {
+  LuCalendarDays,
+  LuClipboardList,
+  LuDumbbell,
+  LuHistory,
+  LuLoaderCircle,
+  LuPencil,
+  LuPlus,
+  LuTrash2,
+  LuZap,
+} from "react-icons/lu";
+import {
+  ActionMenu,
+  AsyncSection,
+  DeleteConfirmationModal,
+  NativeGlyph,
+  NativeHero,
+  NativeList,
+  NativeMeter,
+  NativePage,
+  NativeRow,
+  NativeSection,
+  PageBody,
+  PageIntro,
+  SectionAction,
+  type ActionMenuItem,
+} from "@/shared/components";
+import { formatDateOnly, parseDateOnly, todayDateOnlyString } from "@/shared/utils/dateOnly";
+import { ProgramPlanStatus } from "@/types";
+import type { ProgramPlan, ProgramPlanDayModel } from "@/types";
 import { useProgramPage } from "./hooks/useProgramPage";
+
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "long" });
+
+function describeDay(day: ProgramPlanDayModel, today: string): string {
+  return day.scheduledDate === today
+    ? "Today"
+    : WEEKDAY_FORMATTER.format(parseDateOnly(day.scheduledDate));
+}
+
+function describeStatus(plan: ProgramPlan): string {
+  if (plan.status === ProgramPlanStatus.Completed) {
+    return "Completed";
+  }
+
+  return plan.status === ProgramPlanStatus.Draft ? "Draft" : "Archived";
+}
 
 export default function Program() {
   const { state, actions } = useProgramPage();
-  const nextWorkout = state.todayModel?.today ?? state.todayModel?.nextWorkout ?? null;
+  const today = todayDateOnlyString();
   const activePlan = state.activePlan;
+  const progress = state.progress;
+
+  const upcoming = [state.todayModel?.today, state.todayModel?.nextWorkout].filter(
+    (day): day is ProgramPlanDayModel => day != null,
+  );
+
+  const buildPlanMenu = (plan: ProgramPlan): ActionMenuItem[] => [
+    {
+      key: "edit",
+      label: "Edit program",
+      icon: <LuPencil className="h-4 w-4 shrink-0" />,
+      onSelect: () => actions.edit(plan),
+    },
+    {
+      key: "calendar",
+      label: "View schedule",
+      icon: <LuCalendarDays className="h-4 w-4 shrink-0" />,
+      onSelect: () => actions.openCalendar(plan),
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon:
+        state.deletingPlanId === plan.id ? (
+          <LuLoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+        ) : (
+          <LuTrash2 className="h-4 w-4 shrink-0" />
+        ),
+      onSelect: () => actions.requestDelete(plan),
+      variant: "danger",
+      disabled: state.deletingPlanId !== null,
+    },
+  ];
 
   return (
     <>
-      <PageHeader
-        title="Program"
-        subtitle="Your training plan, day by day"
-        actions={
-          <button
-            type="button"
-            onClick={actions.create}
-            className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
-          >
-            <LuPlus className="h-4 w-4" />
-            <span>New program</span>
-          </button>
-        }
-      />
-
       <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.error}
-          onRetry={actions.reload}
-          loadingLabel="Loading your program..."
-          isEmpty={!activePlan && state.otherPlans.length === 0}
-          emptyState={
-            <div className="liquid-panel mx-auto max-w-4xl rounded-2xl px-5 py-10 text-center md:rounded-lg">
-              <p className="text-base font-bold text-foreground">No program yet</p>
-              <p className="mt-1 text-sm text-secondary">
-                Build a plan from your workout templates and always know what to train.
-              </p>
+        <NativePage>
+          <PageIntro
+            eyebrow="Your schedule"
+            title="Program"
+            action={
               <button
                 type="button"
                 onClick={actions.create}
-                className="liquid-primary-btn mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                className="app-round-btn liquid-press"
+                aria-label="Create program"
               >
-                <LuPlus className="h-4 w-4" />
-                <span>Create a plan</span>
+                <LuPlus className="h-5 w-5" />
               </button>
-            </div>
-          }
-        >
-          <div className="mx-auto grid max-w-4xl gap-4">
+            }
+          />
+
+          <AsyncSection
+            isLoading={state.isLoading}
+            error={state.error}
+            onRetry={actions.reload}
+            loadingLabel="Loading your program..."
+            isEmpty={!activePlan && state.otherPlans.length === 0}
+            emptyState={
+              <NativeHero centred>
+                <NativeGlyph tint="orange" size="lg">
+                  <LuClipboardList className="h-6 w-6" />
+                </NativeGlyph>
+                <p>No program yet</p>
+                <h2>Know what to train</h2>
+                <small>Build a plan from your templates and get a daily schedule.</small>
+                <button
+                  type="button"
+                  onClick={actions.create}
+                  className="native-primary-action mt-5 max-w-xs"
+                >
+                  <LuPlus className="h-4 w-4" />
+                  Create a plan
+                </button>
+              </NativeHero>
+            }
+          >
             {activePlan ? (
-              <section className="grid gap-3">
-                <PlanListItem
-                  plan={activePlan}
-                  isDeleting={false}
-                  onOpen={actions.open}
-                  onEdit={actions.edit}
-                  onOpenCalendar={actions.openCalendar}
-                  onDelete={actions.requestDelete}
-                />
-                {state.progress ? <ProgramProgressCard progress={state.progress} /> : null}
-                {nextWorkout ? (
-                  <button
-                    type="button"
-                    onClick={() => actions.openCalendar(activePlan)}
-                    className="liquid-panel flex cursor-pointer items-center gap-3 rounded-2xl p-4 text-left transition-colors duration-200 hover:border-primary-300/60"
-                  >
-                    <LuCalendarDays className="h-5 w-5 shrink-0 text-primary" />
-                    <span className="min-w-0">
-                      <span className="block text-xs font-semibold uppercase tracking-widest text-muted">
-                        Next up
-                      </span>
-                      <span className="block truncate text-sm font-bold text-foreground">
-                        {nextWorkout.workoutTemplateName ?? "Workout"} ·{" "}
-                        {formatDateOnly(nextWorkout.scheduledDate)}
-                      </span>
-                    </span>
-                  </button>
+              <NativeHero>
+                <div className="native-hero-top">
+                  <span>
+                    <LuZap className="h-4 w-4" fill="currentColor" />
+                    Active program
+                  </span>
+                  <ActionMenu
+                    triggerAriaLabel={`${activePlan.name} actions`}
+                    items={buildPlanMenu(activePlan)}
+                  />
+                </div>
+
+                <h2>{activePlan.name}</h2>
+                <p>
+                  {activePlan.targetWorkoutsPerWeek} session
+                  {activePlan.targetWorkoutsPerWeek === 1 ? "" : "s"} a week
+                  {activePlan.description ? ` · ${activePlan.description}` : ""}
+                </p>
+
+                {progress ? (
+                  <div className="pg-progress">
+                    <NativeMeter
+                      percent={Number(progress.completionPercentage ?? 0)}
+                      label="Program completion"
+                    />
+                    <span>{Math.round(Number(progress.completionPercentage ?? 0))}% complete</span>
+                    <strong>
+                      {progress.completedWorkouts} / {progress.scheduledWorkouts} sessions
+                    </strong>
+                  </div>
                 ) : null}
-              </section>
+
+                <div className="native-hero-actions">
+                  <button type="button" onClick={() => actions.openCalendar(activePlan)}>
+                    <LuCalendarDays className="h-4 w-4" />
+                    View schedule
+                  </button>
+                  <button type="button" onClick={() => actions.edit(activePlan)}>
+                    <LuPencil className="h-4 w-4" />
+                    Edit
+                  </button>
+                </div>
+              </NativeHero>
+            ) : null}
+
+            {upcoming.length > 0 && activePlan ? (
+              <NativeSection
+                title="Coming up"
+                action={
+                  <SectionAction onClick={() => actions.openCalendar(activePlan)} withChevron>
+                    Calendar
+                  </SectionAction>
+                }
+              >
+                <NativeList>
+                  {upcoming.map((day) => (
+                    <NativeRow
+                      key={day.id}
+                      glyph={
+                        <NativeGlyph tint={day.scheduledDate === today ? "orange" : "blue"}>
+                          <LuDumbbell className="h-5 w-5" />
+                        </NativeGlyph>
+                      }
+                      title={day.workoutTemplateName ?? "Workout"}
+                      subtitle={`${describeDay(day, today)} · ${day.exerciseCount} exercise${day.exerciseCount === 1 ? "" : "s"}`}
+                      trailing={
+                        day.scheduledDate === today ? (
+                          <span className="native-live-chip">TODAY</span>
+                        ) : undefined
+                      }
+                      onClick={() => actions.openCalendar(activePlan)}
+                    />
+                  ))}
+                </NativeList>
+              </NativeSection>
+            ) : null}
+
+            {progress ? (
+              <NativeSection title="Adherence">
+                <NativeList>
+                  <NativeRow
+                    glyph={
+                      <NativeGlyph tint="green">
+                        <LuDumbbell className="h-5 w-5" />
+                      </NativeGlyph>
+                    }
+                    title="Completed"
+                    subtitle={`${progress.adherencePercentage}% of due workouts`}
+                    value={String(progress.completedWorkouts)}
+                  />
+                  <NativeRow
+                    glyph={
+                      <NativeGlyph tint="rose">
+                        <LuHistory className="h-5 w-5" />
+                      </NativeGlyph>
+                    }
+                    title="Missed or skipped"
+                    subtitle={`${progress.remainingWorkouts} left to train`}
+                    value={String(progress.missedWorkouts + progress.skippedWorkouts)}
+                  />
+                  <NativeRow
+                    glyph={
+                      <NativeGlyph tint="orange">
+                        <LuZap className="h-5 w-5" />
+                      </NativeGlyph>
+                    }
+                    title="Current streak"
+                    subtitle="Consecutive completed sessions"
+                    value={String(progress.currentStreak)}
+                  />
+                </NativeList>
+              </NativeSection>
             ) : null}
 
             {state.otherPlans.length > 0 ? (
-              <section className="grid gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
-                  Other programs
-                </h2>
-                {state.otherPlans.map((plan) => (
-                  <PlanListItem
-                    key={plan.id}
-                    plan={plan}
-                    isDeleting={state.deletingPlanId === plan.id}
-                    onOpen={actions.open}
-                    onEdit={actions.edit}
-                    onOpenCalendar={actions.openCalendar}
-                    onDelete={actions.requestDelete}
-                  />
-                ))}
-              </section>
+              <NativeSection
+                title="Your programs"
+                action={<SectionAction onClick={actions.create}>New</SectionAction>}
+              >
+                <div className="native-tile-grid">
+                  {state.otherPlans.map((plan) => (
+                    <button
+                      type="button"
+                      className="native-tile"
+                      key={plan.id}
+                      onClick={() => actions.open(plan)}
+                    >
+                      <NativeGlyph
+                        tint={plan.status === ProgramPlanStatus.Completed ? "blue" : "purple"}
+                      >
+                        {plan.status === ProgramPlanStatus.Completed ? (
+                          <LuHistory className="h-5 w-5" />
+                        ) : (
+                          <LuDumbbell className="h-5 w-5" />
+                        )}
+                      </NativeGlyph>
+                      <b>{plan.name}</b>
+                      <small>
+                        {plan.targetWorkoutsPerWeek} days/week · from{" "}
+                        {formatDateOnly(plan.startDate)}
+                      </small>
+                      <em>{describeStatus(plan)}</em>
+                    </button>
+                  ))}
+                </div>
+              </NativeSection>
             ) : null}
-          </div>
-        </AsyncSection>
+          </AsyncSection>
+        </NativePage>
       </PageBody>
 
       <DeleteConfirmationModal

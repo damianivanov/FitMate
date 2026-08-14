@@ -1,6 +1,14 @@
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
-import { AsyncSection, MoveProgramDayModal, PageBody, PageHeader } from "@/shared/components";
+import {
+  AsyncSection,
+  MoveProgramDayModal,
+  NativeCard,
+  NativePage,
+  PageBody,
+  PageIntro,
+} from "@/shared/components";
 import { MONTH_LABELS } from "@/shared/utils/monthGrid";
+import "../Calendar/calendar.css";
 import { ProgramCalendarGrid } from "./components/ProgramCalendarGrid";
 import { ProgramDayDetail } from "./components/ProgramDayDetail";
 import { useProgramCalendarPage } from "./hooks/useProgramCalendarPage";
@@ -10,52 +18,46 @@ export default function ProgramCalendar() {
 
   return (
     <>
-      <PageHeader
-        title={state.plan?.name ?? "Program calendar"}
-        subtitle={`${MONTH_LABELS[state.month - 1]} ${state.year}`}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={actions.prevMonth}
-              aria-label="Previous month"
-              className="liquid-pill cursor-pointer rounded-full p-2"
-            >
-              <LuChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={actions.goToday}
-              className="liquid-pill cursor-pointer rounded-full px-3 py-2 text-xs font-semibold"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={actions.nextMonth}
-              aria-label="Next month"
-              className="liquid-pill cursor-pointer rounded-full p-2"
-            >
-              <LuChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        }
-      />
-
       <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.error}
-          onRetry={actions.reload}
-          loadingLabel="Loading calendar..."
-        >
-          <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-            <ProgramCalendarGrid
-              cells={state.cells}
-              daysByKey={state.daysByKey}
-              selectedKey={state.selectedKey}
-              onSelectDay={actions.selectDay}
-            />
+        <NativePage>
+          <PageIntro
+            eyebrow={state.plan?.name ?? "Program"}
+            title="Schedule"
+            action={
+              <button type="button" onClick={actions.goToday} className="native-header-save">
+                Today
+              </button>
+            }
+          />
+
+          <AsyncSection
+            isLoading={state.isLoading}
+            error={state.error}
+            onRetry={actions.reload}
+            loadingLabel="Loading calendar..."
+          >
+            <NativeCard className="cal-card">
+              <div className="cal-head">
+                <button type="button" onClick={actions.prevMonth} aria-label="Previous month">
+                  <LuChevronLeft className="h-4 w-4" />
+                </button>
+                <div>
+                  <span className="cal-head-year">{state.year}</span>
+                  <b className="cal-head-month">{MONTH_LABELS[state.month - 1]}</b>
+                </div>
+                <button type="button" onClick={actions.nextMonth} aria-label="Next month">
+                  <LuChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <ProgramCalendarGrid
+                cells={state.cells}
+                daysByKey={state.daysByKey}
+                selectedKey={state.selectedKey}
+                onSelectDay={actions.selectDay}
+              />
+            </NativeCard>
+
             <ProgramDayDetail
               days={state.selectedDays}
               busyDayId={state.busyDayId}
@@ -66,8 +68,8 @@ export default function ProgramCalendar() {
               onRestore={(day) => void actions.restore(day)}
               onOpenWorkout={actions.openWorkout}
             />
-          </div>
-        </AsyncSection>
+          </AsyncSection>
+        </NativePage>
       </PageBody>
 
       <MoveProgramDayModal

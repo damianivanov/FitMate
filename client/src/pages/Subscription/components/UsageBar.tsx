@@ -1,3 +1,5 @@
+import { LuCheck } from "react-icons/lu";
+import { NativeMeter } from "@/shared/components";
 import type { FeatureAvailabilityModel } from "@/types";
 import { FEATURE_LABELS } from "./features";
 
@@ -10,19 +12,22 @@ export function UsageBar({ availability }: UsageBarProps) {
 
   if (!availability.isEnabled) {
     return (
-      <div className="flex items-center justify-between py-2">
-        <span className="text-sm text-muted">{label}</span>
-        <span className="text-xs font-semibold text-muted">Not included</span>
+      <div className="sub-usage-flat">
+        <b>{label}</b>
+        <small>Not included</small>
       </div>
     );
   }
 
-  // A null limit means the plan grants this without a ceiling.
+  // A null limit means the plan grants this without a ceiling, so there is no meter to draw.
   if (availability.limit == null) {
     return (
-      <div className="flex items-center justify-between py-2">
-        <span className="text-sm text-foreground">{label}</span>
-        <span className="text-xs font-semibold text-primary">Unlimited</span>
+      <div className="sub-usage-flat">
+        <b>{label}</b>
+        <small className="sub-usage-unlimited">
+          <LuCheck className="h-4 w-4" strokeWidth={3} />
+          Unlimited
+        </small>
       </div>
     );
   }
@@ -30,33 +35,16 @@ export function UsageBar({ availability }: UsageBarProps) {
   const consumed = availability.used + availability.reserved;
   const percentage =
     availability.limit === 0 ? 100 : Math.min(100, (consumed / availability.limit) * 100);
-  const isExhausted = percentage >= 100;
 
   return (
-    <div className="py-2">
-      <div className="mb-1 flex items-baseline justify-between text-sm">
-        <span className="font-semibold text-foreground">{label}</span>
-        <span className="text-muted">
-          {consumed} of {availability.limit} used
-        </span>
-      </div>
-      <div
-        className="h-2 overflow-hidden rounded-full bg-(--glass-bg-soft)"
-        role="progressbar"
-        aria-label={label}
-        aria-valuenow={consumed}
-        aria-valuemin={0}
-        aria-valuemax={availability.limit}
-      >
-        <div
-          className={
-            isExhausted
-              ? "h-full rounded-full bg-danger transition-[width] duration-300 ease-out motion-reduce:transition-none"
-              : "h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
-          }
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
+    <div className={percentage >= 100 ? "sub-usage is-exhausted" : "sub-usage"}>
+      <span>
+        <b>{label}</b>
+        <small>
+          {consumed} of {availability.limit}
+        </small>
+      </span>
+      <NativeMeter percent={percentage} label={label} />
     </div>
   );
 }

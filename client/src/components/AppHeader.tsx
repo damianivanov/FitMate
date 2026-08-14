@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router";
-import { LuMenu } from "react-icons/lu";
-import { buildDisplayName, buildInitials } from "@/lib/helpers";
+import { useLocation } from "react-router";
+import { buildInitials } from "@/lib/helpers";
 import {
   selectIsActiveWorkout,
   useActiveWorkoutStore,
@@ -28,7 +27,6 @@ export default function AppHeader() {
 
   const isCompact = scrolledPathname === pathname;
   const title = resolveRouteTitle(pathname);
-  const displayName = buildDisplayName(user.firstName, user.lastName) || user.email;
   const initials = buildInitials(user.firstName, user.lastName, user.email);
 
   useEffect(() => {
@@ -56,26 +54,20 @@ export default function AppHeader() {
           so content dissolving under the bar never touches the controls sitting on it. */}
       <span className="liquid-lens app-header-lens" aria-hidden="true" />
 
-      <Link to="/profile" className="app-header-orb liquid-press" aria-label={`${displayName} — profile`}>
+      <button
+        type="button"
+        onClick={openDrawer}
+        className="app-header-orb liquid-press"
+        aria-label="Open navigation"
+        aria-expanded={isDrawerOpen}
+      >
         <Avatar userId={user.id} initials={initials} imageUrl={user.avatarUrl} />
         {isWorkoutActive ? <i className="app-header-orb-dot" aria-hidden="true" /> : null}
-      </Link>
+      </button>
 
       <div className={`app-header-center ${isCompact && title ? "is-compact" : ""}`}>
         <AppLogo />
         <b>{title}</b>
-      </div>
-
-      <div className="app-header-actions">
-        <button
-          type="button"
-          onClick={openDrawer}
-          className="app-round-btn liquid-press"
-          aria-label="Open navigation"
-          aria-expanded={isDrawerOpen}
-        >
-          <LuMenu className="h-[1.1875rem] w-[1.1875rem]" />
-        </button>
       </div>
     </header>
   );

@@ -1,5 +1,6 @@
-import { LuCamera, LuLoaderCircle } from "react-icons/lu";
+import { LuImageUp, LuLoaderCircle, LuPencil, LuTrash2 } from "react-icons/lu";
 import Avatar from "@/components/Avatar";
+import { ActionMenu, type ActionMenuItem } from "@/shared/components";
 import { tick } from "@/shared/utils/haptics";
 import { useProfileAvatar } from "../hooks/useProfileAvatar";
 
@@ -10,44 +11,54 @@ type ProfileAvatarPickerProps = {
 
 /**
  * The picture is its own control: you change it by pressing the thing you are changing, rather
- * than by hunting for a file field further down the form.
+ * than by hunting for a file field further down the form. Removing is a second-order action,
+ * so it lives behind the pencil instead of sitting under the avatar where it competes with it.
  */
 export function ProfileAvatarPicker({ userId, initials }: ProfileAvatarPickerProps) {
   const { state, actions, fileInputRef } = useProfileAvatar();
 
+  const items: ActionMenuItem[] = [
+    {
+      key: "change",
+      label: state.hasAvatar ? "Change photo" : "Upload a photo",
+      icon: <LuImageUp className="h-4 w-4 shrink-0" />,
+      onSelect: () => {
+        tick();
+        actions.pickFile();
+      },
+      variant: "primary",
+      disabled: state.isBusy,
+    },
+  ];
+
+  if (state.hasAvatar) {
+    items.push({
+      key: "remove",
+      label: "Remove photo",
+      icon: <LuTrash2 className="h-4 w-4 shrink-0" />,
+      onSelect: actions.remove,
+      variant: "danger",
+      disabled: state.isBusy,
+    });
+  }
+
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1.5">
-      <button
-        type="button"
-        onClick={() => {
-          tick();
-          actions.pickFile();
-        }}
-        disabled={state.isBusy}
-        className="app-avatar-edit liquid-press"
-        aria-label={state.hasAvatar ? "Change your picture" : "Add a picture"}
-      >
-        <Avatar userId={userId} initials={initials} imageUrl={state.avatarUrl} size="xl" />
+    <div className="pf-avatar">
+      <Avatar userId={userId} initials={initials} imageUrl={state.avatarUrl} size="xl" />
 
-        <span className="app-avatar-edit-badge" aria-hidden="true">
-          {state.isBusy ? (
-            <LuLoaderCircle className="h-3 w-3 animate-spin" />
+      <ActionMenu
+        items={items}
+        triggerAriaLabel="Picture options"
+        triggerClassName="pf-avatar-edit"
+        triggerContent={
+          state.isBusy ? (
+            <LuLoaderCircle className="h-4 w-4 animate-spin" />
           ) : (
-            <LuCamera className="h-3 w-3" />
-          )}
-        </span>
-      </button>
-
-      {state.hasAvatar ? (
-        <button
-          type="button"
-          onClick={actions.remove}
-          disabled={state.isBusy}
-          className="text-[0.6875rem] font-semibold text-tertiary transition-colors hover:text-danger disabled:opacity-50"
-        >
-          Remove
-        </button>
-      ) : null}
+            <LuPencil className="h-4 w-4" />
+          )
+        }
+        menuWidthClassName="w-48"
+      />
 
       <input
         ref={fileInputRef}
@@ -59,7 +70,7 @@ export function ProfileAvatarPicker({ userId, initials }: ProfileAvatarPickerPro
       />
 
       {state.error ? (
-        <p role="alert" className="max-w-[10rem] text-center text-[0.6875rem] font-medium text-danger">
+        <p role="alert" className="pf-avatar-error">
           {state.error}
         </p>
       ) : null}

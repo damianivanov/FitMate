@@ -11,7 +11,7 @@ export function CoachStrip() {
         <b>Ask FitMate Coach</b>
         <small>Adapt today’s session to how you feel</small>
       </span>
-      <LuChevronRight className="h-[1.0625rem] w-[1.0625rem] shrink-0" aria-hidden="true" />
+      <LuChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
     </Link>
   );
 }

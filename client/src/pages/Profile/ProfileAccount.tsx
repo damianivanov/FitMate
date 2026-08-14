@@ -1,9 +1,15 @@
+import { useNavigate } from "react-router";
+import { LuCookie, LuScale } from "react-icons/lu";
 import { PrimaryButton } from "@/shared/components/Buttons";
+import { NativeGlyph, NativeList, NativeRow, NativeSection } from "@/shared/components";
+import { useConsentStore } from "@/stores/consentStore";
 import ChangePassword from "./ChangePassword";
 import { useProfileAccountPage } from "./hooks/useProfileAccountPage";
 
 export default function ProfileAccount() {
   const { state, actions } = useProfileAccountPage();
+  const navigate = useNavigate();
+  const reopenBanner = useConsentStore((store) => store.reopenBanner);
 
   return (
     <div className="space-y-6">
@@ -70,6 +76,33 @@ export default function ProfileAccount() {
       </div>
 
       <ChangePassword />
+
+      {/* Legal and cookie preferences live here rather than in the navigation drawer: they are
+          settings you visit once, not sections you navigate between. */}
+      <NativeSection title="Privacy">
+        <NativeList>
+          <NativeRow
+            glyph={
+              <NativeGlyph tint="blue">
+                <LuScale className="h-5 w-5" />
+              </NativeGlyph>
+            }
+            title="Legal"
+            subtitle="Terms, privacy and AI transparency"
+            onClick={() => navigate("/legal")}
+          />
+          <NativeRow
+            glyph={
+              <NativeGlyph tint="yellow">
+                <LuCookie className="h-5 w-5" />
+              </NativeGlyph>
+            }
+            title="Cookie preferences"
+            subtitle="Choose what analytics you allow"
+            onClick={reopenBanner}
+          />
+        </NativeList>
+      </NativeSection>
     </div>
   );
 }

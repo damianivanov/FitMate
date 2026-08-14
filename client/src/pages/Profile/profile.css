@@ -1,0 +1,71 @@
+/* ----------------------------------------------------------------
+   PROFILE — page-scoped material. Everything here is prefixed pf-.
+---------------------------------------------------------------- */
+
+.pf-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.9375rem;
+}
+
+/* Named, not `> div`: the avatar picker is a div too, and `flex: 1` on it stretched the
+   picker across the card and carried the pencil out to the far edge with it. */
+.pf-hero-copy { flex: 1; display: grid; gap: 0.1875rem; min-width: 0; }
+
+.pf-hero b {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.pf-hero small { color: var(--text-tertiary); font-size: 0.8125rem; }
+.pf-hero b,
+.pf-hero small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* ---------------- Avatar picker ---------------- */
+
+.pf-avatar { position: relative; flex: none; }
+
+/* Top-right, over the disc's own edge: the pencil belongs to the picture, and a badge sat
+   below it read as a separate control with its own caption.
+
+   Opaque and accented, not glass. It lands on top of the photograph, so a translucent chip
+   with a white glyph disappears entirely against a bright corner — which is exactly what a
+   sky or a light wall in the picture gives you. The ring is the page behind it, so the badge
+   stays separated from whatever it happens to overlap. */
+.pf-avatar-edit {
+  position: absolute;
+  top: -0.7rem;
+  right: -0.5rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: linear-gradient(140deg, #fd7c3c, #d9490b);
+  transition: filter 200ms var(--ease-out);
+}
+
+.pf-avatar-edit:hover { filter: brightness(1.08); }
+
+.pf-avatar-edit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pf-avatar-error {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  width: 10rem;
+  transform: translateX(-50%);
+  color: var(--color-danger);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+}

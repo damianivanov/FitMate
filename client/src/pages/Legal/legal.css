@@ -1,0 +1,43 @@
+/* ----------------------------------------------------------------
+   LEGAL — page-scoped material. Everything here is prefixed lg-.
+---------------------------------------------------------------- */
+
+/* A jump list rather than a pill row: these are four long documents, and a reader needs to
+   see which one they are picking before they land in the middle of it. */
+.lg-jump { display: grid; gap: 0.5rem; }
+
+.lg-jump > a {
+  display: flex;
+  align-items: center;
+  gap: 0.6875rem;
+  min-height: 3.5rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--liquid-r-lg);
+  background: var(--glass-bg-card);
+  box-shadow: var(--glass-specular-card);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.lg-doc > section { scroll-margin-top: calc(var(--app-header-h) + 0.75rem); padding: 1.25rem; }
+
+.lg-doc h2 {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.lg-body { display: grid; gap: 1.5rem; margin-top: 1.25rem; }
+
+/* Scrolls inside its own container rather than widening the page: the min-width is what
+   keeps the columns readable, so it belongs here with the rest of the table's geometry. */
+.lg-table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.75rem;
+}

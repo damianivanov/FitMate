@@ -37,11 +37,40 @@
 
 /* ---------------- Week strip ---------------- */
 
+/* A scrolling rail, not a fixed week: it runs back through previous weeks and is swiped.
+   Columns are a fraction of the rail's width rather than a fixed size, so exactly
+   --wk-day-count days divide the page edge to edge — a fixed 4rem left whatever did not
+   divide evenly as dead space at the two ends. */
 .wk-week {
+  --wk-day-count: 5;
+  --wk-day-gap: 0.625rem;
+
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.3125rem;
-  margin-bottom: 0.25rem;
+  grid-auto-flow: column;
+  grid-auto-columns: calc(
+    (100% - (var(--wk-day-count) - 1) * var(--wk-day-gap)) / var(--wk-day-count)
+  );
+  gap: var(--wk-day-gap);
+  margin-inline: calc(var(--wk-gutter) * -1);
+  /* Vertical room inside the scroll box for the selected day's glow and its scale, pulled
+     back out with matching negative margins. `overflow-x: auto` forces the y axis to compute
+     to auto as well, so anything drawn outside the content box is cut — which is what was
+     slicing the shadow flat across the top and bottom of the rail. */
+  padding-block: 0.875rem;
+  margin-block: -0.875rem calc(0.25rem - 0.875rem);
+  padding-inline: var(--wk-gutter);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--wk-gutter);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.wk-week::-webkit-scrollbar { display: none; }
+
+/* Past phone width five cells would each be enormous, so the rail shows a full week instead. */
+@media (min-width: 30rem) {
+  .wk-week { --wk-day-count: 7; }
 }
 
 .wk-day {
@@ -50,13 +79,14 @@
   align-content: space-between;
   min-width: 0;
   height: 4rem;
+  scroll-snap-align: center;
   padding: 0.4375rem 0 0.3125rem;
   border: 1px solid transparent;
   border-radius: 1.375rem;
   background: transparent;
   color: var(--text-tertiary);
-  transition: background 250ms var(--ease-out), color 250ms var(--ease-out),
-    transform 180ms var(--ease-out);
+  transition: background 333ms var(--ease-out), color 333ms var(--ease-out),
+    transform 240ms var(--ease-out);
 }
 
 .wk-day > span { font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.06em; }
@@ -69,26 +99,52 @@
   background: transparent;
 }
 
-.wk-day > i.is-trained { background: currentColor; opacity: 0.5; }
-.wk-day.is-future { opacity: 0.55; }
-.wk-day:active { transform: scale(0.9); }
-
-/* Today is marked even when another day is picked, so the strip never loses its anchor. */
-.wk-day.is-today:not(.is-selected) {
-  border-color: var(--wk-face-border);
+/* A day you trained is the thing worth finding when you scroll back, so it is marked on the
+   cell itself and not only by a dot: full-strength figures against the muted rest, a tinted
+   face behind them, and an accent pip under the date. A half-opacity 4px dot in the same grey
+   as everything else was invisible at arm's length. */
+.wk-day.has-session {
   color: var(--text-primary);
-  background: var(--wk-face);
+  border-color: var(--accent-border);
+  background: var(--tint-orange-bg);
 }
 
-.wk-day.is-selected {
-  color: #ffffff;
-  border-color: rgba(255, 216, 198, 0.38);
-  background: linear-gradient(155deg, rgba(255, 142, 92, 0.96), rgba(230, 74, 22, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0.625rem 1.5rem rgba(235, 98, 38, 0.3);
+.wk-day.has-session > b { font-weight: 800; }
+
+.wk-day > i.is-trained {
+  width: 0.3125rem;
+  height: 0.3125rem;
+  background: var(--accent-strong);
   opacity: 1;
 }
 
-.wk-day.is-selected > i.is-trained { background: #ffffff; opacity: 1; }
+.wk-day.is-future { opacity: 0.55; }
+.wk-day:active { transform: scale(0.9); }
+
+/* Size and colour say different things here. Size marks what you have selected, so it follows
+   your finger up and down the rail. Colour marks today, and only today — a warm cell that
+   travelled with the selection would leave you with no fixed point to navigate against. */
+.wk-day.is-selected {
+  border-color: var(--wk-face-border);
+  background: var(--wk-face);
+  color: var(--text-primary);
+  opacity: 1;
+  transform: scale(1.14);
+}
+
+.wk-day.is-selected:active { transform: scale(1.04); }
+.wk-day.is-selected > span { font-size: 0.625rem; }
+.wk-day.is-selected > b { font-size: 1rem; }
+
+.wk-day.is-today {
+  color: #ffffff;
+  border-color: rgba(255, 216, 198, 0.38);
+  background: linear-gradient(155deg, rgba(255, 142, 92, 0.96), rgba(230, 74, 22, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 0.5rem 1.125rem rgba(235, 98, 38, 0.28);
+  opacity: 1;
+}
+
+.wk-day.is-today > i.is-trained { background: #ffffff; opacity: 1; }
 
 .wk-day:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -260,7 +316,7 @@
   stroke: var(--wk-accent);
   stroke-linecap: round;
   filter: drop-shadow(0 0 4px var(--wk-accent-soft));
-  transition: stroke-dashoffset 700ms var(--ease-out);
+  transition: stroke-dashoffset 933ms var(--ease-out);
 }
 
 .wk-ring > span { display: flex; align-items: baseline; }
@@ -303,7 +359,7 @@
   font-weight: 700;
   background: linear-gradient(120deg, rgba(255, 120, 65, 0.94), rgba(235, 76, 22, 0.96));
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.37), 0 0.625rem 1.5rem rgba(235, 98, 38, 0.26);
-  transition: transform 180ms var(--ease-out);
+  transition: transform 240ms var(--ease-out);
 }
 
 .wk-focus-cta:active { transform: scale(0.97); }
@@ -430,99 +486,138 @@
 
 /* ---------------- Session list ---------------- */
 
-.wk-list {
-  display: flex;
-  flex-direction: column;
+/* Separate cards rather than one grouped panel: each session now carries a scrolling strip of
+   its own, and a bleeding scroller inside a shared list has no edge to bleed to. */
+.wk-list { display: grid; gap: 0.625rem; }
+
+.wk-card {
+  --wk-card-pad: 0.875rem;
+
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem var(--wk-card-pad);
   border: 1px solid var(--wk-face-border);
   border-radius: var(--liquid-r-lg);
-  overflow: hidden;
   background: var(--wk-face);
 }
 
-.wk-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding-right: 0.5rem;
-  border-bottom: 1px solid var(--glass-divider);
-}
+.wk-card-head { display: flex; align-items: center; gap: 0.25rem; }
 
-.wk-row:last-child { border-bottom: 0; }
-
-.wk-row-open {
+.wk-card-open {
   display: flex;
   align-items: center;
   gap: 0.6875rem;
   flex: 1;
   min-width: 0;
-  padding: 0.6875rem 0.25rem 0.6875rem 0.875rem;
+  padding: 0;
   border: 0;
   background: transparent;
   text-align: left;
   color: var(--text-primary);
 }
 
-.wk-date-tile {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 0.0625rem;
+/* Status as a stripe rather than a tinted date tile: it needs no width, so the title keeps
+   the whole row, and it still answers "is this done" before anything is read. */
+.wk-card-rail {
   flex: none;
-  width: 2.8125rem;
-  height: 3.0625rem;
-  border: 1px solid var(--wk-face-border);
-  border-radius: var(--liquid-r-sm);
-}
-
-.wk-date-tile small {
-  font-size: 0.5rem;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.wk-date-tile b { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-.wk-date-tile.state-finished { color: var(--tint-green-fg); background: var(--tint-green-bg); }
-.wk-date-tile.state-in-progress { color: var(--tint-orange-fg); background: var(--tint-orange-bg); }
-.wk-date-tile.state-not-started { color: var(--tint-gray-fg); background: var(--tint-gray-bg); }
-
-.wk-row-copy { display: grid; gap: 0.1875rem; flex: 1; min-width: 0; }
-.wk-row-copy > b { font-size: 0.875rem; font-weight: 650; }
-.wk-row-copy > small { font-size: 0.6875rem; color: var(--text-tertiary); }
-.wk-row-copy > b,
-.wk-row-copy > small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-/* The contents of the session, at a glance. Kept on one clipped line: it is a reminder of
-   what the workout was, not a list to read. */
-.wk-row-chips {
-  display: flex;
-  gap: 0.25rem;
-  margin-top: 0.125rem;
-  overflow: hidden;
-}
-
-.wk-row-chips i {
-  flex: none;
-  padding: 0.1875rem 0.375rem;
+  align-self: stretch;
+  width: 0.1875rem;
+  min-height: 2.25rem;
   border-radius: 9999px;
-  background: var(--chip-bg);
-  color: var(--text-tertiary);
-  font-size: 0.5625rem;
-  font-style: normal;
-  white-space: nowrap;
 }
 
-.wk-row-check {
+.wk-card-rail.state-finished { background: var(--tint-green-fg); }
+.wk-card-rail.state-in-progress { background: var(--tint-orange-fg); }
+.wk-card-rail.state-not-started { background: var(--wk-face-border); }
+
+.wk-card-copy { display: grid; gap: 0.25rem; flex: 1; min-width: 0; }
+
+.wk-card-copy > b {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.wk-card-copy > small { font-size: 0.75rem; color: var(--text-tertiary); }
+.wk-card-copy > b,
+.wk-card-copy > small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.wk-card-check {
   display: grid;
   place-items: center;
   flex: none;
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 1px solid var(--color-success-border);
   border-radius: 9999px;
   color: var(--color-success);
   background: var(--color-success-soft);
+}
+
+/* ---------------- Exercise strip ---------------- */
+
+/* Every exercise, scrolling. Bleeds to the card's edges so the last tile is cut rather than
+   fitted — the cut is what says the row moves. The bleed undoes the card's own padding, so
+   the first tile still lines up with the title above it. */
+.wk-card-strip {
+  display: flex;
+  gap: 0.375rem;
+  margin-inline: calc(var(--wk-card-pad) * -1);
+  padding-inline: var(--wk-card-pad);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline-start: var(--wk-card-pad);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.wk-card-strip::-webkit-scrollbar { display: none; }
+
+/* A chip, not a tile: picture and name on one line, sized to the name so a short lift takes
+   a short chip. The strip scrolls, so nothing has to be truncated to make it fit. */
+.wk-ex {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  height: 3rem;
+  padding: 0 0.75rem 0 0.25rem;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--chip-bg);
+  box-shadow: inset 0 0 0 1px var(--glass-border-soft);
+  color: var(--text-secondary);
+  text-align: left;
+  scroll-snap-align: start;
+}
+
+.wk-ex-thumb {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: var(--text-tertiary);
+  background: var(--glass-bg-soft);
+}
+
+.wk-ex-thumb > img { width: 100%; height: 100%; object-fit: cover; }
+
+.wk-ex > small { font-size: 0.75rem; font-weight: 550; white-space: nowrap; }
+
+@media (pointer: fine) {
+  .wk-card-strip {
+    padding-bottom: 0.375rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--wk-face-border) transparent;
+  }
+
+  .wk-card-strip::-webkit-scrollbar { display: block; height: 0.3125rem; }
+  .wk-card-strip::-webkit-scrollbar-track { background: transparent; }
+  .wk-card-strip::-webkit-scrollbar-thumb { border-radius: 9999px; background: var(--wk-face-border); }
 }
 
 .wk-empty-cta {
@@ -573,8 +668,164 @@
 .wk-coach small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .wk-coach > svg { color: var(--text-tertiary); }
 
+/* The selected day's scale is emphasis, not motion, so it survives here — only the travel
+   between sizes and the press feedback are dropped. */
 @media (prefers-reduced-motion: reduce) {
-  .wk-day:active,
+  .wk-day { transition: none; }
+  .wk-day:active { transform: scale(1); }
+  .wk-day.is-selected:active { transform: scale(1.14); }
   .wk-focus-cta:active { transform: none; }
   .wk-ring-value { transition: none; }
+}
+
+
+/* The list swap runs a third longer here than the shared default. This screen is the one you
+   land on, so its motion is what sets the app's pace — the other pages keep the quicker
+   default rather than every screen inheriting a slower feel. */
+.wk-swap { animation-duration: 400ms; }
+
+/* ---------------- Exercise popover ---------------- */
+
+.wk-ex.is-open {
+  background: var(--tint-orange-bg);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+  color: var(--text-primary);
+}
+
+.xp-pop {
+  z-index: var(--z-modal);
+  width: min(21rem, calc(100vw - 1.5rem));
+  border-radius: var(--liquid-r-lg);
+  overflow: hidden;
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
+  box-shadow: var(--menu-shadow);
+  backdrop-filter: blur(3rem);
+  -webkit-backdrop-filter: blur(3rem);
+  animation: xp-in 160ms var(--ease-out) both;
+}
+
+@keyframes xp-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.xp-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.5rem 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--glass-divider);
+}
+
+.xp-head > b {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.xp-head > button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--text-tertiary);
+  background: var(--glass-bg-soft);
+}
+
+.xp-head > button:hover { color: var(--text-primary); }
+
+/* Picture column and numbers column, side by side. The photo runs the full height of the
+   body so it stays large enough to recognise, which is the whole reason it is here. */
+.xp-body { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.625rem; padding: 0.625rem; }
+
+.xp-side { display: grid; gap: 0.375rem; align-content: start; }
+
+.xp-photo {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: var(--liquid-r-sm);
+  color: var(--text-tertiary);
+  background: var(--glass-bg-soft);
+  box-shadow: inset 0 0 0 1px var(--glass-border-soft);
+}
+
+.xp-photo > img { width: 100%; height: 100%; object-fit: cover; }
+
+.xp-side > p {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0 0.125rem;
+}
+
+.xp-side b {
+  font-size: 0.9375rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.xp-side small { color: var(--text-tertiary); font-size: 0.6875rem; }
+
+/* Compact rows: index, type, value, tick on one line at list density, so a dozen sets stay
+   on screen without the popover turning into a page. */
+.xp-sets { display: grid; gap: 0.1875rem; align-content: start; max-height: 13rem; overflow-y: auto; }
+
+.xp-sets > li {
+  display: grid;
+  grid-template-columns: 1rem 1fr auto 0.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.5rem;
+  border-radius: 0.625rem;
+  background: var(--glass-bg-soft);
+  color: var(--text-tertiary);
+}
+
+.xp-sets > li.is-done { color: var(--color-success); }
+.xp-sets > li > span { font-size: 0.6875rem; font-weight: 700; color: var(--text-tertiary); }
+
+.xp-sets > li > em {
+  overflow: hidden;
+  font-size: 0.625rem;
+  font-style: normal;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.xp-sets > li > b {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* Holds the tick's column so a part-finished list does not shift left and right. */
+.xp-sets > li > i {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px var(--glass-border-soft);
+}
+
+.xp-empty { padding: 1.5rem 0.5rem; color: var(--text-tertiary); font-size: 0.8125rem; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-pop { animation: none; }
 }

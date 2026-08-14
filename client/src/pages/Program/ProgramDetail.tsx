@@ -1,23 +1,27 @@
-import { LuCalendarDays, LuPencil } from "react-icons/lu";
+import { LuCalendarDays, LuPencil, LuTarget, LuZap } from "react-icons/lu";
 import {
   ActivateProgramModal,
   AsyncSection,
+  BackHeader,
   DeleteConfirmationModal,
-  OutlinedButton,
+  NativeCard,
+  NativeGlyph,
+  NativeHero,
+  NativeList,
+  NativeMeter,
+  NativePage,
+  NativeRow,
+  NativeSection,
   PageBody,
-  PageHeader,
-  PrimaryButton,
 } from "@/shared/components";
 import { formatDateOnly } from "@/shared/utils/dateOnly";
 import {
-  PLAN_STATUS_BADGE_CLASSES,
   PLAN_STATUS_LABELS,
   SCHEDULE_TYPE_LABELS,
   TRAINING_GOAL_LABELS,
   formatPlanDuration,
 } from "@/shared/utils/programDisplay";
 import { ProgramPlanStatus } from "@/types";
-import { ProgramProgressCard } from "./components/ProgramProgressCard";
 import { ScheduleSummary } from "./components/ScheduleSummary";
 import { useProgramDetailPage } from "./hooks/useProgramDetailPage";
 
@@ -25,111 +29,204 @@ export function ProgramDetail() {
   const { state, actions } = useProgramDetailPage();
   const plan = state.plan;
   const status = plan?.status;
+  const progress = state.progress;
+  const isBusy = state.busyAction !== null;
 
   return (
     <>
-      <PageHeader
-        title={plan?.name ?? "Program"}
-        subtitle={
-          plan
-            ? `${TRAINING_GOAL_LABELS[plan.goal]} · ${SCHEDULE_TYPE_LABELS[plan.scheduleType]}`
-            : undefined
-        }
-        actions={
-          plan ? (
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${PLAN_STATUS_BADGE_CLASSES[plan.status]}`}
-            >
-              {PLAN_STATUS_LABELS[plan.status]}
-            </span>
-          ) : undefined
-        }
-      />
-
       <PageBody>
-        <AsyncSection
-          isLoading={state.isLoading}
-          error={state.error}
-          onRetry={actions.reload}
-          loadingLabel="Loading program..."
-        >
-          {plan ? (
-            <div className="mx-auto grid max-w-3xl gap-4">
-              <section className="liquid-panel grid gap-3 rounded-2xl p-4 md:rounded-lg">
-                <p className="text-sm text-secondary">
-                  {formatDateOnly(plan.startDate)}
-                  {plan.endDate ? ` → ${formatDateOnly(plan.endDate)}` : " → open-ended"} ·{" "}
-                  {formatPlanDuration(plan)} · {plan.targetWorkoutsPerWeek}x / week
-                </p>
+        <NativePage>
+          <BackHeader
+            title="Program"
+            onBack={actions.openCalendar}
+            action={
+              plan ? (
+                <button
+                  type="button"
+                  onClick={actions.openCalendar}
+                  className="app-round-btn liquid-press"
+                  aria-label="View schedule"
+                >
+                  <LuCalendarDays className="h-5 w-5" />
+                </button>
+              ) : undefined
+            }
+          />
+
+          <AsyncSection
+            isLoading={state.isLoading}
+            error={state.error}
+            onRetry={actions.reload}
+            loadingLabel="Loading program..."
+          >
+            {plan ? (
+              <>
+                <NativeHero>
+                  <div className="native-hero-top">
+                    <span>
+                      <LuZap className="h-4 w-4" fill="currentColor" />
+                      {PLAN_STATUS_LABELS[plan.status]}
+                    </span>
+                  </div>
+
+                  <h2>{plan.name}</h2>
+                  <p>
+                    {TRAINING_GOAL_LABELS[plan.goal]} · {SCHEDULE_TYPE_LABELS[plan.scheduleType]} ·{" "}
+                    {plan.targetWorkoutsPerWeek}× / week
+                  </p>
+
+                  {progress ? (
+                    <div className="pg-progress">
+                      <NativeMeter
+                        percent={Number(progress.completionPercentage ?? 0)}
+                        label="Program completion"
+                      />
+                      <span>
+                        {Math.round(Number(progress.completionPercentage ?? 0))}% complete
+                      </span>
+                      <strong>
+                        {progress.completedWorkouts} / {progress.scheduledWorkouts} sessions
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  <div className="native-hero-actions">
+                    <button type="button" onClick={actions.openCalendar}>
+                      <LuCalendarDays className="h-4 w-4" />
+                      View schedule
+                    </button>
+                    {status === ProgramPlanStatus.Draft ? (
+                      <button type="button" onClick={actions.edit}>
+                        <LuPencil className="h-4 w-4" />
+                        Edit
+                      </button>
+                    ) : null}
+                  </div>
+                </NativeHero>
+
+                <NativeSection title="Details">
+                  <NativeList>
+                    <NativeRow
+                      glyph={
+                        <NativeGlyph tint="blue">
+                          <LuCalendarDays className="h-5 w-5" />
+                        </NativeGlyph>
+                      }
+                      title="Runs"
+                      subtitle={formatPlanDuration(plan)}
+                      value={`${formatDateOnly(plan.startDate)}${plan.endDate ? ` → ${formatDateOnly(plan.endDate)}` : ""}`}
+                    />
+                    <NativeRow
+                      glyph={
+                        <NativeGlyph tint="purple">
+                          <LuTarget className="h-5 w-5" />
+                        </NativeGlyph>
+                      }
+                      title="Goal"
+                      subtitle={SCHEDULE_TYPE_LABELS[plan.scheduleType]}
+                      value={TRAINING_GOAL_LABELS[plan.goal]}
+                    />
+                  </NativeList>
+                </NativeSection>
+
                 {plan.description ? (
-                  <p className="text-sm text-secondary">{plan.description}</p>
-                ) : null}
-                <ScheduleSummary plan={plan} />
-              </section>
-
-              {state.progress ? <ProgramProgressCard progress={state.progress} /> : null}
-
-              <footer className="flex flex-wrap items-center justify-end gap-3">
-                <OutlinedButton onClick={actions.openCalendar}>
-                  <LuCalendarDays className="h-4 w-4" />
-                  Calendar
-                </OutlinedButton>
-
-                {status === ProgramPlanStatus.Draft ? (
-                  <>
-                    <OutlinedButton onClick={actions.edit}>
-                      <LuPencil className="h-4 w-4" />
-                      Edit
-                    </OutlinedButton>
-                    <OutlinedButton
-                      onClick={actions.requestDelete}
-                      disabled={state.busyAction !== null}
-                    >
-                      Delete
-                    </OutlinedButton>
-                    <PrimaryButton
-                      onClick={actions.requestActivate}
-                      disabled={state.busyAction !== null}
-                    >
-                      Activate
-                    </PrimaryButton>
-                  </>
+                  <NativeCard>
+                    <p className="ws-notes">{plan.description}</p>
+                  </NativeCard>
                 ) : null}
 
-                {status === ProgramPlanStatus.Active ? (
-                  <>
-                    <OutlinedButton onClick={actions.pause} disabled={state.busyAction !== null}>
-                      {state.busyAction === "pause" ? "Pausing..." : "Pause"}
-                    </OutlinedButton>
-                    <OutlinedButton onClick={actions.cancel} disabled={state.busyAction !== null}>
-                      {state.busyAction === "cancel" ? "Cancelling..." : "Cancel program"}
-                    </OutlinedButton>
-                    <PrimaryButton onClick={actions.complete} disabled={state.busyAction !== null}>
-                      {state.busyAction === "complete" ? "Completing..." : "Complete"}
-                    </PrimaryButton>
-                  </>
-                ) : null}
+                <NativeSection title="Schedule">
+                  <NativeCard className="pd-schedule">
+                    <ScheduleSummary plan={plan} />
+                  </NativeCard>
+                </NativeSection>
 
-                {status === ProgramPlanStatus.Paused ? (
-                  <>
-                    <OutlinedButton onClick={actions.cancel} disabled={state.busyAction !== null}>
-                      {state.busyAction === "cancel" ? "Cancelling..." : "Cancel program"}
-                    </OutlinedButton>
-                    <OutlinedButton onClick={actions.complete} disabled={state.busyAction !== null}>
-                      {state.busyAction === "complete" ? "Completing..." : "Complete"}
-                    </OutlinedButton>
-                    <PrimaryButton
-                      onClick={actions.requestActivate}
-                      disabled={state.busyAction !== null}
-                    >
-                      Resume
-                    </PrimaryButton>
-                  </>
-                ) : null}
-              </footer>
-            </div>
-          ) : null}
-        </AsyncSection>
+                {/* Status decides the whole verb list, so the buttons are grouped rather than
+                    scattered: one primary action and the rest quiet beside it. */}
+                <div className="pd-actions">
+                  {status === ProgramPlanStatus.Draft ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={actions.requestActivate}
+                        disabled={isBusy}
+                        className="native-primary-action"
+                      >
+                        Activate program
+                      </button>
+                      <button
+                        type="button"
+                        onClick={actions.requestDelete}
+                        disabled={isBusy}
+                        className="native-ghost-action tp-delete"
+                      >
+                        Delete draft
+                      </button>
+                    </>
+                  ) : null}
+
+                  {status === ProgramPlanStatus.Active ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={actions.complete}
+                        disabled={isBusy}
+                        className="native-primary-action"
+                      >
+                        {state.busyAction === "complete" ? "Completing..." : "Complete program"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={actions.pause}
+                        disabled={isBusy}
+                        className="native-ghost-action"
+                      >
+                        {state.busyAction === "pause" ? "Pausing..." : "Pause"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={actions.cancel}
+                        disabled={isBusy}
+                        className="native-ghost-action tp-delete"
+                      >
+                        {state.busyAction === "cancel" ? "Cancelling..." : "Cancel program"}
+                      </button>
+                    </>
+                  ) : null}
+
+                  {status === ProgramPlanStatus.Paused ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={actions.requestActivate}
+                        disabled={isBusy}
+                        className="native-primary-action"
+                      >
+                        Resume program
+                      </button>
+                      <button
+                        type="button"
+                        onClick={actions.complete}
+                        disabled={isBusy}
+                        className="native-ghost-action"
+                      >
+                        {state.busyAction === "complete" ? "Completing..." : "Complete"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={actions.cancel}
+                        disabled={isBusy}
+                        className="native-ghost-action tp-delete"
+                      >
+                        {state.busyAction === "cancel" ? "Cancelling..." : "Cancel program"}
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </AsyncSection>
+        </NativePage>
       </PageBody>
 
       <ActivateProgramModal

@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
+@import "./native.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -897,33 +898,12 @@ textarea { resize: none; }
   }
 }
 
-/* Nav glass */
-.liquid-nav,
-.liquid-sidebar {
-  position: relative;
-  background: var(--glass-bg-nav);
-  backdrop-filter: var(--glass-blur-nav);
-  -webkit-backdrop-filter: var(--glass-blur-nav);
-  border-bottom: 1px solid var(--glass-border-strong);
-  box-shadow: var(--glass-shadow), var(--glass-specular-nav), inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
 /* Consumers position themselves, so the positioning stays off the shared rule and can't
    race it in the bundle. */
 .liquid-chrome-bar {
   background: var(--chrome-bar-bg);
   backdrop-filter: var(--chrome-bar-blur);
   -webkit-backdrop-filter: var(--chrome-bar-blur);
-}
-
-.liquid-nav::before,
-.liquid-sidebar::before {
-  content: '';
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 1;
-  background: var(--glass-gloss-nav);
 }
 
 .liquid-chrome-bar::before {
@@ -934,8 +914,6 @@ textarea { resize: none; }
   z-index: 1;
   background: var(--chrome-bar-gloss);
 }
-
-.liquid-sidebar { border-right: 1px solid var(--glass-border); }
 
 @media (prefers-reduced-transparency: reduce) {
   .liquid-chrome-bar {
@@ -958,7 +936,7 @@ textarea { resize: none; }
    ---------------------------------------------------------------- */
 
 .app-logo {
-  font-size: 1.125rem;
+  font-size: 2rem;
   line-height: 1;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -966,7 +944,6 @@ textarea { resize: none; }
 }
 
 .app-logo span { color: var(--accent-strong); }
-.app-logo-lg { font-size: 1.5rem; }
 
 /* One disc, shaded from its swatch: lit along the top edge, deepened at the foot, with a
    hairline rim holding it against the glass. A flat fill reads as a hole punched in the
@@ -990,7 +967,6 @@ textarea { resize: none; }
     var(--avatar-tint) 58%,
     color-mix(in srgb, var(--avatar-tint) 78%, #000000)
   );
-  box-shadow: 0 0.375rem 0.875rem color-mix(in srgb, var(--avatar-tint) 38%, transparent);
 }
 
 /* The lit edge rides on top, so a photo gets the same shaded disc the initials do rather than
@@ -1029,46 +1005,6 @@ textarea { resize: none; }
 
 /* The avatar as a control. The badge overhangs the disc so the whole thing still reads as one
    round object with a small tool clipped to it, not as a square button with a circle inside. */
-.app-avatar-edit {
-  position: relative;
-  display: block;
-  border: 0;
-  padding: 0;
-  background: none;
-  border-radius: 9999px;
-  cursor: pointer;
-}
-
-.app-avatar-edit:disabled {
-  cursor: default;
-}
-
-.app-avatar-edit:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
-}
-
-.app-avatar-edit-badge {
-  position: absolute;
-  right: -0.125rem;
-  bottom: -0.125rem;
-  display: grid;
-  place-items: center;
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 9999px;
-  color: var(--text-primary);
-  background: var(--app-chrome-face);
-  box-shadow: var(--app-chrome-edge);
-  backdrop-filter: blur(1.25rem) saturate(1.6);
-  -webkit-backdrop-filter: blur(1.25rem) saturate(1.6);
-  transition: background 200ms var(--ease-out);
-}
-
-.app-avatar-edit:hover:not(:disabled) .app-avatar-edit-badge {
-  background: var(--app-chrome-face-hover);
-}
-
 /* Shared circular control: the header's menu button and the drawer's close button are the
    same object in two places, so they share one rule. */
 .app-round-btn {
@@ -1134,7 +1070,10 @@ textarea { resize: none; }
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
+  padding: 0;
+  border: 0;
   border-radius: 9999px;
+  background: none;
 }
 
 /* Only drawn while a workout is live — the one piece of state worth carrying in the corner
@@ -1192,6 +1131,11 @@ textarea { resize: none; }
   pointer-events: none;
 }
 
+/* Logged out there is no orb to hold the first column, so the wordmark and the actions are
+   pinned to their tracks instead of being auto-placed one column too far left. */
+.app-header-public > .app-header-center { grid-column: 2; }
+.app-header-public > .app-header-actions { grid-column: 3; }
+
 .app-header-actions {
   justify-self: end;
   display: flex;
@@ -1220,7 +1164,7 @@ textarea { resize: none; }
   background: var(--app-scrim);
   backdrop-filter: blur(0);
   -webkit-backdrop-filter: blur(0);
-  transition: opacity 350ms var(--ease-out), backdrop-filter 350ms var(--ease-out);
+  transition: opacity 260ms var(--ease-out), backdrop-filter 260ms var(--ease-out);
 }
 
 /* Enough to push the page back a step without hiding it — the drawer is a panel over the
@@ -1252,16 +1196,54 @@ textarea { resize: none; }
   transform: translateX(-4.375rem) scale(0.96);
   transform-origin: left center;
   transition:
-    transform 500ms var(--ease-drawer),
+    transform 380ms var(--ease-drawer),
     opacity 300ms var(--ease-out),
-    visibility 0s 500ms;
+    visibility 0s 380ms;
 }
 
 .app-drawer-layer.is-open .app-drawer {
   opacity: 1;
   visibility: visible;
   transform: none;
-  transition: transform 500ms var(--ease-drawer), opacity 250ms var(--ease-out);
+  transition: transform 380ms var(--ease-drawer), opacity 200ms var(--ease-out);
+}
+
+/* The panel arrives, then its contents settle into it in reading order. A drawer whose
+   contents are simply present the instant it lands reads as a screenshot sliding in; the
+   short stagger is what makes it feel assembled. Purely decorative, so it is skipped whole
+   when motion is turned down — nothing here carries meaning the static layout does not. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-drawer-layer.is-open .app-drawer > :not(.app-drawer-grid),
+  .app-drawer-layer.is-open .app-drawer-tile {
+    animation: app-drawer-settle 300ms var(--ease-drawer) both;
+  }
+
+  .app-drawer-layer.is-open .app-drawer > :nth-child(1) { animation-delay: 40ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(2) { animation-delay: 70ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(3) { animation-delay: 100ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(4) { animation-delay: 130ms; }
+
+  /* The tiles pick up where the header left off and run in pairs, matching the two columns
+     they are laid out in. */
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(-n + 2) { animation-delay: 150ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 3):nth-child(-n + 4) { animation-delay: 175ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 5):nth-child(-n + 6) { animation-delay: 200ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 7):nth-child(-n + 8) { animation-delay: 225ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 9) { animation-delay: 250ms; }
+
+  .app-drawer-layer.is-open .app-drawer > .app-drawer-footer { animation-delay: 265ms; }
+  .app-drawer-layer.is-open .app-drawer > .app-drawer-logout { animation-delay: 290ms; }
+}
+
+@keyframes app-drawer-settle {
+  from {
+    opacity: 0;
+    transform: translateX(-0.875rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .app-drawer-head {
@@ -1270,8 +1252,6 @@ textarea { resize: none; }
   justify-content: space-between;
   padding: 0.125rem 0.125rem 0.75rem 0.4375rem;
 }
-
-.app-drawer-logo { font-size: 1.375rem; }
 
 .app-drawer-profile {
   display: flex;
@@ -1287,9 +1267,9 @@ textarea { resize: none; }
 
 /* Named rather than `> span`: the avatar is a span too, and a positional selector here was
    handing it `flex: 1` and stretching the disc into an ellipse. */
-.app-drawer-profile-copy { flex: 1; display: grid; gap: 0.1875rem; }
-.app-drawer-profile b { font-size: 0.8125rem; font-weight: 650; }
-.app-drawer-profile small { font-size: 0.6875rem; color: var(--text-tertiary); }
+.app-drawer-profile-copy { flex: 1; display: grid; gap: 0; }
+.app-drawer-profile b { font-size: 1.25rem; font-weight: 650; line-height: 1.25; }
+.app-drawer-profile small { font-size: 0.6875rem; line-height: 1.3; color: var(--text-tertiary); }
 .app-drawer-profile > svg { flex: none; color: var(--text-tertiary); }
 .app-drawer-profile b,
 .app-drawer-profile small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -1404,30 +1384,98 @@ textarea { resize: none; }
 .app-drawer-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding: 0.75rem 0.25rem 0;
   border-top: 1px solid var(--glass-divider);
 }
 
+/* Plain text links. They are footnotes to the drawer, not destinations worth a glyph each —
+   an icon per item gave them the same weight as the section tiles above. */
 .app-drawer-footer > a,
 .app-drawer-footer > button {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
   padding: 0.25rem 0.125rem;
   border: 0;
   background: transparent;
-  color: var(--text-tertiary);
-  font-size: 0.75rem;
+  color: var(--accent-strong);
+  font-size: 0.8125rem;
   font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.1875rem;
 }
 
 .app-drawer-footer > a:hover,
 .app-drawer-footer > button:hover { color: var(--text-primary); }
 
-.app-drawer-theme { display: flex; align-items: center; gap: 0.5rem; }
+/* A boxed pair, not a track with a knob: each half is its own target with its own label, so
+   the control states what it will do instead of what it currently is. */
+.app-theme-box {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  padding: 0.25rem;
+  border: 1px solid var(--app-well-border);
+  border-radius: 9999px;
+  background: var(--app-well-bg);
+}
+
+.app-theme-thumb {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc(50% - 0.25rem);
+  border-radius: 9999px;
+  /* Mixed from the accent rather than hard-coded, so it carries the same orange in both themes.
+     Kept translucent so the well still reads through it — a solid fill would turn the selected
+     half into a button and stop the pair reading as one control. */
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--accent-strong) 46%, transparent),
+    color-mix(in srgb, var(--accent-strong) 30%, transparent)
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 58%, transparent);
+  /* Overshoots slightly and settles, so the travel reads as a thing being moved rather than
+     a rectangle being redrawn in a new place. */
+  transition: transform 300ms var(--ease-drawer);
+}
+
+.app-theme-box.is-light .app-theme-thumb { transform: translateX(100%); }
+
+.app-theme-box > button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  transition: color 260ms var(--ease-out);
+}
+
+.app-theme-box > button:hover { color: var(--text-primary); }
+.app-theme-box > button.is-active { color: var(--text-primary); }
+
+/* The glyph scales up as its half takes the thumb, so the change registers even when the
+   label colours are close. */
+.app-theme-box > button > svg { transition: color 200ms var(--ease-out), transform 300ms var(--ease-drawer); }
+.app-theme-box > button:first-child.is-active > svg { color: var(--tint-blue-fg); transform: scale(1.15); }
+.app-theme-box > button:last-child.is-active > svg { color: var(--tint-orange-fg); transform: scale(1.15) rotate(45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-thumb,
+  .app-theme-box > button > svg { transition: none; }
+  .app-theme-box > button.is-active > svg { transform: none; }
+}
 
 .app-drawer-logout {
   display: flex;
@@ -1506,6 +1554,7 @@ textarea { resize: none; }
   --bottom-nav-ink-active: #b8420e;
   --bottom-nav-action: linear-gradient(140deg, #fd7c3c, #d9490b);
   --bottom-nav-action-glow: 0 10px 26px rgba(235, 98, 38, 0.38);
+  --bottom-nav-action-ring: rgba(236, 242, 250, 0.62);
 
   border: 1px solid var(--glass-border-strong);
   background: var(--glass-bg-nav);
@@ -1519,6 +1568,7 @@ textarea { resize: none; }
   --bottom-nav-ink-active: var(--color-primary);
   --bottom-nav-action: linear-gradient(140deg, rgba(var(--primary-rgb), 0.98), rgba(var(--primary-rgb), 0.76));
   --bottom-nav-action-glow: 0 10px 24px rgba(var(--primary-rgb), 0.3);
+  --bottom-nav-action-ring: rgba(24, 26, 38, 0.72);
 
   border: 1px solid rgba(255, 255, 255, 0.12);
   background:
@@ -1550,16 +1600,42 @@ textarea { resize: none; }
   color: var(--bottom-nav-ink-active);
 }
 
+/* The action's column sizes to the orb while the four tabs share what is left. On an equal
+   five-column grid a 5rem orb is wider than its cell at phone width, so it spilled over the
+   tabs either side — centred, but crowding them. */
+.liquid-bottom-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto repeat(2, minmax(0, 1fr));
+  align-items: center;
+  overflow: visible;
+}
+
+/* Larger than the bar is tall, so it sits centred on the pill and overflows it equally above
+   and below rather than inflating it — the tab cell keeps its own height. The ring is the
+   bar's own material, so the orb reads as seated in the surface, not pasted on top. */
 .liquid-bottom-action {
   display: flex;
-  height: 2.75rem;
-  width: 2.75rem;
+  height: 5rem;
+  width: 5rem;
+  margin-block: -1.125rem;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   color: #ffffff;
   background: var(--bottom-nav-action);
-  box-shadow: var(--bottom-nav-action-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow:
+    var(--bottom-nav-action-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 0.375rem var(--bottom-nav-action-ring);
+}
+
+.liquid-bottom-action > svg { height: 2rem; width: 2rem; }
+
+/* The orb's own cell must not clip it, and the bar must not grow to contain it. */
+.liquid-bottom-tab:has(.liquid-bottom-action) {
+  height: 2.75rem;
+  width: auto;
+  overflow: visible;
 }
 
 /* Every mobile page scrolls inside .liquid-main-shell, so the clearance for the floating tab
@@ -1567,8 +1643,14 @@ textarea { resize: none; }
    (the builders, the coach) inherit it without opting in. */
 @media (max-width: 767px) {
   .liquid-main-shell {
-    padding-bottom: var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6rem));
+    padding-bottom: var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6.25rem));
   }
+}
+
+/* Logged out the shell is the same box, but there is no tab bar under it — the clearance would
+   be a gap below the landing footer. Retuned at the source so the banner rule follows. */
+.liquid-public-shell {
+  --mobile-bottom-clearance: env(safe-area-inset-bottom, 0px);
 }
 
 /* While the banner is open it forms a bottom dock with the page footer stacked beneath it, both
@@ -1591,7 +1673,7 @@ textarea { resize: none; }
 @media (max-width: 767px) {
   .liquid-main-shell.liquid-banner-clearance {
     padding-bottom: calc(
-      var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6rem)) +
+      var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6.25rem)) +
         var(--cookie-banner-height, 0px) + 1rem
     );
   }
@@ -1686,15 +1768,6 @@ textarea { resize: none; }
     animation: none;
     box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.55); /* static ring instead of pulse */
   }
-}
-
-/* PWA status-bar clearance: iOS standalone uses a translucent status bar (black-translucent),
-   so content extends under it. Pad the shell down by the top safe-area inset so nothing sits
-   beneath the bar; the .liquid-shell scene gradient shows through behind it. Mirrors how
-   FitnessApp-Client applies `padding-top: env(safe-area-inset-top)` to <body>. Insets are 0
-   in normal browser tabs (no viewport-fit=cover), so this is a no-op there. */
-.pwa-safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Strictly for a bar that sits above its own scroll region — the builders and the workout
@@ -2431,37 +2504,51 @@ input[type="number"] {
    ---------------------------------------------------------------- */
 
 .liquid-subtle-text { color: var(--text-tertiary); }
-.text-foreground    { color: var(--text-primary); }
-.text-secondary     { color: var(--text-secondary); }
-.text-tertiary      { color: var(--text-tertiary); }
-.text-muted         { color: var(--text-muted); }
-.text-danger        { color: var(--color-danger); }
-.text-primary       { color: var(--color-primary); }
 
+/* The text/surface/radius utilities below are generated by Tailwind from the tokens declared
+   here, rather than hand-written. `inline` means these keys are not emitted as variables of
+   their own — the utility carries the var() through, so it still re-resolves under .dark. */
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;
-  --color-ring: var(--ring);
-  --color-input: var(--input);
+
+  /* Ink. `foreground` keeps its established meaning (the primary text colour) because 144
+     call sites already say text-foreground. */
+  --color-foreground: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-muted: var(--text-muted);
+  --color-disabled: var(--text-disabled);
+
+  /* Status. Named for what they mean, not for a palette position. */
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+
+  /* Surfaces and edges, so a panel can be described without an arbitrary var() at each site.
+     Only tokens that are a flat colour in BOTH themes belong here: --glass-bg-card is a
+     gradient under .dark, and as a --color-* key it would compile to an invalid
+     `background-color: linear-gradient(...)`. Gradient surfaces stay with the CSS primitives. */
+  --color-glass-soft: var(--glass-bg-soft);
+  --color-glass-edge: var(--glass-border-soft);
+  --color-glass-row: var(--glass-hover-row-bg);
+  --color-well: var(--app-well-bg);
+  --color-well-edge: var(--app-well-border);
+
+  /* The material radii, so rounded-liquid-md replaces rounded-[var(--liquid-r-md)]. */
+  --radius-liquid-sm: var(--liquid-r-sm);
+  --radius-liquid-md: var(--liquid-r-md);
+  --radius-liquid-lg: var(--liquid-r-lg);
+  --radius-liquid-xl: var(--liquid-r-xl);
+
+  /* Consumed only by the @apply base layer at the bottom of this file (default border colour,
+     focus ring, body background). Nothing in the app references them directly. */
   --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: #5868F5;
-  --color-accent-300: #8B9AFF;
-  --color-accent-400: #6D7CFF;
-  --color-accent-500: #5868F5;
-  --color-accent-600: #4655DA;
-  --color-success: var(--theme-success);
-  --color-mint: #10B981;
-  --color-mint-300: #5EEAD4;
-  --color-mint-400: #34D399;
-  --color-mint-500: #10B981;
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: rgb(var(--primary-rgb));
   --color-primary-100: var(--primary-100);
@@ -2473,12 +2560,6 @@ input[type="number"] {
   --color-primary-700: var(--primary-700);
   --color-primary-800: var(--primary-800);
   --color-primary-900: var(--primary-900);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

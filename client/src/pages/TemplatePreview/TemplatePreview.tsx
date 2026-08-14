@@ -1,71 +1,156 @@
-import { LuArrowLeft, LuLoaderCircle, LuPencil, LuPlay, LuTrash2 } from "react-icons/lu";
-import { AsyncSection, DeleteConfirmationModal, PageBody } from "@/shared/components";
-import { TemplatePreviewPanel } from "../Templates/components/TemplatePreviewPanel";
+import { LuDumbbell, LuLoaderCircle, LuPencil, LuPlay, LuTrash2 } from "react-icons/lu";
+import {
+  AsyncSection,
+  BackHeader,
+  DeleteConfirmationModal,
+  NativeGlyph,
+  NativeHero,
+  NativeList,
+  NativePage,
+  NativeRow,
+  NativeSection,
+  PageBody,
+} from "@/shared/components";
 import { useTemplatePreviewPage } from "./hooks/useTemplatePreviewPage";
+import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/types";
+
+function getExercises(template: WorkoutTemplate): WorkoutTemplateExercise[] {
+  return template.groups
+    .slice()
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .flatMap((group) =>
+      group.exercises.slice().sort((left, right) => left.orderIndex - right.orderIndex),
+    );
+}
+
+function describeSets(exercise: WorkoutTemplateExercise): string {
+  const setCount = exercise.sets.length;
+
+  if (setCount === 0) {
+    return "No sets";
+  }
+
+  const reps = exercise.sets
+    .map((set) => set.reps)
+    .filter((value): value is number => value != null);
+
+  if (reps.length === 0) {
+    return `${setCount} set${setCount === 1 ? "" : "s"}`;
+  }
+
+  const low = Math.min(...reps);
+  const high = Math.max(...reps);
+
+  return `${setCount} × ${low === high ? low : `${low}–${high}`}`;
+}
 
 export default function TemplatePreview() {
   const { state, actions } = useTemplatePreviewPage();
+  const template = state.template;
+
+  const summary = template
+    ? [
+        `${template.exerciseCount} exercise${template.exerciseCount === 1 ? "" : "s"}`,
+        `${template.setCount} set${template.setCount === 1 ? "" : "s"}`,
+        template.estimatedDurationMinutes ? `about ${template.estimatedDurationMinutes} min` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   return (
     <>
-      <header className="flex items-center gap-3 px-4 py-3 md:px-8">
-        <button
-          type="button"
-          onClick={actions.back}
-          className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          aria-label="Back to templates"
-        >
-          <LuArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-foreground">
-            {state.template?.name ?? "Template"}
-          </h1>
-          <button
-            type="button"
-            onClick={actions.edit}
-            disabled={!state.isActionable}
-            className="liquid-pill inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Edit template"
-          >
-            <LuPencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={actions.requestDelete}
-            disabled={!state.isActionable || state.isDeleting}
-            className="liquid-pill liquid-pill-danger inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Delete template"
-          >
-            {state.isDeleting ? (
-              <LuLoaderCircle className="h-4 w-4 animate-spin" />
-            ) : (
-              <LuTrash2 className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={actions.start}
-          disabled={!state.isActionable || state.isStartingTemplate}
-          className="liquid-primary-btn inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <LuPlay className="h-4 w-4" />
-          <span>{state.isStartingTemplate ? "Starting" : "Start"}</span>
-        </button>
-      </header>
-
       <PageBody>
-        <div className="mx-auto max-w-3xl">
+        <NativePage>
+          <BackHeader
+            title="Template"
+            onBack={actions.back}
+            action={
+              <button
+                type="button"
+                onClick={actions.edit}
+                disabled={!state.isActionable}
+                className="app-round-btn liquid-press disabled:opacity-60"
+                aria-label="Edit template"
+              >
+                <LuPencil className="h-4 w-4" />
+              </button>
+            }
+          />
+
           <AsyncSection
             isLoading={state.isLoading}
             error={state.error}
             onRetry={actions.reload}
             loadingLabel="Loading template..."
           >
-            <TemplatePreviewPanel template={state.template} />
+            {template ? (
+              <>
+                <NativeHero centred>
+                  <NativeGlyph tint="orange" size="lg">
+                    <LuDumbbell className="h-6 w-6" />
+                  </NativeGlyph>
+                  <p>Workout template</p>
+                  <h2>{template.name}</h2>
+                  <small>{summary}</small>
+
+                  <button
+                    type="button"
+                    onClick={actions.start}
+                    disabled={!state.isActionable || state.isStartingTemplate}
+                    className="native-primary-action mt-5 max-w-xs"
+                  >
+                    {state.isStartingTemplate ? (
+                      <LuLoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <LuPlay className="h-4 w-4" fill="currentColor" />
+                    )}
+                    {state.isStartingTemplate ? "Starting" : "Start workout"}
+                  </button>
+                </NativeHero>
+
+                {template.description ? (
+                  <NativeSection title="About">
+                    <div className="native-card px-4 py-4 text-sm leading-relaxed text-secondary">
+                      {template.description}
+                    </div>
+                  </NativeSection>
+                ) : null}
+
+                <NativeSection title="Exercises">
+                  <NativeList>
+                    {getExercises(template).map((exercise) => (
+                      <NativeRow
+                        key={exercise.id}
+                        glyph={
+                          <NativeGlyph tint="orange">
+                            <LuDumbbell className="h-5 w-5" />
+                          </NativeGlyph>
+                        }
+                        title={exercise.exerciseName || `Exercise #${exercise.exerciseId}`}
+                        subtitle={describeSets(exercise)}
+                      />
+                    ))}
+                  </NativeList>
+                </NativeSection>
+
+                <button
+                  type="button"
+                  onClick={actions.requestDelete}
+                  disabled={!state.isActionable || state.isDeleting}
+                  className="native-ghost-action tp-delete"
+                >
+                  {state.isDeleting ? (
+                    <LuLoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LuTrash2 className="h-4 w-4" />
+                  )}
+                  Delete template
+                </button>
+              </>
+            ) : null}
           </AsyncSection>
-        </div>
+        </NativePage>
       </PageBody>
 
       <DeleteConfirmationModal

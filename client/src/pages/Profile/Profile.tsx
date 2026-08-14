@@ -1,38 +1,33 @@
 import { Outlet } from "react-router";
-import { PageBody } from "@/shared/components";
+import { NativeCard, NativePage, PageBody, PageIntro } from "@/shared/components";
 import { ProfileAvatarPicker } from "./components/ProfileAvatarPicker";
 import { ProfileSectionNav } from "./components/ProfileSectionNav";
 import { useProfilePage } from "./hooks/useProfilePage";
+import "./profile.css";
 
 export default function Profile() {
   const { state } = useProfilePage();
   const { user, displayName, hasName, initials } = state;
 
   return (
-    <>
-      <header className="px-4 py-4 md:px-8 md:py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <ProfileAvatarPicker userId={user.id} initials={initials} />
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">
-                {displayName}
-              </h1>
-              {hasName && user.email ? (
-                <span className="truncate text-sm font-medium text-secondary">{user.email}</span>
-              ) : null}
-            </div>
+    <PageBody>
+      <NativePage>
+        <PageIntro eyebrow="Your account" title="Profile" />
+
+        <NativeCard className="pf-hero">
+          <ProfileAvatarPicker userId={user.id} initials={initials} />
+          <div className="pf-hero-copy">
+            <b>{displayName}</b>
+            {hasName && user.email ? <small>{user.email}</small> : null}
           </div>
+        </NativeCard>
 
-          <ProfileSectionNav />
-        </div>
-      </header>
+        <ProfileSectionNav />
 
-      <PageBody>
-        <div className="mx-auto min-w-0 max-w-3xl">
+        <div className="min-w-0">
           <Outlet />
         </div>
-      </PageBody>
-    </>
+      </NativePage>
+    </PageBody>
   );
 }

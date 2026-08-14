@@ -86,22 +86,18 @@ export default function TemplateBuilder() {
         saveTemplateLabel={state.saveTemplateLabel}
       />
 
-      <div className="liquid-scrollbar flex-1 overflow-y-auto px-3 pb-6 pt-4 md:px-8 md:pt-6">
+      <div className="bd-body">
         {state.isBuilderLoading ? (
-          <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
-            <p className="text-sm font-semibold text-foreground">Loading template...</p>
-          </div>
+          <div className="native-card bd-status">Loading template...</div>
         ) : null}
 
         {!state.isBuilderLoading && state.templateLoadError ? (
-          <div className="liquid-panel rounded-2xl px-5 py-8 text-center md:rounded-lg">
-            <p className="text-sm font-semibold text-danger">{state.templateLoadError}</p>
-          </div>
+          <div className="native-card bd-status bd-status-error">{state.templateLoadError}</div>
         ) : null}
 
         {!state.isBuilderLoading && !state.templateLoadError && draft ? (
-          <div className="w-full space-y-6">
-            <section className="min-w-0 md:space-y-4">
+          <div className="bd-page">
+            <section className="min-w-0 space-y-4">
               <TemplateBuilderMetadataPanel
                 templateName={draft.name}
                 templateDescription={draft.description}

@@ -140,7 +140,7 @@ export default function Workouts() {
                 </div>
               }
             >
-              <SwapIn swapKey={state.filter} direction={direction}>
+              <SwapIn swapKey={state.filter} direction={direction} className="wk-swap">
                 {visibleCount === 0 ? (
                   <div className="liquid-panel liquid-empty">
                     <p className="liquid-empty-title">Nothing here</p>

@@ -1,0 +1,93 @@
+/* ----------------------------------------------------------------
+   TEMPLATES — page-scoped material. Everything here is prefixed tp-.
+---------------------------------------------------------------- */
+
+.tp-grid { display: grid; gap: 0.5625rem; }
+
+.tp-card {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--liquid-r-lg);
+  background: var(--glass-bg-card);
+  box-shadow: var(--glass-shadow-soft), var(--glass-specular-card);
+  backdrop-filter: var(--glass-blur-card);
+  -webkit-backdrop-filter: var(--glass-blur-card);
+  color: var(--text-primary);
+}
+
+.tp-card-open {
+  display: grid;
+  grid-template-columns: 3.375rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  min-height: 5.1875rem;
+  padding: 0.8125rem 0.25rem 0.8125rem 0.8125rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.tp-card-copy { display: grid; gap: 0.25rem; min-width: 0; }
+.tp-card-copy > b { font-size: 0.875rem; font-weight: 650; }
+.tp-card-copy > small { font-size: 0.6875rem; color: var(--text-tertiary); }
+.tp-card-copy > b,
+.tp-card-copy > small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Wraps under the copy at phone width rather than squeezing the name: the title is what you
+   are scanning for, the counts are confirmation once you have found it. */
+.tp-card-open > em {
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+@media (max-width: 25rem) {
+  .tp-card-open { grid-template-columns: 3.375rem minmax(0, 1fr); }
+  .tp-card-open > em { grid-column: 2; margin-top: 0.25rem; }
+}
+
+/* Dashed and unfilled: it creates rather than opens, so it should not look like the
+   templates that already exist. */
+.tp-new {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1875rem;
+  min-height: 7rem;
+  padding: 0.875rem;
+  border-style: dashed;
+  border-color: var(--glass-border-soft);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-align: left;
+}
+
+.tp-new > span {
+  display: grid;
+  place-items: center;
+  width: 2.625rem;
+  height: 2.625rem;
+  margin-bottom: 0.375rem;
+  border-radius: var(--liquid-r-sm);
+  color: var(--tint-orange-fg);
+  background: var(--tint-orange-bg);
+}
+
+.tp-new > b { font-size: 0.875rem; font-weight: 650; }
+.tp-new > small { color: var(--text-tertiary); font-size: 0.75rem; }
+
+.tp-empty {
+  padding: 2rem 0.25rem;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  text-align: center;
+}

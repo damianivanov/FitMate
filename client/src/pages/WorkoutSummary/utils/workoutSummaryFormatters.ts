@@ -1,13 +1,7 @@
 import { normalizeUtcIsoString } from "@/lib/helpers";
-import { ExerciseGroupType, ExerciseSetType, type WorkoutExerciseModel, type WorkoutSetModel } from "@/types";
-import { formatMetricValue } from "../../WorkoutBuilder/utils/workoutDraft";
+import { ExerciseGroupType, type WorkoutExerciseModel } from "@/types";
 
-export const SET_TYPE_LABELS: Record<ExerciseSetType, string> = {
-  [ExerciseSetType.Warmup]: "Warmup",
-  [ExerciseSetType.Working]: "Working",
-  [ExerciseSetType.Dropset]: "Dropset",
-  [ExerciseSetType.Failure]: "Failure",
-};
+export { SET_TYPE_LABELS, getSetValueText } from "@/shared/utils/workoutSetDisplay";
 
 export const GROUP_TYPE_LABELS: Record<ExerciseGroupType, string> = {
   [ExerciseGroupType.Straight]: "Straight set",
@@ -49,30 +43,6 @@ export function formatDuration(totalSeconds: number | null | undefined): string 
   }
 
   return `${minutes}m`;
-}
-
-export function getSetValueText(set: WorkoutSetModel): string {
-  const weight = formatMetricValue(set.weightKg);
-  const reps = formatMetricValue(set.reps);
-  const duration = formatMetricValue(set.durationSeconds);
-
-  if (weight && reps) {
-    return `${weight} kg × ${reps}`;
-  }
-
-  if (reps) {
-    return `${reps} reps`;
-  }
-
-  if (duration) {
-    return `${duration}s`;
-  }
-
-  if (weight) {
-    return `${weight} kg`;
-  }
-
-  return "-";
 }
 
 export function getExerciseName(exercise: WorkoutExerciseModel): string {

@@ -1,0 +1,42 @@
+/* ----------------------------------------------------------------
+   SUBSCRIPTION — page-scoped material. Everything here is prefixed sub-.
+---------------------------------------------------------------- */
+
+.sub-crown {
+  display: grid;
+  place-items: center;
+  width: 3.375rem;
+  height: 3.375rem;
+  border-radius: var(--liquid-r-md);
+  color: var(--tint-yellow-fg);
+  background: var(--tint-yellow-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.sub-usage-card { display: grid; gap: 1.0625rem; padding: 0.9375rem; }
+
+.sub-usage { display: grid; gap: 0.4375rem; }
+.sub-usage > span { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+.sub-usage b { font-size: 0.8125rem; font-weight: 650; color: var(--text-primary); }
+.sub-usage small { color: var(--text-tertiary); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+/* A spent quota is information, not an error — but it does need to stop reading as progress. */
+.sub-usage.is-exhausted .native-meter > b { background: var(--color-danger); box-shadow: none; }
+
+.sub-usage-flat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sub-usage-flat b { font-size: 0.8125rem; font-weight: 650; color: var(--text-primary); }
+.sub-usage-flat small { color: var(--text-tertiary); font-size: 0.75rem; }
+
+.sub-usage-unlimited {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-success) !important;
+  font-weight: 650;
+}

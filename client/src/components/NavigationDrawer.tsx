@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
-import {
-  LuChevronRight,
-  LuCookie,
-  LuLogOut,
-  LuMoon,
-  LuScale,
-  LuSearch,
-  LuSun,
-  LuX,
-} from "react-icons/lu";
+import { LuChevronRight, LuLogOut, LuMoon, LuSearch, LuSun, LuX } from "react-icons/lu";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import {
   selectIsActiveWorkout,
   useActiveWorkoutStore,
 } from "@/stores/activeWorkoutStore";
-import { useConsentStore } from "@/stores/consentStore";
 import { selectIsNavDrawerOpen, useNavDrawerStore } from "@/stores/navDrawerStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useUserStore } from "@/stores/userStore";
@@ -31,8 +21,7 @@ export default function NavigationDrawer() {
   const isWorkoutActive = useActiveWorkoutStore(selectIsActiveWorkout);
   const openNewWorkout = useActiveWorkoutStore((state) => state.openNewWorkout);
   const expandWorkout = useActiveWorkoutStore((state) => state.expand);
-  const { theme, toggleTheme } = useThemeStore();
-  const reopenBanner = useConsentStore((state) => state.reopenBanner);
+  const { theme, setTheme } = useThemeStore();
 
   const [query, setQuery] = useState("");
   const [wasOpen, setWasOpen] = useState(isOpen);
@@ -103,11 +92,6 @@ export default function NavigationDrawer() {
     openNewWorkout();
   };
 
-  const handleCookiePreferences = () => {
-    reopenBanner();
-    closeDrawer();
-  };
-
   return (
     <div className={`app-drawer-layer ${isOpen ? "is-open" : ""}`} inert={!isOpen} aria-hidden={!isOpen}>
       <button
@@ -119,7 +103,7 @@ export default function NavigationDrawer() {
 
       <aside className="app-drawer" aria-label="All FitMate sections">
         <div className="app-drawer-head">
-          <AppLogo className="app-drawer-logo" />
+          <AppLogo />
           <button
             ref={closeButtonRef}
             type="button"
@@ -137,7 +121,7 @@ export default function NavigationDrawer() {
             <b>{displayName}</b>
             <small>View your profile</small>
           </span>
-          <LuChevronRight className="h-[1.0625rem] w-[1.0625rem]" aria-hidden="true" />
+          <LuChevronRight className="h-4 w-4" aria-hidden="true" />
         </Link>
 
         <button type="button" onClick={handleStartWorkout} className="app-drawer-cta liquid-primary-btn">
@@ -145,7 +129,7 @@ export default function NavigationDrawer() {
         </button>
 
         <label className="app-drawer-search">
-          <LuSearch className="h-[1.0625rem] w-[1.0625rem] shrink-0" aria-hidden="true" />
+          <LuSearch className="h-4 w-4 shrink-0" aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -169,7 +153,7 @@ export default function NavigationDrawer() {
                 {({ isActive }) => (
                   <>
                     <span className={`app-tile-icon tint-${item.tint}`}>
-                      <Icon className="h-[1.3125rem] w-[1.3125rem]" />
+                      <Icon className="h-5 w-5" />
                     </span>
                     <b>{item.label}</b>
                     {isActive ? <i aria-hidden="true" /> : null}
@@ -184,37 +168,39 @@ export default function NavigationDrawer() {
           ) : null}
         </nav>
 
+        {/* Legal and cookie preferences moved to Profile → Account. What is left is the one
+            control worth reaching the drawer for: the theme. */}
         <div className="app-drawer-footer">
-          <Link to="/legal" onClick={closeDrawer}>
-            <LuScale className="h-4 w-4" aria-hidden="true" />
-            Legal
-          </Link>
+          {/* Two labelled boxes rather than a sliding switch: a switch only says on/off, and
+              which side means dark has to be learned. Naming both states removes the guess. */}
+          <div
+            className={`app-theme-box ${isLightMode ? "is-light" : "is-dark"}`}
+            role="group"
+            aria-label="Appearance"
+          >
+            {/* One thumb that travels between the halves rather than two fills swapping on
+                and off — the movement is what tells you the two are the same control. */}
+            <span className="app-theme-thumb" aria-hidden="true" />
 
-          <button type="button" onClick={handleCookiePreferences}>
-            <LuCookie className="h-4 w-4" aria-hidden="true" />
-            Cookies
-          </button>
-
-          <span className="app-drawer-theme">
-            <LuMoon
-              className={isLightMode ? "h-4 w-4 text-sky-400/85" : "h-4 w-4 text-sky-600"}
-              aria-hidden="true"
-            />
             <button
               type="button"
-              onClick={toggleTheme}
-              className={`liquid-theme-switch ${isLightMode ? "liquid-theme-switch-active" : ""}`}
-              role="switch"
-              aria-checked={isLightMode}
-              aria-label={isLightMode ? "Switch to dark mode" : "Switch to light mode"}
+              onClick={() => setTheme("dark")}
+              className={isLightMode ? "" : "is-active"}
+              aria-pressed={!isLightMode}
             >
-              <span className="liquid-theme-switch-knob" />
+              <LuMoon className="h-4 w-4" aria-hidden="true" />
+              Dark
             </button>
-            <LuSun
-              className={isLightMode ? "h-4 w-4 text-orange-600" : "h-4 w-4 text-orange-400/85"}
-              aria-hidden="true"
-            />
-          </span>
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={isLightMode ? "is-active" : ""}
+              aria-pressed={isLightMode}
+            >
+              <LuSun className="h-4 w-4" aria-hidden="true" />
+              Light
+            </button>
+          </div>
         </div>
 
         <button type="button" onClick={handleLogout} className="app-drawer-logout liquid-press">

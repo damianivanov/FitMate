@@ -1,0 +1,86 @@
+/* ----------------------------------------------------------------
+   ANALYTICS — page-scoped material. Everything here is prefixed an-.
+---------------------------------------------------------------- */
+
+.an-period { align-self: flex-end; width: max-content; margin-top: -0.75rem; }
+
+.an-chart-card { padding: 1.125rem; }
+
+.an-total { display: grid; gap: 0.125rem; }
+
+.an-total > span {
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.an-total > b {
+  font-size: 1.625rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.an-total > b small { color: var(--text-tertiary); font-size: 0.8125rem; font-weight: 600; }
+
+.an-chart { margin: 0.75rem -0.35rem 0; }
+
+/* ---------------- Muscle balance ---------------- */
+
+/* Plain labelled bars rather than a charting library: there is one number per row and no axis
+   worth drawing, and the rows line up with every other list on the screen. */
+.an-balance { display: grid; gap: 0.875rem; padding: 1.125rem; }
+
+.an-balance > div {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 2.25rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.an-balance span,
+.an-balance strong { font-size: 0.75rem; }
+
+.an-balance span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.an-balance strong { color: var(--text-tertiary); text-align: right; font-variant-numeric: tabular-nums; }
+
+.an-balance i {
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--glass-border-soft);
+}
+
+.an-balance i > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 500ms var(--ease-out);
+}
+
+.an-balance i > b.tint-orange { background: var(--tint-orange-fg); }
+.an-balance i > b.tint-blue { background: var(--tint-blue-fg); }
+.an-balance i > b.tint-purple { background: var(--tint-purple-fg); }
+.an-balance i > b.tint-green { background: var(--tint-green-fg); }
+.an-balance i > b.tint-cyan { background: var(--tint-cyan-fg); }
+.an-balance i > b.tint-pink { background: var(--tint-pink-fg); }
+
+.an-empty {
+  padding: 2.5rem 1rem;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.an-picker { padding: 1.125rem; display: grid; gap: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .an-balance i > b { transition: none; }
+}
+
+/* The dropdown is wider than a text action, so the heading row lets it take a fixed slot
+   instead of squeezing the title it sits beside. */
+.an-records-filter { flex: none; width: 11rem; }
