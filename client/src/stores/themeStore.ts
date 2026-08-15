@@ -25,8 +25,8 @@ function getStoredTheme(): Theme {
  * Keep these in step with --scene-gradient in index.css.
  */
 const THEME_COLORS: Record<Theme, string> = {
-  dark: "#1a1e29",
-  light: "#e8edf4",
+  dark: "#0c0f16",
+  light: "#dfe6f0",
 };
 
 function applyTheme(theme: Theme) {

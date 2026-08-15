@@ -40,8 +40,8 @@ export default defineConfig({
         name: 'FitMate',
         short_name: 'FitMate',
         description: 'Track workouts, templates, sets, and progress.',
-        theme_color: '#0e0e1a',
-        background_color: '#09091a',
+        theme_color: '#0c0f16',
+        background_color: '#0c0f16',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
