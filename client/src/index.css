@@ -622,20 +622,6 @@ textarea { resize: none; }
   background: var(--scene-gradient);
 }
 
-.liquid-viewport {
-  height: 100%;
-}
-
-/* Installed iOS PWAs can report 100dvh without the home-indicator inset. Extend the
-   standalone shell by that exact inset so the scene and bottom navigation reach the
-   physical screen edge, while the regular browser layout remains unchanged. */
-@media (display-mode: standalone) {
-  .liquid-shell {
-    bottom: auto;
-    height: calc(100dvh + env(safe-area-inset-bottom, 0px));
-  }
-}
-
 /* Two out-of-frame blobs, heavily blurred, sitting between the base gradient and the app
    (content rides at z-10). They are what the glass above has to refract — a flat fill gives
    backdrop-filter nothing to work with and every surface collapses to the same grey.
@@ -1532,7 +1518,7 @@ textarea { resize: none; }
    Height is the gap between the floating pill and the bottom edge, so only content showing
    through that gap is blurred and everything above the bar stays sharp. */
 .liquid-mobile-bottom-nav-lens {
-  position: absolute;
+  position: fixed;
   /* Released explicitly: .liquid-lens sets `inset: 0`, and leaving top at 0 would stretch
      this up the whole viewport instead of holding it to the strip under the bar. */
   top: auto;
