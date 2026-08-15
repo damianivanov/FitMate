@@ -282,7 +282,9 @@
   --link-hover-color: #c84e18;
 
   /* ── Scene backdrop ── */
-  --scene-gradient: radial-gradient(ellipse at 16% 10%, rgba(var(--primary-rgb), 0.16) 0%, transparent 42%), radial-gradient(ellipse at 84% 14%, rgba(255, 184, 146, 0.12) 0%, transparent 38%), linear-gradient(140deg, #e8edf4 0%, #e2e8f0 34%, #ece7e1 68%, #f3e0d2 100%);
+  --scene-top-color: #e8edf4;
+  --scene-bottom-color: #f3e0d2;
+  --scene-gradient: linear-gradient(180deg, var(--scene-top-color) 0%, var(--scene-top-color) 28%, #e2e8f0 54%, #ece7e1 76%, var(--scene-bottom-color) 100%);
 
   /* ── Aurora ──
      The light the glass refracts. Light theme runs these far below the dark values: the
@@ -552,7 +554,9 @@
   /* ── Scene backdrop ──
      Neutral deep space, not the old blue-violet: the warmth now arrives from the aurora
      blobs above it, so baking a second hue into the base only fights them. */
-  --scene-gradient: linear-gradient(180deg, #1a1e29 0%, #121520 55%, #101219 100%);
+  --scene-top-color: #1a1e29;
+  --scene-bottom-color: #101219;
+  --scene-gradient: linear-gradient(180deg, var(--scene-top-color) 0%, var(--scene-top-color) 28%, #121520 62%, var(--scene-bottom-color) 100%);
 
   /* ── Aurora ── */
   --aurora-warm-opacity: 0.26;
@@ -595,7 +599,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
-  background: var(--color-base);
+  background: var(--scene-bottom-color);
 }
 
 a { text-decoration: none; }
@@ -637,7 +641,7 @@ textarea { resize: none; }
 .liquid-shell::before {
   width: 28.75rem;
   height: 28.75rem;
-  top: -10rem;
+  top: 38%;
   left: -9.375rem;
   opacity: var(--aurora-warm-opacity);
   background: var(--aurora-warm);
@@ -646,7 +650,7 @@ textarea { resize: none; }
 .liquid-shell::after {
   width: 23.75rem;
   height: 23.75rem;
-  top: 30%;
+  top: 58%;
   right: -11.25rem;
   opacity: var(--aurora-cool-opacity);
   background: var(--aurora-cool);
@@ -684,7 +688,7 @@ textarea { resize: none; }
 }
 
 .dark .liquid-main-shell {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008));
+  background: linear-gradient(180deg, transparent 0%, transparent 28%, rgba(255, 255, 255, 0.018) 62%, rgba(255, 255, 255, 0.008) 100%);
 }
 
 /* The app's single scroll box. Content passes under the floating header, so it reserves the
