@@ -17,7 +17,7 @@ export default function Layout() {
       {/* One scroll box at every width, with the header floating over it rather than
           stacked above it — that is what gives the blur lens live content to work on and
           lets a page's own large title hand its name up to the bar as it leaves. */}
-      <div className="relative z-10 h-dvh min-h-0">
+      <div className="liquid-viewport relative z-10 min-h-0">
         <main
           data-app-scroll
           className={`liquid-main-shell liquid-app-scroll liquid-scrollbar flex h-full min-w-0 flex-col overflow-y-auto overscroll-contain ${publicShellClassName} ${bannerClearanceClassName}`}

@@ -54,7 +54,7 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
   return (
     <>
       {/* Decorative, and a sibling of the bar rather than a child of it: full-bleed across the
-          viewport and one z-step below --z-nav, so content passing through the strip under the
+          extended app shell and one z-step below --z-nav, so content passing through the strip under the
           bar dissolves into a graduated blur while the bar itself is left completely alone. */}
       <span
         className="liquid-lens liquid-lens-bottom liquid-mobile-bottom-nav-lens md:hidden"
@@ -66,7 +66,7 @@ export default function MobileBottomNav({ onNavigate }: MobileBottomNavProps) {
           floating inside it. Keep these in step with .liquid-mobile-bottom-nav-lens. */}
       <nav
         aria-label="Primary"
-        className="liquid-mobile-bottom-nav-shell pointer-events-none fixed inset-x-0 bottom-0 z-[var(--z-nav)] px-4 md:hidden"
+        className="liquid-mobile-bottom-nav-shell pointer-events-none absolute inset-x-0 bottom-0 z-[var(--z-nav)] px-4 md:hidden"
       >
         <div className="liquid-mobile-bottom-nav pointer-events-auto mx-auto w-full max-w-2xl rounded-full px-1.5 py-1.5">
           <ul className="liquid-bottom-nav-grid">
