@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink } from "react-router";
-import { LuChevronRight, LuLogOut, LuMoon, LuSearch, LuSun, LuX } from "react-icons/lu";
+import { LuChevronRight, LuLogOut, LuMoon, LuSearch, LuSun } from "react-icons/lu";
 import { isAdmin as hasAdminRole } from "@/lib/access";
 import { buildDisplayName, buildInitials } from "@/lib/helpers";
 import {
@@ -12,6 +12,7 @@ import { useThemeStore } from "@/stores/themeStore";
 import { useUserStore } from "@/stores/userStore";
 import AppLogo from "./AppLogo";
 import Avatar from "./Avatar";
+import MenuToggleIcon from "./MenuToggleIcon";
 import { drawerNavItems } from "./navigation";
 
 export default function NavigationDrawer() {
@@ -93,7 +94,7 @@ export default function NavigationDrawer() {
   };
 
   return (
-    <div className={`app-drawer-layer ${isOpen ? "is-open" : ""}`} inert={!isOpen} aria-hidden={!isOpen}>
+    <div className={`app-drawer-layer md:hidden ${isOpen ? "is-open" : ""}`} inert={!isOpen} aria-hidden={!isOpen}>
       <button
         type="button"
         className="app-layer-scrim"
@@ -108,10 +109,10 @@ export default function NavigationDrawer() {
             ref={closeButtonRef}
             type="button"
             onClick={closeDrawer}
-            className="app-round-btn liquid-press"
+            className="app-menu-toggle liquid-press"
             aria-label="Close navigation"
           >
-            <LuX className="h-5 w-5" />
+            <MenuToggleIcon isOpen={isOpen} />
           </button>
         </div>
 

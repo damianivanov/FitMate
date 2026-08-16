@@ -77,7 +77,7 @@ export function SegmentControl<TValue extends string | number | boolean>({
         ) : null}
 
         {options.map((option) => (
-          <div key={String(option.value)} className="min-w-0 flex-1">
+          <div key={String(option.value)} className="flex-1">
             <button
               type="button"
               role="tab"
@@ -92,7 +92,7 @@ export function SegmentControl<TValue extends string | number | boolean>({
               ].join(" ")}
             >
               {option.icon ? <span className="text-sm leading-none">{option.icon}</span> : null}
-              <span className="truncate">{option.label}</span>
+              <span className="whitespace-nowrap">{option.label}</span>
             </button>
           </div>
         ))}

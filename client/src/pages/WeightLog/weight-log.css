@@ -17,6 +17,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+  max-width: 42rem;
 }
 
 .dark .wl-body {
@@ -248,19 +249,31 @@
   margin-left: auto;
 }
 
-/* The label's own width is the floor. A flex item with hidden overflow loses its automatic
-   minimum size, which is what lets the shared truncate class shrink "90D" to an ellipsis while
-   the row still has room to spare — restoring visible overflow restores the floor. */
-.wl-range .liquid-segment > span {
-  overflow: visible;
-  text-overflow: clip;
-}
-
 .wl-card-title {
   font-size: 1.0625rem;
   font-weight: 800;
   letter-spacing: -0.019em;
   color: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  .wl-body {
+    display: grid;
+    grid-template-columns: minmax(18rem, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: 1.125rem;
+    max-width: 72rem;
+  }
+
+  .wl-body > .wl-nav,
+  .wl-body > .wl-empty { grid-column: 1 / -1; }
+
+  .wl-body > .wl-hero {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+  }
+
+  .wl-body > .wl-card { grid-column: 2; }
 }
 
 /* ---------------- Chart ---------------- */

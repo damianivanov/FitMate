@@ -4,6 +4,12 @@
 
 .cal-card { padding: 0.9375rem; }
 
+.cal-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
 .cal-head {
   display: grid;
   grid-template-columns: 2.5rem 1fr 2.5rem;
@@ -105,4 +111,12 @@
   font-style: normal;
   font-weight: 700;
   opacity: 0.8;
+}
+
+@media (min-width: 1024px) {
+  .cal-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.75fr);
+    align-items: start;
+  }
 }

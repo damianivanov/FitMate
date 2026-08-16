@@ -96,7 +96,7 @@ export default function Templates() {
   return (
     <>
       <PageBody>
-        <NativePage>
+        <NativePage className="tp-page">
           <PageIntro
             eyebrow="Reusable workouts"
             title="Templates"

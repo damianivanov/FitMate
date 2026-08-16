@@ -22,8 +22,24 @@ export function WeekPicker({ days, selectedDate, onSelect }: WeekPickerProps) {
       return;
     }
 
-    rail.scrollLeft =
-      todayButton.offsetLeft - rail.clientWidth / 2 + todayButton.clientWidth / 2;
+    const centreToday = () => {
+      const railBounds = rail.getBoundingClientRect();
+      const todayBounds = todayButton.getBoundingClientRect();
+      const todayCentre =
+        rail.scrollLeft + todayBounds.left - railBounds.left + todayBounds.width / 2;
+
+      rail.scrollLeft = todayCentre - rail.clientWidth / 2;
+    };
+
+    const animationFrame = window.requestAnimationFrame(centreToday);
+    const resizeObserver = new ResizeObserver(centreToday);
+    resizeObserver.observe(rail);
+    resizeObserver.observe(todayButton);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   return (

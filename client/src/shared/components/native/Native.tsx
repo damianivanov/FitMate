@@ -24,8 +24,8 @@ export function NativePage({ children, className }: { children: ReactNode; class
 }
 
 /**
- * The screen's own title, in the scroll flow rather than in a bar. The optional action sits
- * on the title's baseline, so it reads as belonging to the heading instead of floating.
+ * The screen's own title, in the scroll flow rather than in a bar. The optional action is
+ * centred with the title row so controls of different heights remain visually balanced.
  */
 export function PageIntro({
   eyebrow,

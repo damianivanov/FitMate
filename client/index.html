@@ -10,10 +10,130 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="FitMate" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      (() => {
+        let theme;
+
+        try {
+          theme = localStorage.getItem("fitmate-theme");
+        } catch {
+          theme = null;
+        }
+
+        if (theme !== "light" && theme !== "dark") {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.style.colorScheme = theme;
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", theme === "dark" ? "#0c0f16" : "#dfe6f0");
+      })();
+    </script>
+    <style>
+      html {
+        min-height: 100%;
+        color-scheme: light;
+        background: linear-gradient(180deg, #dfe6f0 0%, #dfe6f0 32%, #e2e8f0 56%, #ece7e1 76%, #f3e0d2 100%);
+      }
+
+      html.dark {
+        color-scheme: dark;
+        background: linear-gradient(180deg, #0c0f16 0%, #0c0f16 32%, #121520 62%, #101219 100%);
+      }
+
+      body,
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        background: inherit;
+      }
+
+      .app-bootstrap {
+        display: grid;
+        min-height: 100vh;
+        min-height: 100dvh;
+        place-items: center;
+        color: #121212;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .dark .app-bootstrap { color: #f8f6f4; }
+
+      .app-bootstrap-content {
+        display: grid;
+        justify-items: center;
+        gap: 1rem;
+        opacity: 0;
+        animation: app-bootstrap-reveal 160ms ease-out 120ms forwards;
+      }
+
+      .app-bootstrap-logo {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+      }
+
+      .app-bootstrap-logo > span { color: #ff7337; }
+
+      .app-bootstrap-progress {
+        position: relative;
+        width: 2.5rem;
+        height: 0.1875rem;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: rgba(127, 127, 127, 0.22);
+      }
+
+      .app-bootstrap-progress::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: #ff7337;
+        transform: translateX(-75%);
+        animation: app-bootstrap-progress 900ms ease-in-out infinite alternate;
+      }
+
+      .app-bootstrap-status {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @keyframes app-bootstrap-reveal {
+        to { opacity: 1; }
+      }
+
+      @keyframes app-bootstrap-progress {
+        to { transform: translateX(75%); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-bootstrap-content { opacity: 1; animation: none; }
+        .app-bootstrap-progress::after { transform: none; animation: none; }
+      }
+    </style>
     <title>FitMate</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-bootstrap" role="status" aria-live="polite">
+        <div class="app-bootstrap-content">
+          <div class="app-bootstrap-logo" aria-hidden="true">Fit<span>Mate</span></div>
+          <span class="app-bootstrap-progress" aria-hidden="true"></span>
+          <span class="app-bootstrap-status">Loading FitMate</span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

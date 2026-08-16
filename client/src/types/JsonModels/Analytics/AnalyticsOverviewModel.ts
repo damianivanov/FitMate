@@ -7,6 +7,7 @@ export interface AnalyticsOverviewModel
 	totalSets: number;
 	totalReps: number;
 	volumeTrend: JsonModels.Analytics.VolumeTrendPointModel[];
+	frequentExercises: JsonModels.Analytics.FrequentExerciseSummaryModel[];
 	muscleGroupVolumes: JsonModels.Analytics.MuscleGroupVolumeModel[];
 	personalRecords: JsonModels.Analytics.PersonalRecordSummaryModel[];
 }

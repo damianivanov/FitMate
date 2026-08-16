@@ -99,6 +99,7 @@ export type { ExerciseProgressionPointModel } from "./Analytics/ExerciseProgress
 export type { ExerciseQueryRequest } from "./Exercises/ExerciseQueryRequest";
 export type { FeatureAvailabilityModel } from "./Subscriptions/FeatureAvailabilityModel";
 export type { ForgotPasswordRequest } from "./Auth/ForgotPasswordRequest";
+export type { FrequentExerciseSummaryModel } from "./Analytics/FrequentExerciseSummaryModel";
 export type { GoogleLoginRequest } from "./Auth/GoogleLoginRequest";
 export type { ImageUploadTicketModel } from "./Common/ImageUploadTicketModel";
 export type { ImageUploadTicketRequest } from "./Common/ImageUploadTicketRequest";

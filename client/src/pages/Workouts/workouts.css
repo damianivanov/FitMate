@@ -18,6 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+  max-width: 42rem;
 }
 
 .dark .wk-body {
@@ -31,10 +32,6 @@
   .wk-body { --wk-gutter: 2rem; }
 }
 
-.wk-title {
-  padding: 0.25rem 0.25rem 0.35rem;
-}
-
 /* ---------------- Week strip ---------------- */
 
 /* A scrolling rail, not a fixed week: it runs back through previous weeks and is swiped.
@@ -43,7 +40,7 @@
    divide evenly as dead space at the two ends. */
 .wk-week {
   --wk-day-count: 5;
-  --wk-day-gap: 0.625rem;
+  --wk-day-gap: 1rem;
 
   display: grid;
   grid-auto-flow: column;
@@ -219,10 +216,10 @@
 .wk-focus.tone-done { --wk-accent: var(--tint-green-fg); --wk-accent-soft: var(--tint-green-bg); }
 .wk-focus.tone-idle { --wk-accent: var(--tint-purple-fg); --wk-accent-soft: var(--tint-purple-bg); }
 
-/* Saturation carries the difference for the quieter states rather than a second palette:
-   the card is recognisably the same object whether you are mid-session or resting. */
-.wk-focus.tone-idle,
-.wk-focus.tone-done { filter: saturate(0.8); }
+/* Quiet states temper only the decorative light. Filtering the rounded card itself makes
+   WebKit composite its gradient as a square layer outside the clipped corner. */
+.wk-focus.tone-idle .wk-focus-light,
+.wk-focus.tone-done .wk-focus-light { opacity: 0.8; }
 
 .wk-focus-light {
   position: absolute;
@@ -667,6 +664,49 @@
 .wk-coach b,
 .wk-coach small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .wk-coach > svg { color: var(--text-tertiary); }
+
+@media (min-width: 1024px) {
+  .wk-body {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+    gap: 1.125rem;
+    max-width: 72rem;
+  }
+
+  .wk-body > .native-title,
+  .wk-body > .wk-week,
+  .wk-body > .wk-day-context {
+    grid-column: 1 / -1;
+  }
+
+  .wk-body > .wk-focus { grid-column: span 7; }
+  .wk-body > .wk-section:has(.wk-snapshots) { grid-column: span 5; }
+  .wk-body > .wk-section:has(.wk-filter) { grid-column: span 8; }
+  .wk-body > .wk-coach { grid-column: span 4; }
+
+  .wk-body > .wk-section,
+  .wk-body > .wk-coach { margin-top: 0; }
+
+  .wk-focus {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .wk-focus-top { min-height: 1.75rem; }
+  .wk-focus-foot { gap: 0.625rem; }
+  .wk-focus-cta { height: 2.75rem; }
+
+  .wk-snapshot {
+    min-height: 7rem;
+    padding: 0.75rem;
+  }
+
+  .wk-snapshot > b { margin-top: 0.75rem; }
+
+  .wk-section .liquid-empty { padding: 2rem 1.25rem; }
+  .wk-section .wk-empty-cta { margin-top: 0.875rem; }
+}
 
 /* The selected day's scale is emphasis, not motion, so it survives here — only the travel
    between sizes and the press feedback are dropped. */

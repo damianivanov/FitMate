@@ -24,6 +24,10 @@
 .pf-hero b,
 .pf-hero small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
+/* Keep the mobile reading order flat while giving desktop one cohesive identity/navigation
+   column. This avoids letting the tall settings panel distribute height across grid rows. */
+.pf-sidebar { display: contents; }
+
 /* ---------------- Avatar picker ---------------- */
 
 .pf-avatar { position: relative; flex: none; }
@@ -68,4 +72,28 @@
   font-size: 0.6875rem;
   font-weight: 500;
   text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .pf-page {
+    display: grid;
+    grid-template-columns: 18rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .pf-page > .native-title { grid-column: 1 / -1; }
+
+  .pf-page > .pf-sidebar {
+    display: flex;
+    grid-column: 1;
+    grid-row: 2;
+    flex-direction: column;
+    gap: 1.125rem;
+    min-width: 0;
+  }
+
+  .pf-page > .min-w-0 {
+    grid-column: 2;
+    grid-row: 2;
+  }
 }

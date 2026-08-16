@@ -55,3 +55,27 @@
   font-size: 0.75rem;
   text-align: center;
 }
+
+/* The desktop canvas is much wider than the mobile composition, so it gets its own
+   deliberately placed light field. Keeping the three sources in a single painted layer
+   avoids both extra markup and the blurred bands produced by oversized filtered blobs. */
+@media (min-width: 48rem) {
+  .cch-page {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--color-base);
+  }
+
+  .cch-page::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 30% 28% at 35% 20%, rgba(var(--primary-rgb), 0.11), transparent 72%),
+      radial-gradient(ellipse 25% 32% at 68% 36%, rgba(116, 77, 218, 0.085), transparent 74%),
+      radial-gradient(ellipse 46% 18% at 51% 91%, rgba(var(--primary-rgb), 0.07), transparent 76%);
+  }
+}

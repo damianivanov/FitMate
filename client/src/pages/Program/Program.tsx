@@ -87,7 +87,7 @@ export default function Program() {
   return (
     <>
       <PageBody>
-        <NativePage>
+        <NativePage className="pg-page">
           <PageIntro
             eyebrow="Your schedule"
             title="Program"

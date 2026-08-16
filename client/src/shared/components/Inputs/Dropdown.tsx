@@ -300,18 +300,27 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
 
     updateMenuLayout();
 
-    const handleViewportChange = () => {
+    const handleViewportResize = () => {
       updateMenuLayout();
     };
 
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
+    const handleViewportScroll = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Node && refs.floating.current?.contains(target)) {
+        return;
+      }
+
+      closeMenu();
+    };
+
+    window.addEventListener("resize", handleViewportResize);
+    window.addEventListener("scroll", handleViewportScroll, true);
 
     return () => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportResize);
+      window.removeEventListener("scroll", handleViewportScroll, true);
     };
-  }, [open, updateMenuLayout]);
+  }, [closeMenu, open, refs.floating, updateMenuLayout]);
 
   const isSelected = useCallback(
     (value: TValue) => selectedValues.includes(value),
@@ -528,95 +537,100 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
           <FloatingPortal>
             <div
               ref={refs.setFloating}
-              className={cn(
-                "liquid-panel liquid-modal-surface z-75 overflow-hidden rounded-2xl p-1",
-                menuAnimationClassName,
-                menuClassName,
-              )}
-              style={{ ...floatingStyles, maxHeight: menuMaxHeight }}
+              className="z-75"
+              style={floatingStyles}
             >
-            {searchable ? (
-              <div className="liquid-divider mb-1 border-b pb-1">
-                <div className="liquid-input flex h-10 items-center gap-2 rounded-xl px-3 my-1">
-                  <LuSearch className="h-4 w-4 shrink-0 text-secondary" />
-                  <input
-                    ref={inputRef}
-                    value={search}
-                    onChange={handleSearchInputChange}
-                    placeholder={searchPlaceholder}
-                    className={cn(
-                      "w-full bg-transparent text-sm text-foreground outline-none",
-                      "placeholder:text-white/70",
-                    )}
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            <ul
-              id={listboxId}
-              role="listbox"
-              aria-multiselectable={isMulti || undefined}
-              className={optionsListClassName}
-              style={{ maxHeight: listMaxHeight }}
-            >
-              {loading ? (
-                <li className="px-4 py-2.5 text-sm text-secondary">Loading...</li>
-              ) : filteredOptions.length === 0 ? (
-                <li className="px-4 py-2.5 text-sm text-secondary">{emptyText}</li>
-              ) : (
-                filteredOptions.map((option, index) => {
-                  const selected = isSelected(option.value);
-                  const highlighted = index === highlightedIndex;
-
-                  return (
-                    <li key={String(option.value)} role="option" aria-selected={selected}>
-                      <button
-                        type="button"
-                        disabled={option.disabled}
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        onClick={() => toggleOption(option)}
+              <div
+                className={cn(
+                  "liquid-panel liquid-modal-surface w-full overflow-hidden rounded-2xl p-1",
+                  menuAnimationClassName,
+                  menuClassName,
+                )}
+                style={{ maxHeight: menuMaxHeight }}
+              >
+                {searchable ? (
+                  <div className="liquid-divider mb-1 border-b pb-1">
+                    <div className="liquid-input my-1 flex h-10 items-center gap-2 rounded-xl px-3">
+                      <LuSearch className="h-4 w-4 shrink-0 text-secondary" />
+                      <input
+                        ref={inputRef}
+                        value={search}
+                        onChange={handleSearchInputChange}
+                        placeholder={searchPlaceholder}
                         className={cn(
-                          "flex w-full items-center justify-between gap-3 rounded-full px-4 py-2.5 text-left text-sm transition",
-                          selected && "liquid-option-selected lookup-dropdown-option-selected font-semibold",
-                          !selected && !option.disabled && "liquid-option",
-                          !option.disabled && "cursor-pointer",
-                          highlighted && !selected && !option.disabled && "bg-(--option-hover-bg)",
-                          option.disabled && "liquid-option-disabled cursor-not-allowed",
-                          optionClassName,
+                          "w-full bg-transparent text-sm text-foreground outline-none",
+                          "placeholder:text-white/70",
                         )}
-                      >
-                        {renderOption ? (
-                          renderOption(option, { selected, highlighted })
-                        ) : (
-                          <span className="flex min-w-0 items-center gap-2">
-                            {option.imageUrl ? (
-                              <img
-                                src={option.imageUrl}
-                                alt=""
-                                aria-hidden="true"
-                                className="h-6 w-6 shrink-0 rounded object-cover"
-                                loading="lazy"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                <ul
+                  id={listboxId}
+                  role="listbox"
+                  aria-multiselectable={isMulti || undefined}
+                  className={optionsListClassName}
+                  style={{ maxHeight: listMaxHeight }}
+                >
+                  {loading ? (
+                    <li className="px-4 py-2.5 text-sm text-secondary">Loading...</li>
+                  ) : filteredOptions.length === 0 ? (
+                    <li className="px-4 py-2.5 text-sm text-secondary">{emptyText}</li>
+                  ) : (
+                    filteredOptions.map((option, index) => {
+                      const selected = isSelected(option.value);
+                      const highlighted = index === highlightedIndex;
+
+                      return (
+                        <li key={String(option.value)} role="option" aria-selected={selected}>
+                          <button
+                            type="button"
+                            disabled={option.disabled}
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                            onClick={() => toggleOption(option)}
+                            className={cn(
+                              "flex w-full items-center justify-between gap-3 rounded-full px-4 py-2.5 text-left text-sm transition",
+                              selected && "liquid-option-selected lookup-dropdown-option-selected font-semibold",
+                              !selected && !option.disabled && "liquid-option",
+                              !option.disabled && "cursor-pointer",
+                              highlighted && !selected && !option.disabled && "bg-(--option-hover-bg)",
+                              option.disabled && "liquid-option-disabled cursor-not-allowed",
+                              optionClassName,
+                            )}
+                          >
+                            {renderOption ? (
+                              renderOption(option, { selected, highlighted })
+                            ) : (
+                              <span className="flex min-w-0 items-center gap-2">
+                                {option.imageUrl ? (
+                                  <img
+                                    src={option.imageUrl}
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="h-6 w-6 shrink-0 rounded object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : null}
+                                <span className="truncate">{option.label}</span>
+                              </span>
+                            )}
+
+                            {selected ? (
+                              <LuCheck
+                                className={cn(
+                                  "lookup-dropdown-check-enter h-4 w-4 shrink-0 text-current",
+                                  selectedCheckIconClassName,
+                                )}
                               />
                             ) : null}
-                            <span className="truncate">{option.label}</span>
-                          </span>
-                        )}
-
-                        {selected ? (
-                          <LuCheck
-                            className={cn(
-                              "lookup-dropdown-check-enter h-4 w-4 shrink-0 text-current",
-                              selectedCheckIconClassName,
-                            )}
-                          />
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })
-              )}
-              </ul>
+                          </button>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              </div>
             </div>
           </FloatingPortal>
         ) : null}

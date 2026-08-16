@@ -18,6 +18,7 @@ import {
   SegmentControlSize,
 } from "@/shared/components";
 import { MuscleBalance } from "./components/MuscleBalance";
+import { TrainingHighlights } from "./components/TrainingHighlights";
 import { useAnalyticsPage, type AnalyticsRangePreset } from "./hooks/useAnalyticsPage";
 import { formatVolume } from "./utils/analyticsFormat";
 import "./analytics.css";
@@ -42,17 +43,19 @@ export default function Analytics() {
 
   return (
     <PageBody>
-      <NativePage>
-        <PageIntro eyebrow="Your training" title="Progress" />
+      <NativePage className="an-page">
+        <div className="an-page-heading">
+          <PageIntro eyebrow="Your training" title="Progress" />
 
-        <SegmentControl
-          value={state.rangePreset}
-          options={RANGE_OPTIONS}
-          onChange={actions.setRange}
-          size={SegmentControlSize.Sm}
-          className="an-period"
-          label="Date range"
-        />
+          <SegmentControl
+            value={state.rangePreset}
+            options={RANGE_OPTIONS}
+            onChange={actions.setRange}
+            size={SegmentControlSize.Sm}
+            className="an-period"
+            label="Date range"
+          />
+        </div>
 
         <AsyncSection
           isLoading={state.isLoadingOverview}
@@ -61,7 +64,7 @@ export default function Analytics() {
           loadingLabel="Loading analytics..."
         >
           {overview ? (
-            <>
+            <div className="an-dashboard">
               <NativeStatGrid>
                 <NativeStat
                   tint="orange"
@@ -92,6 +95,11 @@ export default function Analytics() {
                   caption="Best efforts logged"
                 />
               </NativeStatGrid>
+
+              <TrainingHighlights
+                frequentExercises={overview.frequentExercises ?? []}
+                personalRecords={overview.personalRecords}
+              />
 
               <NativeSection title="Volume trend">
                 <NativeCard className="an-chart-card">
@@ -131,7 +139,7 @@ export default function Analytics() {
                       onChange={(value) => actions.filterRecordsByMuscleGroup(value ?? "")}
                       placeholder="All muscles"
                       searchable
-                      searchPlaceholder="Search muscle groups..."
+                      searchPlaceholder="Search..."
                       clearable
                     />
                   </div>
@@ -201,7 +209,7 @@ export default function Analytics() {
                   )}
                 </NativeCard>
               </NativeSection>
-            </>
+            </div>
           ) : null}
         </AsyncSection>
       </NativePage>

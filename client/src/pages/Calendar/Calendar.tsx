@@ -12,7 +12,7 @@ export default function Calendar() {
   return (
     <>
       <PageBody>
-        <NativePage>
+        <NativePage className="cal-page">
           <PageIntro
             eyebrow="Training history"
             title="Calendar"
@@ -32,24 +32,26 @@ export default function Calendar() {
             onRetry={actions.reload}
             loadingLabel="Loading calendar..."
           >
-            <CalendarGrid
-              year={state.year}
-              month={state.month}
-              cells={state.cells}
-              workoutsByDay={state.workoutsByDay}
-              selectedKey={state.selectedKey}
-              onSelectDay={actions.selectDay}
-              onPrevMonth={actions.prevMonth}
-              onNextMonth={actions.nextMonth}
-              onOpenPicker={actions.openPicker}
-            />
+            <div className="cal-dashboard">
+              <CalendarGrid
+                year={state.year}
+                month={state.month}
+                cells={state.cells}
+                workoutsByDay={state.workoutsByDay}
+                selectedKey={state.selectedKey}
+                onSelectDay={actions.selectDay}
+                onPrevMonth={actions.prevMonth}
+                onNextMonth={actions.nextMonth}
+                onOpenPicker={actions.openPicker}
+              />
 
-            <CalendarDayDetail
-              selectedCell={state.selectedCell}
-              workouts={state.selectedWorkouts}
-              isReusing={state.isReusing}
-              onReuse={actions.reuse}
-            />
+              <CalendarDayDetail
+                selectedCell={state.selectedCell}
+                workouts={state.selectedWorkouts}
+                isReusing={state.isReusing}
+                onReuse={actions.reuse}
+              />
+            </div>
           </AsyncSection>
         </NativePage>
       </PageBody>

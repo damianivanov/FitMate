@@ -693,6 +693,196 @@ textarea { resize: none; }
   padding-top: var(--app-header-h);
 }
 
+@media (min-width: 768px) {
+  .liquid-authenticated-main.liquid-app-scroll { padding-top: 0; }
+}
+
+/* ---------------- Desktop sidebar ---------------- */
+
+.desktop-sidebar { display: none; }
+
+@media (min-width: 768px) {
+  .desktop-sidebar {
+    position: relative;
+    z-index: var(--z-nav);
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    width: 15rem;
+    height: 100%;
+    padding: 1.5rem 0.875rem 1rem;
+    border-right: 1px solid var(--glass-border-strong);
+    background: color-mix(in srgb, var(--color-base) 78%, transparent);
+    box-shadow: 0.75rem 0 2.5rem rgba(20, 27, 40, 0.08);
+    backdrop-filter: blur(2rem) saturate(1.35);
+    -webkit-backdrop-filter: blur(2rem) saturate(1.35);
+  }
+
+  .desktop-sidebar::before {
+    content: "";
+    position: absolute;
+    top: -5rem;
+    left: -4rem;
+    width: 14rem;
+    height: 14rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(var(--primary-rgb), 0.16), transparent 68%);
+    pointer-events: none;
+  }
+
+  .desktop-sidebar > * { position: relative; z-index: 1; }
+
+  .desktop-sidebar-logo {
+    align-self: flex-start;
+    margin: 0 0.625rem;
+    font-size: 1.625rem;
+  }
+
+  .desktop-sidebar-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 1.375rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
+  .desktop-sidebar-nav {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 1.375rem;
+    padding-right: 0.125rem;
+  }
+
+  .desktop-sidebar-section + .desktop-sidebar-section { margin-top: 1.125rem; }
+
+  .desktop-sidebar-section > p {
+    padding: 0 0.625rem;
+    color: var(--text-tertiary);
+    font-size: 0.6875rem;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .desktop-sidebar-section > div {
+    display: grid;
+    gap: 0.25rem;
+    margin-top: 0.4375rem;
+  }
+
+  .desktop-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6875rem;
+    min-height: 2.75rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid transparent;
+    border-radius: var(--liquid-r-md);
+    color: var(--text-secondary);
+    transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  }
+
+  .desktop-sidebar-link:hover {
+    color: var(--text-primary);
+    background: var(--glass-hover-row-bg);
+  }
+
+  .desktop-sidebar-link.is-active {
+    border-color: var(--accent-border);
+    color: var(--text-primary);
+    background: var(--app-tile-bg-selected);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .desktop-sidebar-link .app-tile-icon {
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .desktop-sidebar-link b {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .desktop-sidebar-footer {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--glass-divider);
+  }
+
+  .desktop-sidebar-theme { margin-bottom: 0.125rem; }
+
+  .desktop-sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 3.375rem;
+    padding: 0.4375rem 0.5rem;
+    border-radius: var(--liquid-r-md);
+    color: var(--text-primary);
+    background: var(--app-well-bg);
+  }
+
+  .desktop-sidebar-profile > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .desktop-sidebar-profile b,
+  .desktop-sidebar-profile small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .desktop-sidebar-profile b { font-size: 0.8125rem; font-weight: 650; }
+  .desktop-sidebar-profile small { color: var(--text-tertiary); font-size: 0.6875rem; }
+  .desktop-sidebar-profile > svg { flex: none; color: var(--text-tertiary); }
+
+  .desktop-sidebar-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    border: 1px solid var(--color-danger-border);
+    border-radius: 9999px;
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    font-size: 0.75rem;
+    font-weight: 650;
+  }
+}
+
+@media (min-width: 1280px) {
+  .desktop-sidebar {
+    width: 17rem;
+    padding-inline: 1rem;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .desktop-sidebar {
+    background: var(--color-base);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /* ----------------------------------------------------------------
    GLASS MATERIALS
    ---------------------------------------------------------------- */
@@ -1026,7 +1216,8 @@ textarea { resize: none; }
 .app-round-btn:hover { background: var(--app-chrome-face-hover); }
 
 .app-round-btn:focus-visible,
-.app-header-orb:focus-visible {
+.app-header-orb:focus-visible,
+.app-menu-toggle:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -1074,6 +1265,54 @@ textarea { resize: none; }
   border: 0;
   border-radius: 9999px;
   background: none;
+}
+
+.app-menu-toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--text-primary);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-menu-icon {
+  position: relative;
+  display: block;
+  width: 1.5rem;
+  height: 1.1875rem;
+}
+
+.app-menu-icon > span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 0.1875rem;
+  border-radius: 9999px;
+  background: currentColor;
+  transform-origin: center;
+  transition:
+    transform 240ms var(--ease-drawer),
+    opacity 140ms var(--ease-out);
+}
+
+.app-menu-icon > span:nth-child(1) { top: 0; }
+.app-menu-icon > span:nth-child(2) { top: 0.5rem; }
+.app-menu-icon > span:nth-child(3) { top: 1rem; }
+
+.app-menu-icon.is-open > span:nth-child(1) { transform: translateY(0.5rem) rotate(45deg); }
+.app-menu-icon.is-open > span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.app-menu-icon.is-open > span:nth-child(3) { transform: translateY(-0.5rem) rotate(-45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-menu-icon > span { transition: none; }
 }
 
 /* Only drawn while a workout is live — the one piece of state worth carrying in the corner
@@ -3107,5 +3346,18 @@ input[type="number"] {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* The graduated lenses belong to the compact mobile chrome. Desktop has a persistent
+   sidebar and no floating bars, so none of their blur layers should remain in the scene. */
+@media (min-width: 768px) {
+  .app-header-authenticated,
+  .app-header-authenticated .app-header-lens,
+  .liquid-mobile-bottom-nav-lens,
+  .liquid-mobile-bottom-nav-shell {
+    display: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

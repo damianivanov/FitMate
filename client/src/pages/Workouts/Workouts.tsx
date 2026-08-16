@@ -4,6 +4,7 @@ import {
   AsyncSection,
   DeleteConfirmationModal,
   PageBody,
+  PageIntro,
   SaveAsTemplateModal,
   SegmentControl,
   SegmentControlSize,
@@ -51,14 +52,8 @@ export default function Workouts() {
   return (
     <>
       <PageBody>
-        <div className="wk-body mx-auto w-full max-w-2xl">
-          {/* The title travels with the content the way the reference does it, so the screen
-              opens on the week rather than on chrome. The app header picks the name up once
-              this scrolls away. */}
-          <header className="wk-title">
-            <p className="liquid-page-eyebrow">{TITLE_DATE_FORMATTER.format(new Date())}</p>
-            <h1 className="liquid-page-title">Training</h1>
-          </header>
+        <div className="wk-body mx-auto w-full">
+          <PageIntro eyebrow={TITLE_DATE_FORMATTER.format(new Date())} title="Training" />
 
           <WeekPicker days={week.days} selectedDate={week.selectedDate} onSelect={week.selectDate} />
 

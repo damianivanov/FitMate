@@ -938,6 +938,7 @@ export namespace JsonModels.Analytics {
 		totalSets: number;
 		totalReps: number;
 		volumeTrend: JsonModels.Analytics.VolumeTrendPointModel[];
+		frequentExercises: JsonModels.Analytics.FrequentExerciseSummaryModel[];
 		muscleGroupVolumes: JsonModels.Analytics.MuscleGroupVolumeModel[];
 		personalRecords: JsonModels.Analytics.PersonalRecordSummaryModel[];
 	}
@@ -959,6 +960,16 @@ export namespace JsonModels.Analytics {
 		bestReps?: number;
 		estimatedOneRepMax?: number;
 		totalVolumeKg: number;
+	}
+	export interface FrequentExerciseSummaryModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		primaryMuscleGroupId: number;
+		primaryMuscleGroupName: string;
+		workoutCount: number;
+		setCount: number;
+		lastTrainedOn: string;
 	}
 	export interface MuscleGroupVolumeModel
 	{

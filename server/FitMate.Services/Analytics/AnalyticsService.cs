@@ -8,6 +8,7 @@ namespace FitMate.Services.Analytics;
 
 public class AnalyticsService : IAnalyticsService
 {
+    private const int FrequentExerciseLimit = 5;
     private const int PersonalRecordLimit = 20;
 
     private readonly AppDbContext dbContext;
@@ -35,6 +36,7 @@ public class AnalyticsService : IAnalyticsService
             TotalSets = entries.Count,
             TotalReps = entries.Sum(x => x.Reps ?? 0),
             VolumeTrend = BuildVolumeTrend(workouts),
+            FrequentExercises = BuildFrequentExercises(entries, muscleGroupNames),
             MuscleGroupVolumes = BuildMuscleGroupVolumes(entries, muscleGroupNames),
             PersonalRecords = BuildPersonalRecords(entries, muscleGroupNames),
         };
@@ -143,6 +145,7 @@ public class AnalyticsService : IAnalyticsService
 
                         entries.Add(new SetEntry
                         {
+                            WorkoutId = workout.Id,
                             Date = date,
                             ExerciseId = exercise.ExerciseId,
                             ExerciseName = exercise.Exercise?.Name ?? string.Empty,
@@ -189,6 +192,36 @@ public class AnalyticsService : IAnalyticsService
                 TotalVolumeKg = Round(group.Sum(x => x.TotalVolumeKg ?? 0m)),
                 WorkoutCount = group.Count(),
             })
+            .ToList();
+    }
+
+    private static List<FrequentExerciseSummaryModel> BuildFrequentExercises(
+        IEnumerable<SetEntry> entries,
+        IReadOnlyDictionary<long, string> muscleGroupNames)
+    {
+        return entries
+            .GroupBy(x => new { x.ExerciseId, x.ExerciseName })
+            .Select(group =>
+            {
+                var muscleGroupId = group.Select(x => x.MuscleGroupId).FirstOrDefault(id => id > 0);
+
+                return new FrequentExerciseSummaryModel
+                {
+                    ExerciseId = group.Key.ExerciseId,
+                    ExerciseName = group.Key.ExerciseName,
+                    PrimaryMuscleGroupId = muscleGroupId,
+                    PrimaryMuscleGroupName = muscleGroupNames.TryGetValue(muscleGroupId, out var name)
+                        ? name
+                        : string.Empty,
+                    WorkoutCount = group.Select(x => x.WorkoutId).Distinct().Count(),
+                    SetCount = group.Count(),
+                    LastTrainedOn = AsUtc(group.Max(x => x.Date)),
+                };
+            })
+            .OrderByDescending(x => x.WorkoutCount)
+            .ThenByDescending(x => x.SetCount)
+            .ThenByDescending(x => x.LastTrainedOn)
+            .Take(FrequentExerciseLimit)
             .ToList();
     }
 
@@ -275,6 +308,7 @@ public class AnalyticsService : IAnalyticsService
 
     private sealed class SetEntry
     {
+        public long WorkoutId { get; init; }
         public DateTime Date { get; init; }
         public long ExerciseId { get; init; }
         public string ExerciseName { get; init; } = string.Empty;

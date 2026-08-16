@@ -24,7 +24,7 @@ export default function WeightLog() {
   return (
     <>
       <PageBody>
-        <div className="wl-body mx-auto w-full max-w-2xl">
+        <div className="wl-body mx-auto w-full">
           <header className="wl-nav">
             <div className="min-w-0">
               <p className="liquid-page-eyebrow">Your body</p>

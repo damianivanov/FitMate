@@ -11,18 +11,20 @@ export default function Profile() {
 
   return (
     <PageBody>
-      <NativePage>
+      <NativePage className="pf-page">
         <PageIntro eyebrow="Your account" title="Profile" />
 
-        <NativeCard className="pf-hero">
-          <ProfileAvatarPicker userId={user.id} initials={initials} />
-          <div className="pf-hero-copy">
-            <b>{displayName}</b>
-            {hasName && user.email ? <small>{user.email}</small> : null}
-          </div>
-        </NativeCard>
+        <div className="pf-sidebar">
+          <NativeCard className="pf-hero">
+            <ProfileAvatarPicker userId={user.id} initials={initials} />
+            <div className="pf-hero-copy">
+              <b>{displayName}</b>
+              {hasName && user.email ? <small>{user.email}</small> : null}
+            </div>
+          </NativeCard>
 
-        <ProfileSectionNav />
+          <ProfileSectionNav />
+        </div>
 
         <div className="min-w-0">
           <Outlet />

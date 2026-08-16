@@ -2,7 +2,74 @@
    ANALYTICS — page-scoped material. Everything here is prefixed an-.
 ---------------------------------------------------------------- */
 
-.an-period { align-self: flex-end; width: max-content; margin-top: -0.75rem; }
+.an-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 4vw, 2rem);
+  width: 100%;
+}
+
+.an-page-heading > .native-title { flex: none; }
+
+.an-period {
+  flex: 0 1 12rem;
+  width: clamp(10rem, 50vw, 12rem);
+  min-width: 10rem;
+  max-width: 12rem;
+  margin: 0;
+  text-align: center;
+}
+
+.an-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.an-highlights-grid {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.an-highlight-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.an-highlight-group > h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.an-highlight-group > h3 > svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--accent-strong);
+}
+
+.an-highlight-list .native-row {
+  min-height: 3.5rem;
+  padding-block: 0.5rem;
+}
+
+.an-highlight-empty {
+  display: grid;
+  place-items: center;
+  min-height: 5rem;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--liquid-r-lg);
+  color: var(--text-tertiary);
+  background: var(--glass-bg-card);
+  font-size: 0.8125rem;
+  text-align: center;
+}
 
 .an-chart-card { padding: 1.125rem; }
 
@@ -84,3 +151,18 @@
 /* The dropdown is wider than a text action, so the heading row lets it take a fixed slot
    instead of squeezing the title it sits beside. */
 .an-records-filter { flex: none; width: 11rem; }
+
+@media (min-width: 1024px) {
+  .an-dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .an-dashboard > .native-stat-grid,
+  .an-dashboard > .an-highlights { grid-column: 1 / -1; }
+}
+
+@media (min-width: 640px) {
+  .an-highlights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

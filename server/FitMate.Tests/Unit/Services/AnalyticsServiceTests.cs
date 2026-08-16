@@ -121,6 +121,7 @@ public class AnalyticsServiceTests
         Assert.Equal(0m, result.TotalVolumeKg);
         Assert.Equal(0, result.TotalSets);
         Assert.Equal(0, result.TotalReps);
+        Assert.Empty(result.FrequentExercises);
         Assert.Empty(result.MuscleGroupVolumes);
         Assert.Empty(result.PersonalRecords);
         Assert.Empty(result.VolumeTrend);
@@ -221,6 +222,62 @@ public class AnalyticsServiceTests
 
         Assert.Equal(1, result.TotalSets);
         Assert.Equal(5, result.TotalReps);
+    }
+
+    [Fact]
+    public async Task GetOverviewAsync_RanksFrequentExercisesByCompletedWorkoutAppearances()
+    {
+        using var db = new SqliteTestDatabase();
+
+        using (var arrange = db.CreateContext())
+        {
+            var benchPressId = SeedExercise(arrange, "Bench Press", SqliteTestDatabase.ChestId);
+            var rowId = SeedExercise(arrange, "Row", SqliteTestDatabase.BackId);
+
+            foreach (var day in new[] { 4, 7 })
+            {
+                var workout = SeedWorkout(
+                    arrange,
+                    SqliteTestDatabase.UserId,
+                    new DateTime(2026, 3, day, 8, 0, 0, DateTimeKind.Utc),
+                    finishedAt: new DateTime(2026, 3, day, 9, 0, 0, DateTimeKind.Utc));
+                AddSets(
+                    arrange,
+                    workout.Id,
+                    benchPressId,
+                    new ExerciseSet { WeightKg = 100m, Reps = 5, IsCompleted = true });
+            }
+
+            var rowWorkout = SeedWorkout(
+                arrange,
+                SqliteTestDatabase.UserId,
+                new DateTime(2026, 3, 8, 8, 0, 0, DateTimeKind.Utc),
+                finishedAt: new DateTime(2026, 3, 8, 9, 0, 0, DateTimeKind.Utc));
+            AddSets(
+                arrange,
+                rowWorkout.Id,
+                rowId,
+                new ExerciseSet { WeightKg = 50m, Reps = 8, IsCompleted = true },
+                new ExerciseSet { WeightKg = 50m, Reps = 8, IsCompleted = true },
+                new ExerciseSet { WeightKg = 50m, Reps = 8, IsCompleted = true });
+        }
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetOverviewAsync(SqliteTestDatabase.UserId, new AnalyticsQueryRequest());
+
+        Assert.Equal(2, result.FrequentExercises.Count);
+
+        var mostFrequent = result.FrequentExercises[0];
+        Assert.Equal("Bench Press", mostFrequent.ExerciseName);
+        Assert.Equal("Chest", mostFrequent.PrimaryMuscleGroupName);
+        Assert.Equal(2, mostFrequent.WorkoutCount);
+        Assert.Equal(2, mostFrequent.SetCount);
+        Assert.Equal(new DateTime(2026, 3, 7, 9, 0, 0, DateTimeKind.Utc), mostFrequent.LastTrainedOn);
+
+        var second = result.FrequentExercises[1];
+        Assert.Equal("Row", second.ExerciseName);
+        Assert.Equal(1, second.WorkoutCount);
+        Assert.Equal(3, second.SetCount);
     }
 
     // Групира обема по основна мускулна група
