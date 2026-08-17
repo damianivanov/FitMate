@@ -41,16 +41,16 @@ export function ExerciseLookupResults({
   };
 
   return (
-    <div className="liquid-surface rounded-3xl p-2.5">
-      {isLoading ? <p className="px-2 py-1 text-xs text-secondary">Searching exercises...</p> : null}
-      {error ? <p className="px-2 py-1 text-xs text-danger">{error}</p> : null}
+    <div>
+      {isLoading ? <p className="px-1 py-1 text-xs text-secondary">Searching exercises...</p> : null}
+      {error ? <p className="px-1 py-1 text-xs text-danger">{error}</p> : null}
 
       {!isLoading && !error && options.length === 0 ? (
-        <p className="px-2 py-1 text-xs text-secondary">No exercises found.</p>
+        <p className="px-1 py-1 text-xs text-secondary">No exercises found.</p>
       ) : null}
 
       {!isLoading && !error && options.length > 0 ? (
-        <div className="liquid-scrollbar max-h-64 space-y-2 overflow-y-auto pr-1">
+        <div className="liquid-scrollbar max-h-64 space-y-1.5 overflow-y-auto pr-1">
           {options.map(({ option, metaLabel, isOwnedByCurrentUser }) => (
             <div
               key={option.id}

@@ -39,6 +39,7 @@ export function WorkoutSheet({
   onMetaChange,
 }: WorkoutSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
+  const scrimRef = useRef<HTMLDivElement | null>(null);
   const [isEntered, setIsEntered] = useState(false);
   const [reduceMotion] = useState(prefersReducedMotion);
 
@@ -47,6 +48,7 @@ export function WorkoutSheet({
 
   const { isDragging, dragHandlers } = useDragToMinimize({
     sheetRef,
+    scrimRef,
     onMinimize,
     disabled: reduceMotion || isMinimized,
   });
@@ -117,10 +119,14 @@ export function WorkoutSheet({
       ].join(" ")}
       aria-hidden={isMinimized ? true : undefined}
     >
+      {/* Tied to status, never to the drag. The scrim is what the sheet's glass reads its
+          colour through, so dropping it on touch-down repainted the whole panel; the drag
+          eases it by hand instead. */}
       <div
+        ref={scrimRef}
         className={[
           "liquid-overlay absolute inset-0 transition-opacity duration-200 ease-out",
-          isOpen && !isDragging ? "opacity-100" : "opacity-0",
+          isOpen ? "opacity-100" : "opacity-0",
         ].join(" ")}
         onClick={onMinimize}
         aria-hidden="true"
@@ -136,11 +142,12 @@ export function WorkoutSheet({
         className="liquid-workout-sheet absolute inset-x-0 bottom-0 flex flex-col outline-none"
         style={isDragging ? { transition: "none" } : { transform }}
       >
+        {/* The sheet already starts below the status bar, so the handle needs no inset. The
+            pill is 6px of paint but the grab has to be thumb-sized, so the strip reaches down
+            through the header's own top padding — clear of the buttons below it. */}
         <div
           {...dragHandlers}
-          style={{ touchAction: "none" }}
-          // The sheet already starts below the status bar, so the handle needs no inset.
-          className="flex shrink-0 cursor-grab items-center justify-center pt-3.5 pb-2.5 active:cursor-grabbing"
+          className="relative flex shrink-0 cursor-grab touch-none select-none items-center justify-center pt-4 pb-3 before:absolute before:inset-x-0 before:top-0 before:-bottom-2 before:content-[''] active:cursor-grabbing"
         >
           <span className="liquid-sheet-handle" aria-hidden="true" />
         </div>

@@ -43,7 +43,15 @@
 /* Selected by what it is, not by where it sits: `:last-child` also matches the title on a
    screen with no action, which pinned the heading to `flex: none` and stopped it truncating. */
 .native-title > div > h1 { min-width: 0; }
-.native-title > div > :not(h1) { flex: none; }
+
+/* The action stays centred on the title but must not set the row's height: a 2.5rem round
+   button is taller than the title's line box, and centring in the taller row pushed the
+   heading down and opened a gap under the eyebrow on those screens only. The symmetric
+   negative margin keeps the control centred while the title alone drives the height. */
+.native-title > div > :not(h1) {
+  flex: none;
+  margin-block: -0.375rem;
+}
 
 /* `truncate` clips glyph paint to the title box. Give letters with descenders (such as the
    final g in "Program") room to finish without changing the title row's visual spacing. */

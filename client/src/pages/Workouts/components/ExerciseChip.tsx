@@ -86,64 +86,69 @@ export function ExerciseChip({ exercise }: ExerciseChipProps) {
       {isOpen ? (
         <FloatingPortal>
           <FloatingFocusManager context={context} modal={false} initialFocus={-1} returnFocus>
+            {/* Outer = floating-ui positioning (transform). Inner = the entrance keyframe
+                (its own transform) — an animation outranks inline styles and `both` never
+                gives the property back, so sharing one element parks the panel at 0,0. */}
             <div
               ref={setPanelElement}
+              className="xp-anchor"
               style={{ ...floatingStyles, visibility: isPositioned ? "visible" : "hidden" }}
-              className="xp-pop"
               aria-label={name}
               {...getFloatingProps()}
             >
-              <div className="xp-head">
-                <b>{name}</b>
-                <button type="button" onClick={() => setIsOpen(false)} aria-label="Close">
-                  <LuX className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="xp-body">
-                {/* The picture is the fastest way to confirm you opened the right exercise, so
-                    it holds its own column at full height rather than sitting above the list
-                    and pushing the numbers off the bottom. */}
-                <div className="xp-side">
-                  <span className="xp-photo">
-                    {exercise.exerciseImageUrl ? (
-                      <img src={exercise.exerciseImageUrl} alt="" loading="lazy" />
-                    ) : (
-                      <LuDumbbell className="h-7 w-7" aria-hidden="true" />
-                    )}
-                  </span>
-                  <p>
-                    <b>
-                      {completedCount}/{exercise.sets.length}
-                    </b>
-                    <small>sets</small>
-                  </p>
-                  {volume > 0 ? (
-                    <p>
-                      <b>{Math.round(volume).toLocaleString()}</b>
-                      <small>kg</small>
-                    </p>
-                  ) : null}
+              <div className="xp-pop">
+                <div className="xp-head">
+                  <b>{name}</b>
+                  <button type="button" onClick={() => setIsOpen(false)} aria-label="Close">
+                    <LuX className="h-4 w-4" />
+                  </button>
                 </div>
 
-                {sortedSets.length > 0 ? (
-                  <ol className="xp-sets">
-                    {sortedSets.map((set, index) => (
-                      <li key={set.id} className={set.isCompleted ? "is-done" : ""}>
-                        <span>{index + 1}</span>
-                        <em>{SET_TYPE_LABELS[set.setType]}</em>
-                        <b>{getSetValueText(set)}</b>
-                        {set.isCompleted ? (
-                          <LuCheck className="h-3 w-3" strokeWidth={3} aria-label="Completed" />
-                        ) : (
-                          <i aria-label="Not completed" />
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="xp-empty">No sets recorded.</p>
-                )}
+                <div className="xp-body">
+                  {/* The picture is the fastest way to confirm you opened the right exercise,
+                      so it holds its own column at full height rather than sitting above the
+                      list and pushing the numbers off the bottom. */}
+                  <div className="xp-side">
+                    <span className="xp-photo">
+                      {exercise.exerciseImageUrl ? (
+                        <img src={exercise.exerciseImageUrl} alt="" loading="lazy" />
+                      ) : (
+                        <LuDumbbell className="h-7 w-7" aria-hidden="true" />
+                      )}
+                    </span>
+                    <p>
+                      <b>
+                        {completedCount}/{exercise.sets.length}
+                      </b>
+                      <small>sets</small>
+                    </p>
+                    {volume > 0 ? (
+                      <p>
+                        <b>{Math.round(volume).toLocaleString()}</b>
+                        <small>kg</small>
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {sortedSets.length > 0 ? (
+                    <ol className="xp-sets">
+                      {sortedSets.map((set, index) => (
+                        <li key={set.id} className={set.isCompleted ? "is-done" : ""}>
+                          <span>{index + 1}</span>
+                          <em>{SET_TYPE_LABELS[set.setType]}</em>
+                          <b>{getSetValueText(set)}</b>
+                          {set.isCompleted ? (
+                            <LuCheck className="h-3 w-3" strokeWidth={3} aria-label="Completed" />
+                          ) : (
+                            <i aria-label="Not completed" />
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="xp-empty">No sets recorded.</p>
+                  )}
+                </div>
               </div>
             </div>
           </FloatingFocusManager>

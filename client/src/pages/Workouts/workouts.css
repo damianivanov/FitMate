@@ -732,8 +732,13 @@
   color: var(--text-primary);
 }
 
-.xp-pop {
+/* Carries the floating-ui coordinates and nothing else — the entrance below animates
+   transform, and an animation with `both` would otherwise own that property for good. */
+.xp-anchor {
   z-index: var(--z-modal);
+}
+
+.xp-pop {
   width: min(21rem, calc(100vw - 1.5rem));
   border-radius: var(--liquid-r-lg);
   overflow: hidden;
