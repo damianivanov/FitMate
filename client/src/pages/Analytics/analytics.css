@@ -2,25 +2,6 @@
    ANALYTICS — page-scoped material. Everything here is prefixed an-.
 ---------------------------------------------------------------- */
 
-.an-page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(0.5rem, 4vw, 2rem);
-  width: 100%;
-}
-
-.an-page-heading > .native-title { flex: none; }
-
-.an-period {
-  flex: 0 1 12rem;
-  width: clamp(10rem, 50vw, 12rem);
-  min-width: 10rem;
-  max-width: 12rem;
-  margin: 0;
-  text-align: center;
-}
-
 .an-dashboard {
   display: flex;
   flex-direction: column;

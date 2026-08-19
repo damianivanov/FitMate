@@ -44,15 +44,15 @@ export default function Analytics() {
   return (
     <PageBody>
       <NativePage className="an-page">
-        <div className="an-page-heading">
-          <PageIntro eyebrow="Your training" title="Progress" />
+        <div className="flex w-full items-center justify-between gap-3 sm:gap-6 md:gap-8">
+          <PageIntro eyebrow="Your training" title="Progress" className="shrink-0" />
 
           <SegmentControl
             value={state.rangePreset}
             options={RANGE_OPTIONS}
             onChange={actions.setRange}
             size={SegmentControlSize.Sm}
-            className="an-period"
+            className="max-w-48 min-w-40 basis-48 text-center"
             label="Date range"
           />
         </div>

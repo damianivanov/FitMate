@@ -31,13 +31,15 @@ export function PageIntro({
   eyebrow,
   title,
   action,
+  className,
 }: {
   eyebrow: string;
   title?: string;
   action?: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="native-title">
+    <section className={classNames("native-title", className)}>
       {title ? <p className="liquid-page-eyebrow">{eyebrow}</p> : null}
       <div>
         <h1 className={title ? "liquid-page-title truncate" : "liquid-page-eyebrow truncate"}>
