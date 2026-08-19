@@ -77,7 +77,7 @@ export function SegmentControl<TValue extends string | number | boolean>({
         ) : null}
 
         {options.map((option) => (
-          <div key={String(option.value)} className="flex-1">
+          <div key={String(option.value)} className="min-w-0 flex-1 basis-0">
             <button
               type="button"
               role="tab"
@@ -86,13 +86,13 @@ export function SegmentControl<TValue extends string | number | boolean>({
               disabled={option.disabled || disabled}
               onClick={() => handleOptionClick(option.value)}
               className={[
-                "liquid-segment",
+                "liquid-segment min-w-0 justify-center text-center",
                 segmentSizeClassName[size],
                 option.disabled || disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
               ].join(" ")}
             >
-              {option.icon ? <span className="text-sm leading-none">{option.icon}</span> : null}
-              <span className="whitespace-nowrap">{option.label}</span>
+              {option.icon ? <span className="shrink-0 text-sm leading-none">{option.icon}</span> : null}
+              <span className="block whitespace-nowrap text-center">{option.label}</span>
             </button>
           </div>
         ))}
