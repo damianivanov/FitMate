@@ -28,6 +28,7 @@ public class CreateAdminExerciseRequest
     public ExerciseMovementPattern? MovementPattern { get; set; }
     public ExerciseDifficulty? Difficulty { get; set; }
     public ExerciseCategory? Category { get; set; }
+    public ExerciseLoadBasis? LoadBasis { get; set; }
     public List<string>? Aliases { get; set; }
 
     /// <summary>
@@ -46,6 +47,7 @@ public class CreateAdminExerciseRequest
         MovementPattern = MovementPattern,
         Difficulty = Difficulty,
         Category = Category,
+        LoadBasis = LoadBasis,
         Aliases = Aliases,
         IsPublic = isPublic,
     };

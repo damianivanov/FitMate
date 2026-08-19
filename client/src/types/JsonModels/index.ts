@@ -12,6 +12,7 @@ export { ExerciseCategory } from "./Enums/ExerciseCategory";
 export { ExerciseDifficulty } from "./Enums/ExerciseDifficulty";
 export { ExerciseEquipment } from "./Enums/ExerciseEquipment";
 export { ExerciseGroupType } from "./Enums/ExerciseGroupType";
+export { ExerciseLoadBasis } from "./Enums/ExerciseLoadBasis";
 export { ExerciseMovementPattern } from "./Enums/ExerciseMovementPattern";
 export { ExerciseSetType } from "./Enums/ExerciseSetType";
 export { PersonalRecordType } from "./Enums/PersonalRecordType";

@@ -18,6 +18,10 @@ export namespace Enums {
 		Dropset = 3,
 		Failure = 4
 	}
+	export enum ExerciseLoadBasis {
+		Total = 1,
+		PerSide = 2
+	}
 	export enum EntitlementSource {
 		FreePlan = 1,
 		Subscription = 2,
@@ -269,6 +273,7 @@ export namespace JsonModels.WorkoutTemplates {
 		exerciseId: number;
 		exerciseName: string;
 		exerciseImageUrl?: string;
+		exerciseLoadBasis?: Enums.ExerciseLoadBasis;
 		orderIndex: number;
 		targetSets: number;
 		targetReps?: string;
@@ -424,6 +429,7 @@ export namespace JsonModels.Workouts {
 		exerciseId: number;
 		exerciseName: string;
 		exerciseImageUrl?: string;
+		exerciseLoadBasis?: Enums.ExerciseLoadBasis;
 		orderIndex: number;
 		notes?: string;
 		sets: JsonModels.Workouts.WorkoutSetModel[];
@@ -715,6 +721,7 @@ export namespace JsonModels.Exercises {
 		movementPattern?: Enums.ExerciseMovementPattern;
 		difficulty?: Enums.ExerciseDifficulty;
 		category?: Enums.ExerciseCategory;
+		loadBasis?: Enums.ExerciseLoadBasis;
 		aliases?: string[];
 		isPrivate: boolean;
 	}
@@ -731,6 +738,7 @@ export namespace JsonModels.Exercises {
 		movementPattern?: Enums.ExerciseMovementPattern;
 		difficulty?: Enums.ExerciseDifficulty;
 		category?: Enums.ExerciseCategory;
+		loadBasis?: Enums.ExerciseLoadBasis;
 		aliases?: string[];
 		isPublic: boolean;
 	}
@@ -753,6 +761,7 @@ export namespace JsonModels.Exercises {
 		movementPattern?: Enums.ExerciseMovementPattern;
 		difficulty?: Enums.ExerciseDifficulty;
 		category?: Enums.ExerciseCategory;
+		loadBasis?: Enums.ExerciseLoadBasis;
 		aliases: string[];
 		creatorUserId?: number;
 		creatorDisplayName?: string;
@@ -779,6 +788,7 @@ export namespace JsonModels.Exercises {
 		movementPattern?: Enums.ExerciseMovementPattern;
 		difficulty?: Enums.ExerciseDifficulty;
 		category?: Enums.ExerciseCategory;
+		loadBasis?: Enums.ExerciseLoadBasis;
 		aliases: string[];
 		creatorDisplayName?: string;
 		dateCreated: string;

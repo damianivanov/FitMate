@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
-import {
-  selectIsActiveWorkout,
-  useActiveWorkoutStore,
-} from "@/stores/activeWorkoutStore";
 import { selectIsNavDrawerOpen, useNavDrawerStore } from "@/stores/navDrawerStore";
 import AppLogo from "./AppLogo";
 import MenuToggleIcon from "./MenuToggleIcon";
@@ -16,7 +12,6 @@ export default function AppHeader() {
   const isDrawerOpen = useNavDrawerStore(selectIsNavDrawerOpen);
   const openDrawer = useNavDrawerStore((state) => state.open);
   const closeDrawer = useNavDrawerStore((state) => state.close);
-  const isWorkoutActive = useActiveWorkoutStore(selectIsActiveWorkout);
   const { pathname } = useLocation();
   // Stored as the route that is scrolled rather than a bare flag: a new route starts at the
   // top of its own scroll box and fires no scroll event, so a flag would stay stuck on the
@@ -68,7 +63,6 @@ export default function AppHeader() {
         aria-expanded={isDrawerOpen}
       >
         <MenuToggleIcon isOpen={isDrawerOpen} />
-        {isWorkoutActive ? <i className="app-header-orb-dot" aria-hidden="true" /> : null}
       </button>
 
       <div className={`app-header-center ${isCompact && title ? "is-compact" : ""}`}>

@@ -1,3 +1,5 @@
+using FitMate.DB.Enums;
+
 namespace FitMate.Core.JsonModels.WorkoutTemplates;
 
 public class WorkoutTemplateExerciseModel
@@ -6,6 +8,7 @@ public class WorkoutTemplateExerciseModel
     public long ExerciseId { get; set; }
     public string ExerciseName { get; set; } = string.Empty;
     public string? ExerciseImageUrl { get; set; }
+    public ExerciseLoadBasis? ExerciseLoadBasis { get; set; }
     public int OrderIndex { get; set; }
     public int TargetSets { get; set; }
     public string? TargetReps { get; set; }

@@ -1149,6 +1149,7 @@ public class WorkoutService : IWorkoutService
                         ExerciseId = exercise.ExerciseId,
                         ExerciseName = exercise.Exercise.Name,
                         ExerciseImageUrl = exercise.Exercise.ImageUrl,
+                        ExerciseLoadBasis = exercise.Exercise.LoadBasis,
                         OrderIndex = exercise.OrderIndex,
                         Notes = exercise.Notes,
                         Sets = exercise.Sets

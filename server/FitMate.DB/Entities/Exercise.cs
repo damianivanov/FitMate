@@ -18,6 +18,7 @@ public class Exercise : BaseEntity
     public ExerciseMovementPattern? MovementPattern { get; set; }
     public ExerciseDifficulty? Difficulty { get; set; }
     public ExerciseCategory? Category { get; set; }
+    public ExerciseLoadBasis? LoadBasis { get; set; }
 
     public User? User { get; set; }
     public MuscleGroup PrimaryMuscleGroup { get; set; } = null!;

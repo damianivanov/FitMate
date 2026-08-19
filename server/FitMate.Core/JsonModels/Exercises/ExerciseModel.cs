@@ -18,6 +18,7 @@ public class ExerciseModel
     public ExerciseMovementPattern? MovementPattern { get; set; }
     public ExerciseDifficulty? Difficulty { get; set; }
     public ExerciseCategory? Category { get; set; }
+    public ExerciseLoadBasis? LoadBasis { get; set; }
     public List<string> Aliases { get; set; } = [];
     public string? CreatorDisplayName { get; set; }
     public DateTime DateCreated { get; set; }

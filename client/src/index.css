@@ -1315,23 +1315,6 @@ textarea { resize: none; }
   .app-menu-icon > span { transition: none; }
 }
 
-/* Only drawn while a workout is live — the one piece of state worth carrying in the corner
-   of every screen. */
-.app-header-orb-dot {
-  position: absolute;
-  right: -0.0625rem;
-  bottom: -0.0625rem;
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 9999px;
-  /* Cut out of the disc rather than laid on it — the ring is the page showing through, so
-     the dot reads as attached to the avatar instead of floating over it. */
-  border: 2px solid var(--color-base);
-  background: var(--color-success);
-}
-
-.dark .app-header-orb-dot { border-color: #121520; }
-
 .app-header-center {
   position: relative;
   display: grid;

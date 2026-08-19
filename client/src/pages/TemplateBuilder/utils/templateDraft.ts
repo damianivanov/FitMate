@@ -4,6 +4,7 @@ import {
   ExerciseGroupType,
   ExerciseSetType,
   type CreateWorkoutTemplateRequest,
+  type ExerciseLoadBasis,
   type ExerciseLookupModel,
   type WorkoutTemplateModel,
 } from "@/types";
@@ -31,6 +32,7 @@ export type TemplateExerciseDraft = {
   exerciseId: number;
   exerciseName: string;
   exerciseImageUrl?: string;
+  exerciseLoadBasis?: ExerciseLoadBasis;
   groupType: ExerciseGroupType;
   clientGroupId?: number;
   notes: string;
@@ -92,6 +94,7 @@ export function createTemplateExerciseFromLookup(exercise: ExerciseLookupModel):
     exerciseId: exercise.id,
     exerciseName: exercise.name,
     exerciseImageUrl: exercise.imageUrl ?? undefined,
+    exerciseLoadBasis: exercise.loadBasis,
     groupType: ExerciseGroupType.Straight,
     notes: "",
     sets: [createTemplateSetDraft(), createTemplateSetDraft(), createTemplateSetDraft()],
@@ -128,6 +131,7 @@ export function buildTemplateDraftFromTemplate(template: WorkoutTemplateModel): 
             exerciseId: exercise.exerciseId,
             exerciseName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
             exerciseImageUrl: exercise.exerciseImageUrl ?? undefined,
+            exerciseLoadBasis: exercise.exerciseLoadBasis,
             groupType: group.groupType,
             clientGroupId,
             notes: exercise.notes ?? "",

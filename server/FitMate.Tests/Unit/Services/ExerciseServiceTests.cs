@@ -147,6 +147,7 @@ public class ExerciseServiceTests
             request.MovementPattern = ExerciseMovementPattern.HorizontalPush;
             request.Difficulty = ExerciseDifficulty.Intermediate;
             request.Category = ExerciseCategory.Strength;
+            request.LoadBasis = ExerciseLoadBasis.PerSide;
             created = await service.CreatePersonalAsync(request);
         }
 
@@ -157,6 +158,8 @@ public class ExerciseServiceTests
         Assert.Equal(ExerciseMovementPattern.HorizontalPush, stored.MovementPattern);
         Assert.Equal(ExerciseDifficulty.Intermediate, stored.Difficulty);
         Assert.Equal(ExerciseCategory.Strength, stored.Category);
+        Assert.Equal(ExerciseLoadBasis.PerSide, created.LoadBasis);
+        Assert.Equal(ExerciseLoadBasis.PerSide, stored.LoadBasis);
     }
 
     // Update променя и изчиства метаданните
@@ -174,10 +177,12 @@ public class ExerciseServiceTests
         update.Slug = created.Slug;
         update.Equipment = null;                          // clear
         update.Difficulty = ExerciseDifficulty.Advanced;  // set
+        update.LoadBasis = ExerciseLoadBasis.Total;        // set
         var updated = await service.UpdateAsync(created.Id, update);
 
         Assert.Null(updated.Equipment);
         Assert.Equal(ExerciseDifficulty.Advanced, updated.Difficulty);
+        Assert.Equal(ExerciseLoadBasis.Total, updated.LoadBasis);
     }
 
     // Aliases се записват нормализирани и дедупликирани

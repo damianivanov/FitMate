@@ -221,27 +221,30 @@
 .wk-focus.tone-idle .wk-focus-light,
 .wk-focus.tone-done .wk-focus-light { opacity: 0.8; }
 
+/* The falloff is painted into the fill rather than applied with `filter: blur()`. A filtered
+   descendant is promoted to its own composited layer, and WebKit does not clip that layer to
+   the rounded overflow above it — both blobs bled past the card as a halo around the hero.
+   A radial gradient needs no layer, so the light stays inside the corners. */
 .wk-focus-light {
   position: absolute;
   border-radius: 9999px;
   pointer-events: none;
-  filter: blur(1.875rem);
 }
 
 .wk-focus-light.one {
-  top: -4.6875rem;
-  left: -2.1875rem;
-  width: 9.375rem;
-  height: 9.375rem;
-  background: rgba(var(--primary-rgb), 0.22);
+  top: -6.25rem;
+  left: -4.375rem;
+  width: 13.75rem;
+  height: 13.75rem;
+  background: radial-gradient(circle, rgba(var(--primary-rgb), 0.26), transparent 70%);
 }
 
 .wk-focus-light.two {
-  top: 3.4375rem;
-  right: -3.125rem;
-  width: 6.25rem;
-  height: 6.25rem;
-  background: rgba(130, 92, 255, 0.16);
+  top: 2.1875rem;
+  right: -4.375rem;
+  width: 10rem;
+  height: 10rem;
+  background: radial-gradient(circle, rgba(130, 92, 255, 0.2), transparent 70%);
 }
 
 .wk-focus-top,

@@ -1,3 +1,4 @@
+import { ExerciseLoadBasis } from "@/types";
 import type { PreviousExerciseSet } from "@/types";
 import type { ExerciseBuilderCapabilities, ExerciseMetricMode } from "./types";
 
@@ -74,4 +75,33 @@ export function formatPreviousSetLabel(previousSet: PreviousExerciseSet | undefi
   }
 
   return null;
+}
+
+/* Says out loud what the weight column only hints at, so a load entered against the wrong
+   basis is caught while typing rather than after the set is logged. Unclassified exercises
+   return null — an exercise nobody has set a basis for should claim neither. */
+export function getLoadBasisLabel(loadBasis?: ExerciseLoadBasis): string | null {
+  if (loadBasis === ExerciseLoadBasis.PerSide) {
+    return "Weight per side";
+  }
+
+  if (loadBasis === ExerciseLoadBasis.Total) {
+    return "Total weight";
+  }
+
+  return null;
+}
+
+export function getWeightColumnLabel(loadBasis?: ExerciseLoadBasis): string {
+  return loadBasis === ExerciseLoadBasis.PerSide ? "Weight/side" : "Weight";
+}
+
+export function getWeightUnitLabel(loadBasis?: ExerciseLoadBasis): string {
+  return loadBasis === ExerciseLoadBasis.PerSide ? "kg/side" : "kg";
+}
+
+export function getWeightAriaLabel(setNumber: number, loadBasis?: ExerciseLoadBasis): string {
+  return loadBasis === ExerciseLoadBasis.PerSide
+    ? `Set weight per side for set ${setNumber}`
+    : `Set weight for set ${setNumber}`;
 }

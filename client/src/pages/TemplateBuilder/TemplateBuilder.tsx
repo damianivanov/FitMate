@@ -41,6 +41,7 @@ export default function TemplateBuilder() {
         notes: exercise.notes,
         collapsed: collapsedExerciseIds.has(exercise.id),
         metricMode: getTemplateExerciseMetricMode(exercise),
+        loadBasis: exercise.exerciseLoadBasis,
         sets: exercise.sets.map((set) => ({
           id: set.id,
           weightKg: set.weightKg,

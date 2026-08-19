@@ -10,6 +10,7 @@ export type ExerciseFormValues = {
   movementPattern: string;
   difficulty: string;
   category: string;
+  loadBasis: string;
   aliases: string[];
 };
 
@@ -24,5 +25,6 @@ export const emptyExerciseFormValues: ExerciseFormValues = {
   movementPattern: "",
   difficulty: "",
   category: "",
+  loadBasis: "",
   aliases: [],
 };

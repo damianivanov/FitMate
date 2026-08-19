@@ -13,6 +13,7 @@ import type {
   ExerciseCategory,
   ExerciseDifficulty,
   ExerciseEquipment,
+  ExerciseLoadBasis,
   ExerciseMovementPattern,
   PagedResponse,
 } from "@/types";
@@ -31,6 +32,7 @@ function toFormValues(item: Exercise): ExerciseFormValues {
     movementPattern: item.movementPattern != null ? String(item.movementPattern) : "",
     difficulty: item.difficulty != null ? String(item.difficulty) : "",
     category: item.category != null ? String(item.category) : "",
+    loadBasis: item.loadBasis != null ? String(item.loadBasis) : "",
     aliases: item.aliases ?? [],
   };
 }
@@ -51,6 +53,7 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
       : undefined,
     difficulty: values.difficulty ? (Number(values.difficulty) as ExerciseDifficulty) : undefined,
     category: values.category ? (Number(values.category) as ExerciseCategory) : undefined,
+    loadBasis: values.loadBasis ? (Number(values.loadBasis) as ExerciseLoadBasis) : undefined,
     aliases: values.aliases,
   };
 }

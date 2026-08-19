@@ -4,6 +4,7 @@ import {
   ExerciseCategory,
   ExerciseDifficulty,
   ExerciseEquipment,
+  ExerciseLoadBasis,
   ExerciseMovementPattern,
 } from "@/types";
 import type { MuscleGroup } from "@/types";
@@ -38,6 +39,7 @@ const equipmentOptions = toEnumOptions(ExerciseEquipment);
 const movementPatternOptions = toEnumOptions(ExerciseMovementPattern);
 const difficultyOptions = toEnumOptions(ExerciseDifficulty);
 const categoryOptions = toEnumOptions(ExerciseCategory);
+const loadBasisOptions = toEnumOptions(ExerciseLoadBasis);
 
 type AddExerciseModalProps = {
   isOpen: boolean;
@@ -77,6 +79,7 @@ export function AddExerciseModal({
   const [movementPattern, setMovementPattern] = useState(values.movementPattern);
   const [difficulty, setDifficulty] = useState(values.difficulty);
   const [category, setCategory] = useState(values.category);
+  const [loadBasis, setLoadBasis] = useState(values.loadBasis);
   const [aliases, setAliases] = useState<string[]>(values.aliases);
   const [aliasDraft, setAliasDraft] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -104,6 +107,7 @@ export function AddExerciseModal({
         movementPattern,
         difficulty,
         category,
+        loadBasis,
         aliases,
       },
       file ?? undefined,
@@ -220,6 +224,17 @@ export function AddExerciseModal({
               value={category || null}
               onChange={(value) => setCategory(value ?? "")}
               options={categoryOptions}
+              containerClassName={dropdownContainerClassName}
+              labelClassName={labelClassName}
+              placeholder="Not set"
+              clearable
+            />
+            <Dropdown
+              id="exercise-load-basis"
+              label="Logged Weight"
+              value={loadBasis || null}
+              onChange={(value) => setLoadBasis(value ?? "")}
+              options={loadBasisOptions}
               containerClassName={dropdownContainerClassName}
               labelClassName={labelClassName}
               placeholder="Not set"

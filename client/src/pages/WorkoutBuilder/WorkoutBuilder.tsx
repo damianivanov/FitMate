@@ -109,6 +109,7 @@ export default function WorkoutBuilder({
         notes: exercise.notes,
         collapsed: collapsedExerciseIds.has(exercise.id),
         metricMode: getWorkoutExerciseMetricMode(exercise),
+        loadBasis: exercise.exerciseLoadBasis,
         sets: exercise.sets.map((set) => ({
           id: set.id,
           weightKg: set.weightKg,

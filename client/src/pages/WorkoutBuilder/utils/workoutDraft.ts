@@ -5,6 +5,7 @@ import {
   ExerciseSetType,
   type CreateWorkoutExerciseRequest,
   type CreateWorkoutSetRequest,
+  type ExerciseLoadBasis,
   type ExerciseLookupModel,
   type PreviousExerciseSet,
   type SaveWorkoutRequest,
@@ -38,6 +39,7 @@ export type WorkoutExerciseDraft = Omit<CreateWorkoutExerciseRequest, "notes" | 
   orderIndex: number;
   exerciseName: string;
   exerciseImageUrl?: string;
+  exerciseLoadBasis?: ExerciseLoadBasis;
   notes: string;
   sets: WorkoutSetDraft[];
 };
@@ -124,6 +126,7 @@ function buildExerciseDraft(
     orderIndex,
     exerciseName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
     exerciseImageUrl: exercise.exerciseImageUrl,
+    exerciseLoadBasis: exercise.exerciseLoadBasis,
     notes: exercise.notes ?? "",
     sets: exercise.sets
       .slice()
@@ -190,6 +193,7 @@ export function buildWorkoutDraftFromWorkout(workout: Workout): WorkoutDraft {
             orderIndex: ++exerciseOrderIndex,
             exerciseName: exercise.exerciseName || `Exercise #${exercise.exerciseId}`,
             exerciseImageUrl: exercise.exerciseImageUrl,
+            exerciseLoadBasis: exercise.exerciseLoadBasis,
             notes: exercise.notes ?? "",
             sets: exercise.sets
               .slice()
@@ -316,6 +320,7 @@ export function createWorkoutExerciseDraftFromLookup(
     exerciseId: exercise.id,
     exerciseName: exercise.name,
     exerciseImageUrl: exercise.imageUrl ?? undefined,
+    exerciseLoadBasis: exercise.loadBasis,
     notes: "",
     sets: Array.from({ length: DEFAULT_NEW_EXERCISE_SET_COUNT }, (_value, index) => ({
       id: createLocalId("workout-set"),

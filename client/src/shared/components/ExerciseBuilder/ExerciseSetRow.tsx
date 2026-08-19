@@ -1,12 +1,15 @@
 import type { HTMLAttributes, MouseEvent as ReactMouseEvent } from "react";
 import { LuCheck, LuGripVertical, LuTrash2 } from "react-icons/lu";
 import { ExerciseSetType } from "@/types";
+import type { ExerciseLoadBasis } from "@/types";
 import { ExerciseSetTypeDropdown } from "./ExerciseSetTypeDropdown";
 import {
   getCompactSetValueText,
   getMetricGridColumnsClass,
   getMetricModeLabel,
   getMetricModeUnit,
+  getWeightAriaLabel,
+  getWeightUnitLabel,
 } from "./format";
 import type {
   ExerciseBuilderCallbacks,
@@ -21,6 +24,7 @@ type ExerciseSetRowProps = {
   set: ExerciseBuilderSetVM;
   setNumber: number;
   metricMode: ExerciseMetricMode;
+  loadBasis?: ExerciseLoadBasis;
   capabilities: ExerciseBuilderCapabilities;
   callbacks: ExerciseBuilderCallbacks;
   isSetEditMode: boolean;
@@ -60,6 +64,7 @@ export function ExerciseSetRow({
   set,
   setNumber,
   metricMode,
+  loadBasis,
   capabilities,
   callbacks,
   isSetEditMode,
@@ -148,7 +153,7 @@ export function ExerciseSetRow({
       getCompactSetValueText(activeMetricValue),
     ];
     const compactTitleParts = ["Weight", metricModeLabel];
-    const compactUnitParts = ["kg", getMetricModeUnit(metricMode)];
+    const compactUnitParts = [getWeightUnitLabel(loadBasis), getMetricModeUnit(metricMode)];
     if (capabilities.showRestColumn) {
       compactParts.push(getCompactSetValueText(set.restSeconds));
       compactTitleParts.push("Rest");
@@ -224,7 +229,7 @@ export function ExerciseSetRow({
             type="button"
             onClick={handleWeightClick}
             className={metricButtonClass}
-            aria-label={`Set weight for set ${setNumber}`}
+            aria-label={getWeightAriaLabel(setNumber, loadBasis)}
           >
             {getCompactSetValueText(set.weightKg)}
           </button>

@@ -148,6 +148,7 @@ public class ExerciseService : IExerciseService
             MovementPattern = normalized.MovementPattern,
             Difficulty = normalized.Difficulty,
             Category = normalized.Category,
+            LoadBasis = normalized.LoadBasis,
             Aliases = BuildAliases(normalized.Aliases),
         };
 
@@ -181,6 +182,7 @@ public class ExerciseService : IExerciseService
         exercise.MovementPattern = normalized.MovementPattern;
         exercise.Difficulty = normalized.Difficulty;
         exercise.Category = normalized.Category;
+        exercise.LoadBasis = normalized.LoadBasis;
 
         dbContext.ExerciseAliases.RemoveRange(exercise.Aliases);
         exercise.Aliases = BuildAliases(normalized.Aliases);
@@ -544,6 +546,7 @@ public class ExerciseService : IExerciseService
                 MovementPattern = item.MovementPattern,
                 Difficulty = item.Difficulty,
                 Category = item.Category,
+                LoadBasis = item.LoadBasis,
                 Aliases = item.Aliases,
                 CreatorUserId = item.CreatorUserId,
                 CreatorDisplayName = item.CreatorDisplayName,
@@ -570,6 +573,7 @@ public class ExerciseService : IExerciseService
             MovementPattern = request.MovementPattern,
             Difficulty = request.Difficulty,
             Category = request.Category,
+            LoadBasis = request.LoadBasis,
             Aliases = request.Aliases,
         };
     }
@@ -673,6 +677,7 @@ public class ExerciseService : IExerciseService
             MovementPattern = entity.MovementPattern,
             Difficulty = entity.Difficulty,
             Category = entity.Category,
+            LoadBasis = entity.LoadBasis,
             Aliases = entity.Aliases.OrderBy(a => a.Alias).Select(a => a.Alias).ToList(),
             CreatorDisplayName = ResolveCreatorName(entity.User),
             DateCreated = entity.DateCreated,
@@ -698,6 +703,7 @@ public class ExerciseService : IExerciseService
             MovementPattern = entity.MovementPattern,
             Difficulty = entity.Difficulty,
             Category = entity.Category,
+            LoadBasis = entity.LoadBasis,
             Aliases = entity.Aliases.Select(a => a.Alias).ToList(),
             CreatorDisplayName =
                 entity.User == null
@@ -759,6 +765,7 @@ public class ExerciseService : IExerciseService
             MovementPattern = x.MovementPattern,
             Difficulty = x.Difficulty,
             Category = x.Category,
+            LoadBasis = x.LoadBasis,
             Aliases = x.Aliases.Select(a => a.Alias).ToList(),
             CreatorUserId = x.UserId,
             CreatorDisplayName =

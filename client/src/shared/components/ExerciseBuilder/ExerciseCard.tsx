@@ -37,7 +37,7 @@ import { Modal } from "../Modal";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
 import { PreviousSetsButton } from "./PreviousSetsButton";
-import { getMetricGridColumnsClass } from "./format";
+import { getLoadBasisLabel, getMetricGridColumnsClass, getWeightColumnLabel } from "./format";
 import type {
   ExerciseBuilderCallbacks,
   ExerciseBuilderCapabilities,
@@ -118,6 +118,9 @@ export function ExerciseCard({
       : "Add Note";
 
   const headerGridClass = ["grid min-w-0 flex-1 gap-2 sm:gap-4", getMetricGridColumnsClass(capabilities)].join(" ");
+  // Carried in the title block as well as the weight column: the columns are hidden while the
+  // card is collapsed, which is exactly when the load has to be recalled rather than read.
+  const loadBasisLabel = getLoadBasisLabel(exercise.loadBasis);
 
   const handleExerciseMenuClose = useCallback(() => {
     setIsExerciseMenuOpen(false);
@@ -267,6 +270,7 @@ export function ExerciseCard({
                   set={set}
                   setNumber={index + 1}
                   metricMode={metricMode}
+                  loadBasis={exercise.loadBasis}
                   capabilities={capabilities}
                   callbacks={callbacks}
                   isSetEditMode={isSetEditMode}
@@ -290,6 +294,7 @@ export function ExerciseCard({
           set={set}
           setNumber={index + 1}
           metricMode={metricMode}
+          loadBasis={exercise.loadBasis}
           capabilities={capabilities}
           callbacks={callbacks}
           isSetEditMode={isSetEditMode}
@@ -369,25 +374,32 @@ export function ExerciseCard({
                 <LuCheck className="h-3.5 w-3.5" />
               </span>
             ) : null}
-            {isCollapseEnabled ? (
-              <button
-                type="button"
-                onClick={handleCollapseClick}
-                className={`block min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
-                title={exercise.displayName}
-                aria-expanded={!isCollapsed}
-                aria-label={isCollapsed ? `Expand ${exercise.displayName}` : `Collapse ${exercise.displayName}`}
-              >
-                {exercise.displayName}
-              </button>
-            ) : (
-              <span
-                className={`block min-w-0 flex-1 truncate text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
-                title={exercise.displayName}
-              >
-                {exercise.displayName}
-              </span>
-            )}
+            <div className="min-w-0 flex-1">
+              {isCollapseEnabled ? (
+                <button
+                  type="button"
+                  onClick={handleCollapseClick}
+                  className={`block w-full cursor-pointer truncate text-left text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                  title={exercise.displayName}
+                  aria-expanded={!isCollapsed}
+                  aria-label={isCollapsed ? `Expand ${exercise.displayName}` : `Collapse ${exercise.displayName}`}
+                >
+                  {exercise.displayName}
+                </button>
+              ) : (
+                <span
+                  className={`block w-full truncate text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                  title={exercise.displayName}
+                >
+                  {exercise.displayName}
+                </span>
+              )}
+              {loadBasisLabel ? (
+                <span className="mt-0.5 block truncate text-2xs font-medium text-muted">
+                  {loadBasisLabel}
+                </span>
+              ) : null}
+            </div>
             <div className="flex shrink-0 items-center gap-0.5">
               {showPreviousSets && history ? (
                 <PreviousSetsButton
@@ -440,7 +452,7 @@ export function ExerciseCard({
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="mono w-7 shrink-0 whitespace-nowrap text-center text-2xs font-semibold" />
                   <div className={headerGridClass}>
-                    <span className="block w-full text-center text-secondary">Weight</span>
+                    <span className="block w-full text-center text-secondary">{getWeightColumnLabel(exercise.loadBasis)}</span>
                     <button
                       type="button"
                       onClick={handleMetricModeToggle}

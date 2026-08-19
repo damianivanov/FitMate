@@ -610,6 +610,7 @@ public class WorkoutTemplateService : IWorkoutTemplateService
                             ExerciseId = exercise.ExerciseId,
                             ExerciseName = exerciseName,
                             ExerciseImageUrl = exerciseImageUrl,
+                            ExerciseLoadBasis = exercise.Exercise != null ? exercise.Exercise.LoadBasis : null,
                             OrderIndex = exercise.OrderIndex,
                             TargetSets = exercise.TargetSets,
                             TargetReps = exercise.TargetReps,
