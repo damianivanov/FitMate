@@ -36,6 +36,7 @@ export type AIUserModelCost = JsonModels.AdminAI.AIUserModelCostModel;
 export type AnalyticsOverview = JsonModels.Analytics.AnalyticsOverviewModel;
 export type BodyMetricEntry = JsonModels.BodyMetrics.BodyMetricEntryModel;
 export type BuildInfo = JsonModels.Build.BuildInfoModel;
+export type BulkExerciseImageTicket = JsonModels.Exercises.BulkExerciseImageTicketModel;
 export type CurrentSubscription = JsonModels.Subscriptions.CurrentSubscriptionModel;
 export type DuplicateCandidate = JsonModels.AIActions.DuplicateCandidateModel;
 export type EffectiveEntitlements = JsonModels.Subscriptions.EffectiveEntitlementsModel;

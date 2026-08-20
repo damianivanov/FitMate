@@ -5,6 +5,8 @@ using FitMate.DB.Constants;
 using FitMate.DB.Entities;
 using FitMate.Services.AI;
 using FitMate.Services.AI.Runs;
+using FitMate.Services.Storage.Blobs;
+using FitMate.Services.Storage.Imaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -99,6 +101,22 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddSingleton<FakeAICompletionProvider>();
             services.AddSingleton<IAICompletionProvider>(sp => sp.GetRequiredService<FakeAICompletionProvider>());
+
+            // Image endpoints would otherwise reach for real blob storage (the connection string
+            // falls back to development storage, which no test runs). Swap both halves of the
+            // pipeline for fakes so a test can drive an upload end to end and inspect what landed.
+            var storageDescriptors = services
+                .Where(d => d.ServiceType == typeof(IBlobStorageService) || d.ServiceType == typeof(IImageProcessor))
+                .ToList();
+            foreach (var descriptor in storageDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<FakeBlobStorageService>();
+            services.AddSingleton<IBlobStorageService>(sp => sp.GetRequiredService<FakeBlobStorageService>());
+            services.AddSingleton<FakeImageProcessor>();
+            services.AddSingleton<IImageProcessor>(sp => sp.GetRequiredService<FakeImageProcessor>());
 
             services
                 .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)

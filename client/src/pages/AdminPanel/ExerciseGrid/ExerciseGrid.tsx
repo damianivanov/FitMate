@@ -1,7 +1,8 @@
-import { LuArrowLeft, LuPlus } from "react-icons/lu";
+import { LuArrowLeft, LuFolderUp, LuPlus } from "react-icons/lu";
 import { Link } from "react-router";
 import { AddExerciseModal, ExerciseImageModal, PageBody } from "@/shared/components";
 import { EntityGrid } from "@/shared/components/tables";
+import { BulkImageUploadModal } from "./components/BulkImageUploadModal";
 import { useExerciseGridPage } from "./hooks/useExerciseGridPage";
 
 export default function ExerciseGrid() {
@@ -21,7 +22,17 @@ export default function ExerciseGrid() {
         </div>
 
         <section className="liquid-surface w-full rounded-3xl p-5 md:p-6">
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap justify-end gap-2">
+            {state.isSuperAdmin && (
+              <button
+                type="button"
+                onClick={actions.openBulkUpload}
+                className="liquid-pill inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold text-primary"
+              >
+                <LuFolderUp className="h-4 w-4" />
+                <span>Bulk upload images</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={actions.openCreateEditor}
@@ -69,6 +80,14 @@ export default function ExerciseGrid() {
         onClose={actions.closeImageModal}
         onUploaded={actions.onImageUploaded}
       />
+
+      {state.isSuperAdmin && (
+        <BulkImageUploadModal
+          state={state.bulkUpload}
+          onClose={actions.closeBulkUpload}
+          onPick={actions.startBulkUpload}
+        />
+      )}
     </>
   );
 }

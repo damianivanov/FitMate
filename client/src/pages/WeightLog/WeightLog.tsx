@@ -21,6 +21,12 @@ function HeroStat({ label, value }: { label: string; value: string }) {
 export default function WeightLog() {
   const { state, actions } = useWeightLogPage();
 
+  const handleDeleteSelectedEntry = () => {
+    if (state.selectedEntry) {
+      actions.requestDelete(state.selectedEntry);
+    }
+  };
+
   return (
     <>
       <PageBody>
@@ -135,11 +141,7 @@ export default function WeightLog() {
         entry={state.selectedEntry}
         deltaKg={state.selectedEntryDelta}
         onClose={actions.closeDetail}
-        onDelete={() => {
-          if (state.selectedEntry) {
-            actions.requestDelete(state.selectedEntry);
-          }
-        }}
+        onDelete={handleDeleteSelectedEntry}
       />
 
       <DeleteConfirmationModal

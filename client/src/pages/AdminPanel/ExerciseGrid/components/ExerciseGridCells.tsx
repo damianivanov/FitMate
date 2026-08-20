@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { Tooltip } from "@mui/material";
 import { LuImage, LuSearch } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
@@ -32,6 +32,18 @@ export function ExerciseNameCell({ exercise }: { exercise: Exercise }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const imageUrl = exercise.imageUrl?.trim();
 
+  const handleTooltipOpen = () => {
+    if (!isMobile) {
+      setIsPreviewOpen(true);
+    }
+  };
+
+  const handleTriggerClick = () => {
+    if (isMobile) {
+      setIsPreviewOpen((open) => !open);
+    }
+  };
+
   return (
     <div className="flex w-full items-center gap-2">
       <span className="truncate">{exercise.name}</span>
@@ -41,11 +53,7 @@ export function ExerciseNameCell({ exercise }: { exercise: Exercise }) {
           placement={isMobile ? "top" : "right"}
           enterDelay={80}
           open={isPreviewOpen}
-          onOpen={() => {
-            if (!isMobile) {
-              setIsPreviewOpen(true);
-            }
-          }}
+          onOpen={handleTooltipOpen}
           onClose={() => setIsPreviewOpen(false)}
           disableHoverListener={isMobile}
           disableFocusListener={isMobile}
@@ -62,11 +70,7 @@ export function ExerciseNameCell({ exercise }: { exercise: Exercise }) {
         >
           <button
             type="button"
-            onClick={() => {
-              if (isMobile) {
-                setIsPreviewOpen((open) => !open);
-              }
-            }}
+            onClick={handleTriggerClick}
             className="liquid-pill inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary"
             aria-label={`Preview ${exercise.name} image`}
           >
@@ -87,6 +91,12 @@ export function ExerciseNameCell({ exercise }: { exercise: Exercise }) {
 export function ExerciseSearchHeader({ onChange }: { onChange: (value: string) => void }) {
   const [value, setValue] = useState("");
 
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const lowered = event.target.value.toLowerCase();
+    setValue(lowered);
+    onChange(lowered);
+  };
+
   return (
     <div
       className="liquid-input flex w-full items-center gap-2 rounded-full px-3 py-1.5"
@@ -96,11 +106,7 @@ export function ExerciseSearchHeader({ onChange }: { onChange: (value: string) =
       <LuSearch className="h-3.5 w-3.5 shrink-0 text-primary" />
       <input
         value={value}
-        onChange={(event) => {
-          const lowered = event.target.value.toLowerCase();
-          setValue(lowered);
-          onChange(lowered);
-        }}
+        onChange={handleSearchChange}
         onKeyDown={(event) => event.stopPropagation()}
         placeholder="Search name or slug"
         aria-label="Search exercises by name or slug"

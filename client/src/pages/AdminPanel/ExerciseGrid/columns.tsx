@@ -1,6 +1,7 @@
 import type { GridColDef } from "@mui/x-data-grid";
 import { LuImage, LuPencil, LuTrash2 } from "react-icons/lu";
 import { normalizeUtcIsoString } from "@/lib/helpers";
+import { ExerciseLoadBasis } from "@/types";
 import type { Exercise, MuscleGroup } from "@/types";
 import { ExerciseNameCell, ExerciseSearchHeader } from "./components/ExerciseGridCells";
 
@@ -43,6 +44,14 @@ function formatDate(value?: string | null): string {
 
   const date = new Date(normalizeUtcIsoString(value));
   return Number.isNaN(date.getTime()) ? "—" : DATE_FORMATTER.format(date);
+}
+
+function formatLoadBasis(value?: ExerciseLoadBasis): string {
+  if (value === ExerciseLoadBasis.PerSide) {
+    return "Per side";
+  }
+
+  return value === ExerciseLoadBasis.Total ? "Total" : "—";
 }
 
 export function createExerciseGridColumns({
@@ -93,10 +102,10 @@ export function createExerciseGridColumns({
         ),
     },
     {
-      field: "dateCreated",
-      headerName: "Created",
-      minWidth: 130,
-      valueGetter: (_value, row) => formatDate(row.dateCreated),
+      field: "loadBasis",
+      headerName: "Logged Weight",
+      minWidth: 140,
+      valueGetter: (_value, row) => formatLoadBasis(row.loadBasis),
     },
     {
       field: "dateModified",

@@ -7,6 +7,9 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useMuscleGroups } from "@/hooks/useMuscleGroups";
 import { adminService } from "@/services/adminService";
 import { exerciseService } from "@/services/exerciseService";
+import { SUPER_ADMIN_USER_ID } from "@/lib/access";
+import { useUserStore } from "@/stores/userStore";
+import { useBulkImageUpload } from "./useBulkImageUpload";
 import type {
   CreateExerciseRequest,
   Exercise,
@@ -61,6 +64,7 @@ function toRequest(values: ExerciseFormValues): CreateExerciseRequest {
 export function useExerciseGridPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { muscleGroups, error: muscleGroupsError } = useMuscleGroups();
+  const isSuperAdmin = useUserStore((store) => store.user.id === SUPER_ADMIN_USER_ID);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -195,6 +199,8 @@ export function useExerciseGridPage() {
     setReloadIndex((index) => index + 1);
   }, []);
 
+  const bulkImageUpload = useBulkImageUpload(onImageUploaded);
+
   const onSearchChange = useCallback((value: string) => {
     setSearchInput(value);
     setActionError(null);
@@ -280,6 +286,8 @@ export function useExerciseGridPage() {
       paginationModel,
       columns,
       imageTarget,
+      isSuperAdmin,
+      bulkUpload: bulkImageUpload.state,
     }),
     [
       exercises,
@@ -296,6 +304,8 @@ export function useExerciseGridPage() {
       paginationModel,
       columns,
       imageTarget,
+      isSuperAdmin,
+      bulkImageUpload.state,
     ],
   );
 
@@ -308,6 +318,9 @@ export function useExerciseGridPage() {
       openImageModal,
       closeImageModal,
       onImageUploaded,
+      openBulkUpload: bulkImageUpload.open,
+      closeBulkUpload: bulkImageUpload.close,
+      startBulkUpload: bulkImageUpload.start,
     }),
     [
       openCreateEditor,
@@ -317,6 +330,9 @@ export function useExerciseGridPage() {
       openImageModal,
       closeImageModal,
       onImageUploaded,
+      bulkImageUpload.open,
+      bulkImageUpload.close,
+      bulkImageUpload.start,
     ],
   );
 

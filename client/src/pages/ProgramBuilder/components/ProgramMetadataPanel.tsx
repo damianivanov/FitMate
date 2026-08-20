@@ -37,6 +37,12 @@ export function ProgramMetadataPanel({
   const isCustom = builderState.scheduleType === ProgramScheduleType.CustomCalendar;
   const showEndDate = !builderState.isOpenEnded || isCustom;
 
+  const handleGoalChange = (value: TrainingGoal | null) => {
+    if (value !== null) {
+      onGoalChange(value);
+    }
+  };
+
   return (
     <section className="liquid-panel grid gap-4 rounded-2xl p-4 md:rounded-lg">
       <TextInputField
@@ -59,11 +65,7 @@ export function ProgramMetadataPanel({
         label="Goal"
         value={builderState.goal}
         options={GOAL_OPTIONS}
-        onChange={(value) => {
-          if (value !== null) {
-            onGoalChange(value);
-          }
-        }}
+        onChange={handleGoalChange}
       />
 
       <SegmentControl

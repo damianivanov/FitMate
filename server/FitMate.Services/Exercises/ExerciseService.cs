@@ -290,6 +290,58 @@ public class ExerciseService : IExerciseService
         }
     }
 
+    /// <summary>
+    /// Bulk-import variant of <see cref="CreateImageUploadTicketAsync"/>: the caller names the
+    /// exercise by slug (the image file was named after it) rather than by id, so a folder of
+    /// images can be matched without the client first pulling down the whole catalogue.
+    /// Returns null when no exercise carries the slug — an import walks over files that simply do
+    /// not correspond to anything, which is an expected outcome rather than a failure.
+    /// </summary>
+    public async Task<BulkExerciseImageTicketModel?> CreateBulkImageUploadTicketAsync(
+        BulkExerciseImageTicketRequest request)
+    {
+        var exercise = await FindExerciseBySlugAsync(request.Slug);
+        if (exercise == null)
+        {
+            return null;
+        }
+
+        var ticket = await CreateImageUploadTicketAsync(
+            exercise.Id,
+            new ImageUploadTicketRequest { FileName = exercise.Slug, ContentType = request.ContentType });
+
+        return new BulkExerciseImageTicketModel
+        {
+            ExerciseId = exercise.Id,
+            ExerciseName = exercise.Name,
+            UploadUrl = ticket.UploadUrl,
+            BlobName = ticket.BlobName,
+        };
+    }
+
+    /// <summary>Null when the slug matches nothing; see <see cref="CreateBulkImageUploadTicketAsync"/>.</summary>
+    public async Task<ExerciseModel?> ConfirmBulkImageUploadAsync(ConfirmBulkExerciseImageRequest request)
+    {
+        var exercise = await FindExerciseBySlugAsync(request.Slug);
+        if (exercise == null)
+        {
+            return null;
+        }
+
+        return await ConfirmImageUploadAsync(
+            exercise.Id,
+            new ConfirmImageUploadRequest { BlobName = request.BlobName });
+    }
+
+    private async Task<Exercise?> FindExerciseBySlugAsync(string? slug)
+    {
+        var normalized = (slug ?? string.Empty).Trim().ToLowerInvariant();
+
+        return normalized.Length == 0
+            ? null
+            : await dbContext.Exercises.FirstOrDefaultAsync(x => x.Slug == normalized);
+    }
+
     public async Task<bool> DeleteAsync(long id)
     {
         var exercise = await LoadEditableExerciseAsync(id);

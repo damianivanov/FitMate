@@ -15,6 +15,9 @@ import type {
   AIAdminUsageSummaryModel,
   AssignPlanOverrideRequest,
   BuildInfoModel,
+  BulkExerciseImageTicket,
+  BulkExerciseImageTicketRequest,
+  ConfirmBulkExerciseImageRequest,
   CreateMuscleGroupRequest,
   ErrorModel,
   ErrorQueryRequest,
@@ -73,6 +76,22 @@ export const adminService = {
   exercises: {
     async list(params: ExerciseQueryRequest) {
       return api.get<JsonData<PagedResponse<Exercise>>>("admin/exercises", { params });
+    },
+
+    // Slug-addressed image upload, reserved for the super administrator. Same two-step
+    // direct-to-storage flow as the per-exercise upload, but the server resolves the exercise from
+    // the file's slug so a whole folder can be imported without the client knowing any ids.
+    images: {
+      async createTicket(payload: BulkExerciseImageTicketRequest) {
+        return api.post<JsonData<BulkExerciseImageTicket>>(
+          "admin/exercises/images/upload-url",
+          payload,
+        );
+      },
+
+      async confirm(payload: ConfirmBulkExerciseImageRequest) {
+        return api.post<JsonData<Exercise>>("admin/exercises/images/confirm", payload);
+      },
     },
   },
 

@@ -14,5 +14,7 @@ public interface IExerciseService
     Task<ExerciseModel> UploadImageAsync(long id, Stream content, string fileName);
     Task<ImageUploadTicketModel> CreateImageUploadTicketAsync(long id, ImageUploadTicketRequest request);
     Task<ExerciseModel> ConfirmImageUploadAsync(long id, ConfirmImageUploadRequest request);
+    Task<BulkExerciseImageTicketModel?> CreateBulkImageUploadTicketAsync(BulkExerciseImageTicketRequest request);
+    Task<ExerciseModel?> ConfirmBulkImageUploadAsync(ConfirmBulkExerciseImageRequest request);
     Task<bool> DeleteAsync(long id);
 }

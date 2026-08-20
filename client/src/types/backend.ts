@@ -710,6 +710,23 @@ export namespace JsonModels.MuscleGroups {
 	}
 }
 export namespace JsonModels.Exercises {
+	export interface BulkExerciseImageTicketModel
+	{
+		exerciseId: number;
+		exerciseName: string;
+		uploadUrl: string;
+		blobName: string;
+	}
+	export interface BulkExerciseImageTicketRequest
+	{
+		slug: string;
+		contentType: string;
+	}
+	export interface ConfirmBulkExerciseImageRequest
+	{
+		slug: string;
+		blobName: string;
+	}
 	export interface CreateAdminExerciseRequest
 	{
 		name: string;

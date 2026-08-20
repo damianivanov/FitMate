@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useState, type ComponentProps, type KeyboardEvent } from "react";
 import { LuX } from "react-icons/lu";
 import {
   ExerciseCategory,
@@ -120,6 +120,14 @@ export function AddExerciseModal({
       setAliases((current) => [...current, alias]);
     }
     setAliasDraft("");
+  };
+
+  const handleAliasKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter" && event.key !== ",") {
+      return;
+    }
+    event.preventDefault();
+    commitAliasDraft();
   };
 
   const fieldContainerClassName = "space-y-1.5 text-sm font-medium text-foreground";
@@ -265,13 +273,7 @@ export function AddExerciseModal({
                 value={aliasDraft}
                 onChange={(event) => setAliasDraft(event.target.value)}
                 onBlur={commitAliasDraft}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== ",") {
-                    return;
-                  }
-                  event.preventDefault();
-                  commitAliasDraft();
-                }}
+                onKeyDown={handleAliasKeyDown}
                 className="liquid-input w-full rounded-full px-3 py-2.5"
                 placeholder="Type an alias and press Enter (e.g. Military Press)"
               />

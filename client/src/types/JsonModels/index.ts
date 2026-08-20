@@ -69,7 +69,10 @@ export type { AssignPlanOverrideRequest } from "./AdminSubscriptions/AssignPlanO
 export type { AuthResponse } from "./Auth/AuthResponse";
 export type { BodyMetricEntryModel } from "./BodyMetrics/BodyMetricEntryModel";
 export type { BuildInfoModel } from "./Build/BuildInfoModel";
+export type { BulkExerciseImageTicketModel } from "./Exercises/BulkExerciseImageTicketModel";
+export type { BulkExerciseImageTicketRequest } from "./Exercises/BulkExerciseImageTicketRequest";
 export type { ChangePasswordRequest } from "./Auth/ChangePasswordRequest";
+export type { ConfirmBulkExerciseImageRequest } from "./Exercises/ConfirmBulkExerciseImageRequest";
 export type { ConfirmImageUploadRequest } from "./Common/ConfirmImageUploadRequest";
 export type { CookieConsentRequest } from "./Auth/CookieConsentRequest";
 export type { CreateAdminExerciseRequest } from "./Exercises/CreateAdminExerciseRequest";

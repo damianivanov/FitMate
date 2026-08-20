@@ -415,6 +415,17 @@ export function FocusCard({
     return <section className="wk-focus wk-focus-pending" aria-busy="true" />;
   }
 
+  const handleActionClick = () => {
+    tick();
+    focus.action?.onClick();
+  };
+
+  const handleMoveCancel = () => {
+    if (!isMoving) {
+      setDayPendingMove(null);
+    }
+  };
+
   return (
     <>
       <section className={`wk-focus tone-${focus.tone}`}>
@@ -460,10 +471,7 @@ export function FocusCard({
               type="button"
               className="wk-focus-cta"
               disabled={focus.action.isBusy}
-              onClick={() => {
-                tick();
-                focus.action?.onClick();
-              }}
+              onClick={handleActionClick}
             >
               {focus.action.icon}
               {focus.action.label}
@@ -477,11 +485,7 @@ export function FocusCard({
         day={dayPendingMove}
         minDate={todayDateOnlyString()}
         isMoving={isMoving}
-        onCancel={() => {
-          if (!isMoving) {
-            setDayPendingMove(null);
-          }
-        }}
+        onCancel={handleMoveCancel}
         onConfirm={(newDate) => void confirmMove(newDate)}
       />
     </>

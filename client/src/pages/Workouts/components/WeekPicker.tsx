@@ -42,6 +42,11 @@ export function WeekPicker({ days, selectedDate, onSelect }: WeekPickerProps) {
     };
   }, []);
 
+  const handleDayClick = (date: string) => {
+    tick();
+    onSelect(date);
+  };
+
   return (
     <div className="wk-week" ref={railRef} role="group" aria-label="Choose training day">
       {days.map((day) => {
@@ -63,10 +68,7 @@ export function WeekPicker({ days, selectedDate, onSelect }: WeekPickerProps) {
             type="button"
             className={className}
             aria-pressed={isSelected}
-            onClick={() => {
-              tick();
-              onSelect(day.date);
-            }}
+            onClick={() => handleDayClick(day.date)}
           >
             <span aria-hidden="true">{day.initial}</span>
             <b>{day.dayOfMonth}</b>
