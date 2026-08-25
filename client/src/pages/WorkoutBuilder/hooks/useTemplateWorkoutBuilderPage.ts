@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { unwrap } from "@/lib/unwrap";
 import {
+  clearDeletedWorkoutSessionState,
   clearWorkoutSessionState,
   saveWorkoutSessionState,
 } from "@/lib/workoutSessionStorage";
@@ -53,6 +55,7 @@ type GroupAddContext = {
 };
 
 const WORKOUT_AUTOSAVE_DEBOUNCE_MS = 800;
+const WORKOUT_NOT_FOUND_ERROR = "Workout not found.";
 
 function parseTemplateId(value: string | null | undefined): number | null {
   const parsedValue = Number(value);
@@ -168,6 +171,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(true);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [isSavingWorkout, setIsSavingWorkout] = useState(false);
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
   const [isDeletingWorkout, setIsDeletingWorkout] = useState(false);
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -250,6 +254,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
       setIsLoadingTemplate(true);
       setTemplateError(null);
+      setDraftSaveError(null);
       setDraft(null);
       setExerciseHistoryByExerciseId({});
       setQuickSetPopover(null);
@@ -268,9 +273,17 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         setDraft(nextDraft);
         await loadPreviousSetsForDraft(nextDraft);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to load workout.";
+        const message = getApiErrorMessage(error, "Unable to load workout.");
         setDraft(null);
         setTemplateError(message);
+
+        if (message === WORKOUT_NOT_FOUND_ERROR && workoutId) {
+          clearDeletedWorkoutSessionState(workoutId, templateId);
+          if (isSheetMode) {
+            toast.error("This workout no longer exists. Start a new workout.", { duration: 6000 });
+            sheetOptionsRef.current?.onDeleted?.();
+          }
+        }
       } finally {
         setIsLoadingTemplate(false);
       }
@@ -308,13 +321,13 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
       await loadPreviousSetsForDraft(nextDraft);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to load template.";
+      const message = getApiErrorMessage(error, "Unable to load template.");
       setDraft(null);
       setTemplateError(message);
     } finally {
       setIsLoadingTemplate(false);
     }
-  }, [loadPreviousSetsForDraft, templateId, workoutId]);
+  }, [isSheetMode, loadPreviousSetsForDraft, templateId, workoutId]);
 
   const clearWorkoutSessionStorage = useCallback((workoutDraft: WorkoutDraft | null | undefined) => {
     const workoutTemplateId = workoutDraft?.workoutTemplateId ?? templateId;
@@ -373,6 +386,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
             const updatedWorkoutId = savedWorkout.workoutId;
             draftWorkoutIdRef.current = updatedWorkoutId;
             hasShownDraftSaveErrorRef.current = false;
+            setDraftSaveError(null);
             if (currentDraft.startedAt) {
               saveWorkoutSessionState(
                 currentDraft.workoutTemplateId,
@@ -386,10 +400,17 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
                 : latestDraft,
             );
           } catch (error) {
+            const message = getApiErrorMessage(error, "Unable to auto-save workout.");
+            setDraftSaveError(message);
+
+            if (message === WORKOUT_NOT_FOUND_ERROR && isSheetMode) {
+              clearDeletedWorkoutSessionState(savedWorkoutId, currentDraft.workoutTemplateId);
+              toast.error("This workout was deleted. Your latest changes were not saved.", { duration: 6000 });
+              sheetOptionsRef.current?.onDeleted?.();
+              return;
+            }
+
             if (!hasShownDraftSaveErrorRef.current) {
-              const message = error instanceof Error
-                ? error.message
-                : "Unable to auto-save workout.";
               toast.error(message);
               hasShownDraftSaveErrorRef.current = true;
             }
@@ -403,7 +424,11 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
     draftSavePromiseRef.current = savePromise;
     return savePromise;
-  }, [getPersistedWorkoutId]);
+  }, [getPersistedWorkoutId, isSheetMode]);
+
+  const handleRetryDraftSave = useCallback(() => {
+    void saveWorkoutToBackend();
+  }, [saveWorkoutToBackend]);
 
   const createWorkoutFromDraft = useCallback(async (
     draftOverride?: WorkoutDraft,
@@ -512,7 +537,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
         return savedWorkoutId;
       } catch (error) {
-        const message = error instanceof Error ? error.message : errorMessage;
+        const message = getApiErrorMessage(error, errorMessage);
         toast.error(message);
         return null;
       } finally {
@@ -698,7 +723,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         navigate("/workouts", { replace: true });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to delete workout.";
+      const message = getApiErrorMessage(error, "Unable to delete workout.");
       toast.error(message);
     } finally {
       isDeletingWorkoutRef.current = false;
@@ -1099,7 +1124,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
         return updatedWorkoutId;
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to start workout.";
+        const message = getApiErrorMessage(error, "Unable to start workout.");
         toast.error(message);
         return null;
       } finally {
@@ -1513,7 +1538,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
         navigate("/workouts", { replace: true });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to save workout.";
+      const message = getApiErrorMessage(error, "Unable to save workout.");
       toast.error(message);
     } finally {
       setIsSavingWorkout(false);
@@ -1539,6 +1564,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       exerciseHistoryByExerciseId,
       isLoadingTemplate,
       templateError,
+      draftSaveError,
       isSavingWorkout,
       isDeletingWorkout,
       canDeleteWorkout: Boolean(draft?.workoutId ?? draftWorkoutIdRef.current ?? workoutId),
@@ -1558,6 +1584,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       exerciseHistoryByExerciseId,
       isLoadingTemplate,
       templateError,
+      draftSaveError,
       isSavingWorkout,
       isDeletingWorkout,
       workoutId,
@@ -1577,6 +1604,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       handleConfirmDeleteWorkout,
       handleDeleteWorkoutRequest,
       handleRetryLoad: loadTemplateWorkout,
+      handleRetryDraftSave,
       handleAddExerciseModalOpen,
       handleAddExerciseModalClose,
       handleAddExercise,
@@ -1613,6 +1641,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       handleConfirmDeleteWorkout,
       handleDeleteWorkoutRequest,
       loadTemplateWorkout,
+      handleRetryDraftSave,
       handleAddExerciseModalOpen,
       handleAddExerciseModalClose,
       handleAddExercise,

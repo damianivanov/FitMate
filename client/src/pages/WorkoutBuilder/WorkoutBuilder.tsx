@@ -79,6 +79,7 @@ export default function WorkoutBuilder({
     exerciseHistoryByExerciseId,
     isLoadingTemplate,
     templateError,
+    draftSaveError,
     isSavingWorkout,
     isDeletingWorkout,
     canDeleteWorkout,
@@ -235,6 +236,23 @@ export default function WorkoutBuilder({
 
       <div className={isSheet ? "px-4 pb-24 pt-4" : "bd-body"}>
         <div className="w-full space-y-6">
+          {draftSaveError ? (
+            <div
+              className="native-card border border-red-500/40 p-4 text-sm text-red-600 dark:text-red-300"
+              role="alert"
+            >
+              <p>Changes are not saved: {draftSaveError}</p>
+              <button
+                type="button"
+                onClick={actions.handleRetryDraftSave}
+                className="native-ghost-action mt-3 max-w-xs"
+              >
+                <LuRefreshCw className="h-4 w-4" />
+                Retry save
+              </button>
+            </div>
+          ) : null}
+
           <section className="min-w-0 space-y-4">
             <WorkoutSessionSummary
               templateName={draft.templateName ?? draft.title}

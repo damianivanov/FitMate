@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { unwrap } from "@/lib/unwrap";
 import { workoutService } from "@/services/workoutService";
+import { expandActiveWorkoutIfPresent } from "@/stores/activeWorkoutStore";
 import type { WorkoutCalendarDayModel } from "@/types";
 import {
   buildMonthMatrix,
@@ -13,6 +16,7 @@ import {
 
 export function useCalendarPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobileViewport();
   const now = useMemo(() => new Date(), []);
 
   const [year, setYear] = useState(now.getFullYear());
@@ -23,6 +27,7 @@ export function useCalendarPage() {
   const [reloadIndex, setReloadIndex] = useState(0);
   const [userSelectedKey, setUserSelectedKey] = useState<string | null>(null);
   const [isReusing, setIsReusing] = useState(false);
+  const isReusingRef = useRef(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [streak, setStreak] = useState(0);
 
@@ -159,10 +164,16 @@ export function useCalendarPage() {
 
   const reuse = useCallback(
     async (workout: WorkoutCalendarDayModel) => {
-      if (isReusing) {
+      if (isReusingRef.current) {
         return;
       }
 
+      if (isMobile && expandActiveWorkoutIfPresent()) {
+        toast.error("Finish or delete your active workout before repeating another one.");
+        return;
+      }
+
+      isReusingRef.current = true;
       setIsReusing(true);
 
       try {
@@ -170,11 +181,13 @@ export function useCalendarPage() {
         const duplicateId = unwrap(response.data, "Unable to duplicate workout.");
         navigate(`/workouts/${duplicateId}`);
       } catch (reuseError) {
-        toast.error(reuseError instanceof Error ? reuseError.message : "Unable to duplicate workout.");
+        toast.error(getApiErrorMessage(reuseError, "Unable to duplicate workout."));
+      } finally {
+        isReusingRef.current = false;
         setIsReusing(false);
       }
     },
-    [isReusing, navigate],
+    [isMobile, navigate],
   );
 
   const state = useMemo(

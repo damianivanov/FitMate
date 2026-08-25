@@ -2,11 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { clearDeletedWorkoutSessionState } from "@/lib/workoutSessionStorage";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { normalizeUtcIsoString } from "@/lib/helpers";
 import { unwrap } from "@/lib/unwrap";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
 import { workoutService } from "@/services/workoutService";
-import { useActiveWorkoutStore } from "@/stores/activeWorkoutStore";
+import {
+  expandActiveWorkoutIfPresent,
+  useActiveWorkoutStore,
+  WorkoutSheetStatus,
+} from "@/stores/activeWorkoutStore";
 import { useSaveWorkoutAsTemplate } from "@/shared/hooks/useSaveWorkoutAsTemplate";
 import type { Workout } from "@/types";
 
@@ -131,6 +136,11 @@ export function useWorkoutsPage() {
         return;
       }
 
+      if (isMobile && expandActiveWorkoutIfPresent()) {
+        toast.error("Finish or delete your active workout before repeating another one.");
+        return;
+      }
+
       duplicatingWorkoutIdRef.current = workout.id;
 
       try {
@@ -143,7 +153,7 @@ export function useWorkoutsPage() {
           navigate(`/workouts/${duplicateId}`);
         }
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Unable to duplicate workout.");
+        toast.error(getApiErrorMessage(error, "Unable to duplicate workout."));
         duplicatingWorkoutIdRef.current = null;
       }
     },
@@ -176,6 +186,14 @@ export function useWorkoutsPage() {
 
     const workout = workoutPendingDelete;
     setDeletingWorkoutId(workout.id);
+    const activeWorkoutStore = useActiveWorkoutStore.getState();
+    const isDeletingActiveWorkout =
+      activeWorkoutStore.status !== WorkoutSheetStatus.Closed
+      && activeWorkoutStore.workoutId === workout.id;
+
+    if (isDeletingActiveWorkout) {
+      activeWorkoutStore.close();
+    }
 
     try {
       const response = await workoutService.remove(workout.id);
@@ -186,7 +204,10 @@ export function useWorkoutsPage() {
       setWorkoutPendingDelete(null);
       toast.success("Workout deleted.");
     } catch (deleteError) {
-      toast.error(deleteError instanceof Error ? deleteError.message : "Unable to delete workout.");
+      if (isDeletingActiveWorkout) {
+        useActiveWorkoutStore.getState().openExistingWorkout(workout.id);
+      }
+      toast.error(getApiErrorMessage(deleteError, "Unable to delete workout."));
     } finally {
       setDeletingWorkoutId(null);
     }

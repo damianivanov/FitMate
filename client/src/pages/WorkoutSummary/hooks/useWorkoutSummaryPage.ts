@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { unwrap } from "@/lib/unwrap";
 import { workoutService } from "@/services/workoutService";
 import { useSaveWorkoutAsTemplate } from "@/shared/hooks/useSaveWorkoutAsTemplate";
+import { expandActiveWorkoutIfPresent } from "@/stores/activeWorkoutStore";
 import type { Workout } from "@/types";
 
 function parseWorkoutId(value: string | undefined): number | null {
@@ -13,6 +16,7 @@ function parseWorkoutId(value: string | undefined): number | null {
 
 export function useWorkoutSummaryPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobileViewport();
   const { workoutId: workoutIdParam } = useParams<{ workoutId?: string }>();
   const workoutId = useMemo(() => parseWorkoutId(workoutIdParam), [workoutIdParam]);
 
@@ -47,7 +51,7 @@ export function useWorkoutSummaryPage() {
     void loadWorkout();
   }, [workoutId, reloadIndex]);
 
-  const [isDuplicating, setIsDuplicating] = useState(false);
+  const isDuplicatingRef = useRef(false);
 
   const saveAsTemplate = useSaveWorkoutAsTemplate({
     onSaved: (template) => navigate(`/templates/view/${template.id}`),
@@ -58,22 +62,26 @@ export function useWorkoutSummaryPage() {
   }, [navigate]);
 
   const repeat = useCallback(async () => {
-    if (!workout || isDuplicating) {
+    if (!workout || isDuplicatingRef.current) {
       return;
     }
 
-    setIsDuplicating(true);
+    if (isMobile && expandActiveWorkoutIfPresent()) {
+      toast.error("Finish or delete your active workout before repeating another one.");
+      return;
+    }
+
+    isDuplicatingRef.current = true;
 
     try {
       const response = await workoutService.duplicate(workout.id);
       const newWorkoutId = unwrap(response.data, "Unable to duplicate workout.");
       navigate(`/workouts/${newWorkoutId}`);
     } catch (duplicateError) {
-      const message = duplicateError instanceof Error ? duplicateError.message : "Unable to duplicate workout.";
-      toast.error(message);
-      setIsDuplicating(false);
+      toast.error(getApiErrorMessage(duplicateError, "Unable to duplicate workout."));
+      isDuplicatingRef.current = false;
     }
-  }, [isDuplicating, navigate, workout]);
+  }, [isMobile, navigate, workout]);
 
   const saveAsTemplateOpen = useCallback(() => {
     if (workout) {

@@ -120,3 +120,13 @@ export const selectIsMinimized = (state: ActiveWorkoutState): boolean =>
 /** A workout that has ACTUALLY been started (timer running) — drives the blinking dumbbell. */
 export const selectIsWorkoutRunning = (state: ActiveWorkoutState): boolean =>
   state.status !== WorkoutSheetStatus.Closed && Boolean(state.startedAt);
+
+export function expandActiveWorkoutIfPresent(): boolean {
+  const state = useActiveWorkoutStore.getState();
+  if (state.status === WorkoutSheetStatus.Closed) {
+    return false;
+  }
+
+  state.expand();
+  return true;
+}
