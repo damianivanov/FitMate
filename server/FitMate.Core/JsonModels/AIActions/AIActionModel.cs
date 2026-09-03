@@ -6,6 +6,10 @@ public class AIActionModel
 {
     public long Id { get; set; }
     public long ConversationId { get; set; }
+
+    /// <summary>The run that proposed this action; the client renders the card against that turn.</summary>
+    public long AIRunId { get; set; }
+
     public AIActionType ActionType { get; set; }
     public AIActionStatus Status { get; set; }
 

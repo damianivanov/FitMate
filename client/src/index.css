@@ -47,6 +47,11 @@
      a token: the scroll box reserves exactly this much and nothing has to measure the bar. */
   --app-header-h: calc(4rem + env(safe-area-inset-top, 0px));
 
+  /* Standalone iOS reports no bottom inset without viewport-fit=cover (which stays off — it
+     double-counts everywhere else), so the home-indicator clearance is a shared constant
+     rather than an env() each pinned element hopes will be live. */
+  --app-safe-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+
   /* ── Base colors ── */
   --color-base: #dfe6f0;
   --color-base-raised: #d5dce7;
@@ -1400,7 +1405,7 @@ textarea { resize: none; }
 .app-drawer {
   position: absolute;
   top: calc(0.375rem + env(safe-area-inset-top, 0px));
-  bottom: calc(0.375rem + env(safe-area-inset-bottom, 0px));
+  bottom: var(--app-safe-bottom);
   left: 0.375rem;
   width: min(calc(100vw - 0.75rem), 22.5rem);
   padding: 0.875rem;
@@ -1437,24 +1442,24 @@ textarea { resize: none; }
 @media (prefers-reduced-motion: no-preference) {
   .app-drawer-layer.is-open .app-drawer > :not(.app-drawer-grid),
   .app-drawer-layer.is-open .app-drawer-tile {
-    animation: app-drawer-settle 300ms var(--ease-drawer) both;
+    animation: app-drawer-settle 220ms var(--ease-drawer) both;
   }
 
-  .app-drawer-layer.is-open .app-drawer > :nth-child(1) { animation-delay: 40ms; }
-  .app-drawer-layer.is-open .app-drawer > :nth-child(2) { animation-delay: 70ms; }
-  .app-drawer-layer.is-open .app-drawer > :nth-child(3) { animation-delay: 100ms; }
-  .app-drawer-layer.is-open .app-drawer > :nth-child(4) { animation-delay: 130ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(1) { animation-delay: 30ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(2) { animation-delay: 50ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(3) { animation-delay: 75ms; }
+  .app-drawer-layer.is-open .app-drawer > :nth-child(4) { animation-delay: 95ms; }
 
   /* The tiles pick up where the header left off and run in pairs, matching the two columns
      they are laid out in. */
-  .app-drawer-layer.is-open .app-drawer-tile:nth-child(-n + 2) { animation-delay: 150ms; }
-  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 3):nth-child(-n + 4) { animation-delay: 175ms; }
-  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 5):nth-child(-n + 6) { animation-delay: 200ms; }
-  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 7):nth-child(-n + 8) { animation-delay: 225ms; }
-  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 9) { animation-delay: 250ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(-n + 2) { animation-delay: 110ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 3):nth-child(-n + 4) { animation-delay: 130ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 5):nth-child(-n + 6) { animation-delay: 150ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 7):nth-child(-n + 8) { animation-delay: 165ms; }
+  .app-drawer-layer.is-open .app-drawer-tile:nth-child(n + 9) { animation-delay: 185ms; }
 
-  .app-drawer-layer.is-open .app-drawer > .app-drawer-footer { animation-delay: 265ms; }
-  .app-drawer-layer.is-open .app-drawer > .app-drawer-logout { animation-delay: 290ms; }
+  .app-drawer-layer.is-open .app-drawer > .app-drawer-footer { animation-delay: 195ms; }
+  .app-drawer-layer.is-open .app-drawer > .app-drawer-logout { animation-delay: 210ms; }
 }
 
 @keyframes app-drawer-settle {
@@ -1724,7 +1729,7 @@ textarea { resize: none; }
 .liquid-mobile-bottom-nav-shell {
   /* Floating pill, sat low: a small gap above the bottom edge (+ the home-indicator inset
      when it's live). NOT a big lift — that's what read as "pushed up". */
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2rem);
+  padding-bottom: var(--app-safe-bottom);
 }
 
 /* The blur strip under the bottom nav. Its own fixed, full-bleed element rather than a child

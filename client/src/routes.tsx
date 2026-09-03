@@ -2,6 +2,7 @@ import { Outlet, createBrowserRouter } from "react-router";
 import Layout from "@/components/Layout";
 import AccessGate from "@/components/guards/AccessGate";
 import { UserRole } from "@/types";
+import { GridThemeProvider } from "@/shared/components/tables";
 import { Login, Register, ForgotPassword, ResetPassword } from "./pages/Auth";
 import Home from "./pages/Home";
 import Profile, { ProfileAccount, MyExercises, TrainingProfile } from "./pages/Profile";
@@ -254,7 +255,9 @@ export const router = createBrowserRouter([
         path: "management",
         element: (
           <AccessGate requireAuthenticated allowRoles={[UserRole.Admin]}>
-            <Outlet />
+            <GridThemeProvider>
+              <Outlet />
+            </GridThemeProvider>
           </AccessGate>
         ),
         children: [

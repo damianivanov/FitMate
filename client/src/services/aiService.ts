@@ -1,5 +1,7 @@
 import api, { apiUrl } from "@/lib/api";
 import type {
+  AIActionDetailModel,
+  AIActionMergeResultModel,
   AIActionModel,
   AIConversationModel,
   AIConversationSummaryModel,
@@ -7,6 +9,7 @@ import type {
   AIUsageSummaryModel,
   CreateAIConversationRequest,
   JsonData,
+  MergeAIActionRequest,
   SendAIMessageRequest,
   StartAIRunResponse,
 } from "@/types";
@@ -48,8 +51,17 @@ export const aiService = {
     return api.get<JsonData<AIActionModel>>(`ai/actions/${actionId}`);
   },
 
+  async getActionDetail(actionId: number) {
+    return api.get<JsonData<AIActionDetailModel>>(`ai/actions/${actionId}/detail`);
+  },
+
   async confirmAction(actionId: number) {
     return api.post<JsonData<AIActionModel>>(`ai/actions/${actionId}/confirm`);
+  },
+
+  /** Confirms a workout suggestion against a session already running, and returns its exercises. */
+  async mergeActionIntoWorkout(actionId: number, payload: MergeAIActionRequest) {
+    return api.post<JsonData<AIActionMergeResultModel>>(`ai/actions/${actionId}/merge`, payload);
   },
 
   async rejectAction(actionId: number) {

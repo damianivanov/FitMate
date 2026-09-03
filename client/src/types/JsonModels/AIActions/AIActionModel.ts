@@ -6,6 +6,7 @@ export interface AIActionModel
 {
 	id: number;
 	conversationId: number;
+	aiRunId: number;
 	actionType: AIActionType;
 	status: AIActionStatus;
 	preview: JsonModels.AIActions.AIActionPreviewModel;

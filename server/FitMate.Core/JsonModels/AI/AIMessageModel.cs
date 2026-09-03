@@ -8,5 +8,6 @@ public class AIMessageModel
     public AIMessageRole Role { get; set; }
     public string Content { get; set; } = string.Empty;
     public string? ToolName { get; set; }
+    public long? AIRunId { get; set; }
     public DateTime DateCreated { get; set; }
 }

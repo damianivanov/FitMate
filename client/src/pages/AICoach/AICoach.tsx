@@ -1,29 +1,79 @@
-import { useEffect, useRef } from "react";
-import { AIMessageRole } from "@/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AIMessageRole, type AIActionModel, type AIMessageModel } from "@/types";
 import { ActionCard } from "./components/ActionCard";
 import { ChatComposer } from "./components/ChatComposer";
 import { CoachSuggestions, CoachWelcome } from "./components/CoachWelcome";
 import { ConversationList } from "./components/ConversationList";
 import { MessageBubble } from "./components/MessageBubble";
+import { ProposalDetailModal } from "./components/ProposalDetailModal";
 import { ToolActivityIndicator } from "./components/ToolActivityIndicator";
 import { useAICoachPage } from "./hooks/useAICoachPage";
 import { PageIntro } from "@/shared/components";
 import "./ai-coach.css";
 
+type ThreadEntry = {
+  message: AIMessageModel;
+  actions: AIActionModel[];
+};
+
+/**
+ * Pairs each proposal with the assistant turn that made it, so a card sits where the coach
+ * offered it rather than at the bottom of the thread underneath newer replies. Anything whose run
+ * has no message left — an older thread, a trimmed history — trails the conversation instead of
+ * disappearing.
+ */
+function buildThread(
+  messages: AIMessageModel[],
+  actions: AIActionModel[],
+): { entries: ThreadEntry[]; orphans: AIActionModel[] } {
+  const lastMessageIndexByRun = new Map<number, number>();
+  messages.forEach((message, index) => {
+    if (message.role === AIMessageRole.Assistant && message.aiRunId != null) {
+      lastMessageIndexByRun.set(message.aiRunId, index);
+    }
+  });
+
+  const entries: ThreadEntry[] = messages.map((message) => ({ message, actions: [] }));
+  const orphans: AIActionModel[] = [];
+
+  actions.forEach((action) => {
+    const index = lastMessageIndexByRun.get(action.aiRunId);
+    if (index === undefined) {
+      orphans.push(action);
+      return;
+    }
+
+    entries[index].actions.push(action);
+  });
+
+  return { entries, orphans };
+}
+
 export default function AICoach() {
   const { state, actions } = useAICoachPage();
   const conversation = state.activeConversation;
   const threadRef = useRef<HTMLDivElement | null>(null);
+  const [detailActionId, setDetailActionId] = useState<number | null>(null);
 
   // Tool traffic is auditing detail, not something a user should read.
-  const visibleMessages =
-    conversation?.messages.filter(
-      (message) =>
-        message.role === AIMessageRole.User || message.role === AIMessageRole.Assistant,
-    ) ?? [];
+  const visibleMessages = useMemo(
+    () =>
+      conversation?.messages.filter(
+        (message) =>
+          message.role === AIMessageRole.User || message.role === AIMessageRole.Assistant,
+      ) ?? [],
+    [conversation?.messages],
+  );
+
+  const { entries, orphans } = useMemo(
+    () => buildThread(visibleMessages, state.actions),
+    [visibleMessages, state.actions],
+  );
 
   const hasThread = visibleMessages.length > 0;
 
+  // Cards land in the same commit as the message they belong to, so the scroll has to wait for
+  // them too — keying only on the message count leaves the newest card behind the composer.
   useEffect(() => {
     const thread = threadRef.current;
     if (!thread) {
@@ -31,7 +81,7 @@ export default function AICoach() {
     }
 
     thread.scrollTo({ top: thread.scrollHeight, behavior: "smooth" });
-  }, [visibleMessages.length, state.isSending]);
+  }, [visibleMessages.length, state.actions, state.isSending]);
 
   if (state.isLoading) {
     return (
@@ -73,23 +123,37 @@ export default function AICoach() {
             className="liquid-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 md:px-8"
           >
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-6 md:max-w-3xl">
-              {visibleMessages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
+              {entries.map(({ message, actions: messageActions }) => (
+                <div key={message.id} className="flex flex-col gap-2">
+                  <MessageBubble message={message} />
 
-              {state.pendingActions.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {state.pendingActions.map((action) => (
+                  {messageActions.map((action) => (
                     <ActionCard
                       key={action.id}
                       action={action}
                       isBusy={state.busyActionId === action.id}
+                      activeWorkout={state.activeWorkout}
                       onConfirm={actions.confirmAction}
                       onReject={actions.rejectAction}
+                      onMergeIntoActiveWorkout={actions.mergeActionIntoActiveWorkout}
+                      onViewDetail={setDetailActionId}
                     />
                   ))}
                 </div>
-              ) : null}
+              ))}
+
+              {orphans.map((action) => (
+                <ActionCard
+                  key={action.id}
+                  action={action}
+                  isBusy={state.busyActionId === action.id}
+                  activeWorkout={state.activeWorkout}
+                  onConfirm={actions.confirmAction}
+                  onReject={actions.rejectAction}
+                  onMergeIntoActiveWorkout={actions.mergeActionIntoActiveWorkout}
+                  onViewDetail={setDetailActionId}
+                />
+              ))}
 
               <ToolActivityIndicator events={state.progressEvents} isSending={state.isSending} />
             </div>
@@ -121,6 +185,8 @@ export default function AICoach() {
           </div>
         </div>
       )}
+
+      <ProposalDetailModal actionId={detailActionId} onClose={() => setDetailActionId(null)} />
     </div>
   );
 }

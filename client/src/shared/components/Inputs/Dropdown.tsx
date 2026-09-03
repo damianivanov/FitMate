@@ -237,7 +237,8 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
     }
 
     const rootRect = rootRef.current.getBoundingClientRect();
-    const availableBelow = window.innerHeight - rootRect.bottom - VIEWPORT_PADDING_PX - MENU_OFFSET_PX;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const availableBelow = viewportHeight - rootRect.bottom - VIEWPORT_PADDING_PX - MENU_OFFSET_PX;
     const availableAbove = rootRect.top - VIEWPORT_PADDING_PX - MENU_OFFSET_PX;
     const shouldOpenAbove = availableBelow < 220 && availableAbove > availableBelow;
     const availableSpace = shouldOpenAbove ? availableAbove : availableBelow;
@@ -310,15 +311,21 @@ export function Dropdown<TValue extends string | number>(props: DropdownProps<TV
         return;
       }
 
+      if (refs.floating.current?.contains(document.activeElement)) {
+        return;
+      }
+
       closeMenu();
     };
 
     window.addEventListener("resize", handleViewportResize);
     window.addEventListener("scroll", handleViewportScroll, true);
+    window.visualViewport?.addEventListener("resize", handleViewportResize);
 
     return () => {
       window.removeEventListener("resize", handleViewportResize);
       window.removeEventListener("scroll", handleViewportScroll, true);
+      window.visualViewport?.removeEventListener("resize", handleViewportResize);
     };
   }, [closeMenu, open, refs.floating, updateMenuLayout]);
 

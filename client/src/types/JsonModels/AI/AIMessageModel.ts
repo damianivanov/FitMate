@@ -6,5 +6,6 @@ export interface AIMessageModel
 	role: AIMessageRole;
 	content: string;
 	toolName?: string;
+	aiRunId?: number;
 	dateCreated: string;
 }

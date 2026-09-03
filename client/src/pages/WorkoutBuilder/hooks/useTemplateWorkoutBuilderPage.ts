@@ -10,6 +10,7 @@ import {
 } from "@/lib/workoutSessionStorage";
 import { workoutService } from "@/services/workoutService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
+import { useActiveWorkoutStore } from "@/stores/activeWorkoutStore";
 import { getExerciseBlockDragOrderIndexes, type ExerciseMetricMode } from "@/shared/components";
 import { ExerciseGroupType, type ExerciseHistory, type ExerciseLookupModel, type ExerciseSetType } from "@/types";
 import {
@@ -20,6 +21,7 @@ import {
   buildWorkoutPayload,
   calculateWorkoutSummary,
   createWorkoutExerciseDraftFromLookup,
+  createWorkoutExerciseDraftFromProposal,
   createWorkoutSetDraft,
   createWorkoutSetDraftFromPreviousSet,
   findNextIncompleteWorkoutExercise,
@@ -167,6 +169,10 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     [isSheetMode, options?.templateId, templateIdParam],
   );
   const [draft, setDraft] = useState<WorkoutDraft | null>(null);
+
+  // Subscribed, not read once: the sheet stays mounted while minimized, so an AI suggestion accepted
+  // from another page has to wake this hook up rather than wait for the next draft change.
+  const queuedProposalExercises = useActiveWorkoutStore((state) => state.pendingProposalExercises);
   const [exerciseHistoryByExerciseId, setExerciseHistoryByExerciseId] = useState<ExerciseHistoryByExerciseId>({});
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(true);
   const [templateError, setTemplateError] = useState<string | null>(null);
@@ -1296,6 +1302,51 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
     return false;
   }, [commitDraft, createWorkoutFromDraft, groupAddContext]);
+
+  // An accepted AI suggestion hands its exercises to whichever session is live. They arrive through
+  // the store rather than the API because the autosave below writes this draft over the workout —
+  // a server-side append would be erased by the next save.
+  useEffect(() => {
+    if (!draft || queuedProposalExercises.length === 0) {
+      return;
+    }
+
+    const queued = useActiveWorkoutStore.getState().takeProposalExercises();
+    if (queued.length === 0) {
+      return;
+    }
+
+    const existingIds = new Set(draft.exercises.map((item) => item.exerciseId));
+    const added = queued.filter(
+      (item) => item.exerciseId > 0 && !existingIds.has(item.exerciseId),
+    );
+    const skipped = queued.length - added.length;
+
+    if (added.length === 0) {
+      toast.info("Those exercises are already in this workout.");
+      return;
+    }
+
+    const nextDraftToPersist = commitDraft((current) => ({
+      ...current,
+      exercises: normalizeWorkoutExerciseOrderIndexes([
+        ...current.exercises,
+        ...added.map((item, index) =>
+          createWorkoutExerciseDraftFromProposal(item, current.exercises.length + index + 1),
+        ),
+      ]),
+    }));
+
+    if (nextDraftToPersist) {
+      void createWorkoutFromDraft(nextDraftToPersist);
+    }
+
+    toast.success(
+      skipped > 0
+        ? `Added ${added.length} exercise${added.length === 1 ? "" : "s"} — ${skipped} already here.`
+        : `Added ${added.length} exercise${added.length === 1 ? "" : "s"} to this workout.`,
+    );
+  }, [commitDraft, createWorkoutFromDraft, draft, queuedProposalExercises]);
 
   const handleExerciseGroupingChange = useCallback((exerciseDraftId: string, groupType: ExerciseGroupType) => {
     setDraft((current) => {

@@ -61,11 +61,15 @@ public class AIActionServiceTests
             new FakePhotoUrlResolver(),
             new FakeEntitlementService());
 
-        return new AIActionService(context, [
-            new CreatePersonalExerciseActionExecutor(context, exerciseService),
-            new CreateGlobalExerciseActionExecutor(context, exerciseService),
-            new CreateWorkoutTemplateActionExecutor(context, templateService, exerciseService),
-        ]);
+        return new AIActionService(
+            context,
+            exerciseService,
+            new AIProposalDetailService(context, new FakePhotoUrlResolver()),
+            [
+                new CreatePersonalExerciseActionExecutor(context, exerciseService),
+                new CreateGlobalExerciseActionExecutor(context, exerciseService),
+                new CreateWorkoutTemplateActionExecutor(context, templateService, exerciseService),
+            ]);
     }
 
     private static CreateAIActionRequest ExerciseProposal(long conversationId, string name = "Incline cable press") =>

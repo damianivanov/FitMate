@@ -3,6 +3,7 @@ import type { ExerciseMetricMode } from "@/shared/components";
 import {
   ExerciseGroupType,
   ExerciseSetType,
+  type AIProposalExerciseModel,
   type CreateWorkoutExerciseRequest,
   type CreateWorkoutSetRequest,
   type ExerciseLoadBasis,
@@ -327,6 +328,39 @@ export function createWorkoutExerciseDraftFromLookup(
       orderIndex: index + 1,
       setType: ExerciseSetType.Working,
       reps: DEFAULT_NEW_EXERCISE_SET_REPS,
+      notes: "",
+      isCompleted: false,
+    })),
+  };
+}
+
+/**
+ * An AI suggestion joining a session already running. Unlike the lookup factory this keeps the
+ * prescribed sets — reps, load and RPE are the whole point of the suggestion, so falling back to
+ * three default sets would throw away what the coach worked out.
+ */
+export function createWorkoutExerciseDraftFromProposal(
+  exercise: AIProposalExerciseModel,
+  orderIndex: number,
+): WorkoutExerciseDraft {
+  const sets = exercise.sets.length > 0 ? exercise.sets : [{ setType: ExerciseSetType.Working }];
+
+  return {
+    id: createLocalId("workout-exercise"),
+    groupType: ExerciseGroupType.Straight,
+    orderIndex,
+    exerciseId: exercise.exerciseId,
+    exerciseName: exercise.name,
+    exerciseImageUrl: exercise.imageUrl ?? undefined,
+    notes: "",
+    sets: sets.map((set, index) => ({
+      id: createLocalId("workout-set"),
+      orderIndex: index + 1,
+      setType: set.setType ?? ExerciseSetType.Working,
+      reps: normalizePositiveMetricValue(set.reps),
+      weightKg: set.weightKg ?? undefined,
+      rpe: set.rpe ?? undefined,
+      restSeconds: normalizePositiveMetricValue(set.restSeconds),
       notes: "",
       isCompleted: false,
     })),

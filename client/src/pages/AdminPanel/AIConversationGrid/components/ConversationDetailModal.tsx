@@ -52,6 +52,10 @@ const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+function isPayloadRole(role: number): boolean {
+  return role === AIMessageRole.ToolCall || role === AIMessageRole.ToolResult;
+}
+
 function formatTime(value: string): string {
   const date = new Date(normalizeUtcIsoString(value));
   return Number.isNaN(date.getTime()) ? "—" : TIME_FORMATTER.format(date);
@@ -98,12 +102,19 @@ export function ConversationDetailModal({
             <h3 className="mb-2 text-sm font-bold text-foreground">Messages</h3>
             <ul className="flex flex-col gap-2">
               {conversation.messages.map((message) => (
-                <li key={message.id} className="rounded-xl bg-white/5 p-3">
+                <li key={message.id} className="min-w-0 rounded-xl bg-white/5 p-3">
                   <p className="text-2xs font-semibold uppercase tracking-widest text-muted">
                     {ROLE_LABELS[message.role] ?? "Message"}
                     {message.toolName ? ` · ${message.toolName}` : ""} · {formatTime(message.dateCreated)}
                   </p>
-                  <p className="mt-1 text-sm whitespace-pre-wrap text-foreground">{message.content}</p>
+                  <p
+                    className={[
+                      "mt-1 whitespace-pre-wrap break-words text-foreground",
+                      isPayloadRole(message.role) ? "font-mono text-xs leading-relaxed" : "text-sm",
+                    ].join(" ")}
+                  >
+                    {message.content}
+                  </p>
                 </li>
               ))}
             </ul>
@@ -128,7 +139,7 @@ export function ConversationDetailModal({
                     </div>
 
                     {run.errorMessage ? (
-                      <p className="mt-1 text-sm text-danger">{run.errorMessage}</p>
+                      <p className="mt-1 break-words text-sm text-danger">{run.errorMessage}</p>
                     ) : null}
 
                     {run.toolExecutions.length > 0 ? (
@@ -150,10 +161,10 @@ export function ConversationDetailModal({
               <ul className="flex flex-col gap-1">
                 {conversation.actions.map((action) => (
                   <li key={action.id} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="text-foreground">
+                    <span className="shrink-0 text-foreground">
                       {ACTION_TYPE_LABELS[action.actionType] ?? "Action"}
                     </span>
-                    <span className="text-muted">
+                    <span className="min-w-0 break-words text-right text-muted">
                       {ACTION_STATUS_LABELS[action.status] ?? "—"}
                       {action.failureReason ? ` · ${action.failureReason}` : ""}
                     </span>

@@ -2,8 +2,11 @@ export * from "./JsonModels";
 
 import type { JsonModels } from "./backend";
 
+export type ActiveWorkout = JsonModels.Workouts.ActiveWorkoutModel;
 export type AdminUser = JsonModels.Users.AdminUserModel;
 export type AIAction = JsonModels.AIActions.AIActionModel;
+export type AIActionDetail = JsonModels.AIActions.AIActionDetailModel;
+export type AIActionMergeResult = JsonModels.AIActions.AIActionMergeResultModel;
 export type AIActionPreview = JsonModels.AIActions.AIActionPreviewModel;
 export type AIActionPreviewLine = JsonModels.AIActions.AIActionPreviewLineModel;
 export type AIActionResult = JsonModels.AIActions.AIActionResultModel;
@@ -26,6 +29,8 @@ export type AICostByPlan = JsonModels.AdminAI.AICostByPlanModel;
 export type AICostSummary = JsonModels.AdminAI.AICostSummaryModel;
 export type AIMessage = JsonModels.AI.AIMessageModel;
 export type AIProgressEvent = JsonModels.AI.AIProgressEventModel;
+export type AIProposalExercise = JsonModels.AIActions.AIProposalExerciseModel;
+export type AIProposalSet = JsonModels.AIActions.AIProposalSetModel;
 export type AIRunSnapshot = JsonModels.AI.AIRunSnapshotModel;
 export type AISettings = JsonModels.AdminAI.AISettingsModel;
 export type AIToolUsage = JsonModels.AdminAI.AIToolUsageModel;

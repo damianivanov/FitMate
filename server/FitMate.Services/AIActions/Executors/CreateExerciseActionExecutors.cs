@@ -81,7 +81,7 @@ public class CreatePersonalExerciseActionExecutor : IAIActionExecutor
     {
         var payload = await ExercisePayloadReader.ReadAndValidateAsync(dbContext, action);
         var created = await exerciseService.CreatePersonalAsync(
-            ExercisePayloadReader.ToRequest(payload, payload.IsPublic));
+            ExercisePayloadReader.ToRequest(payload, payload.IsPublic), userId);
 
         return new AIActionResultModel
         {

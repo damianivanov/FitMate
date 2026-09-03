@@ -94,6 +94,7 @@ public class AIConversationService : IAIConversationService
                 Role = x.Role,
                 Content = x.Content,
                 ToolName = x.ToolName,
+                AIRunId = x.AIRunId,
                 DateCreated = x.DateCreated,
             })
             .ToListAsync();
@@ -323,6 +324,7 @@ public class AIConversationService : IAIConversationService
         Role = message.Role,
         Content = message.Content,
         ToolName = message.ToolName,
+        AIRunId = message.AIRunId,
         DateCreated = message.DateCreated,
     };
 }

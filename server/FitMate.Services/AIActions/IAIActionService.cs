@@ -28,5 +28,11 @@ public interface IAIActionService
     /// </summary>
     Task<AIActionModel> ConfirmAsync(long actionId, long userId);
 
+    /// <summary>
+    /// Confirms a workout proposal against a session the user already has running, and hands back
+    /// the resolved exercises for the client to append to that session's draft.
+    /// </summary>
+    Task<AIActionMergeResultModel> MergeIntoWorkoutAsync(long actionId, long userId, long workoutId);
+
     Task<AIActionModel> RejectAsync(long actionId, long userId);
 }

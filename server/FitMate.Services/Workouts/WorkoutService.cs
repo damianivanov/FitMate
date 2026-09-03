@@ -50,6 +50,29 @@ public class WorkoutService : IWorkoutService
         return result;
     }
 
+    public async Task<ActiveWorkoutModel?> GetActiveAsync(long userId, CancellationToken cancellationToken = default)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
+        // Newest first: an abandoned session from a previous day must not shadow today's.
+        return await dbContext.Workouts
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.StartedAt != null && x.FinishedAt == null)
+            .OrderByDescending(x => x.StartedAt)
+            .ThenByDescending(x => x.Id)
+            .Select(x => new ActiveWorkoutModel
+            {
+                Id = x.Id,
+                Title = x.Title,
+                StartedAt = x.StartedAt,
+                ExerciseCount = x.ExerciseGroups.Sum(group => group.Exercises.Count),
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<WorkoutCalendarDayModel>> GetCalendarMonthAsync(long userId, int year, int month)
     {
         if (userId <= 0)

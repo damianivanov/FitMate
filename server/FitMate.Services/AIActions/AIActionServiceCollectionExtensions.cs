@@ -12,6 +12,7 @@ public static class AIActionServiceCollectionExtensions
     public static IServiceCollection AddFitMateAIActions(this IServiceCollection services)
     {
         services.AddScoped<IAIActionService, AIActionService>();
+        services.AddScoped<IAIProposalDetailService, AIProposalDetailService>();
 
         services.AddScoped<IAIActionExecutor, CreatePersonalExerciseActionExecutor>();
         services.AddScoped<IAIActionExecutor, CreateGlobalExerciseActionExecutor>();

@@ -99,6 +99,16 @@ public class ExerciseService : IExerciseService
     public async Task<ExerciseModel> CreatePersonalAsync(CreateExerciseRequest request)
     {
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+        return await CreatePersonalAsync(request, userId);
+    }
+
+    public async Task<ExerciseModel> CreatePersonalAsync(CreateExerciseRequest request, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
+
         return await CreateAsync(request, ownerUserId: userId, isPublicOverride: null);
     }
 
@@ -395,6 +405,15 @@ public class ExerciseService : IExerciseService
     public async Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request)
     {
         var userId = userService.LoggedInUserId ?? throw new FitMateException("Unauthorized.");
+        return await GetAllAsync(request, userId);
+    }
+
+    public async Task<IReadOnlyList<ExerciseLookupModel>> GetAllAsync(ExerciseLookupRequest request, long userId)
+    {
+        if (userId <= 0)
+        {
+            throw new FitMateException("Unauthorized.");
+        }
 
         var normalizedSearch = request.Search?.Trim();
         var muscleGroupIds = (request.MuscleGroupIds ?? new List<long>())

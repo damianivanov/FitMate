@@ -80,7 +80,7 @@ internal static class ProposedExerciseReader
         foreach (var candidate in newExercises)
         {
             var created = await exerciseService.CreatePersonalAsync(
-                ExercisePayloadReader.ToRequest(candidate, candidate.IsPublic));
+                ExercisePayloadReader.ToRequest(candidate, candidate.IsPublic), userId);
 
             idsByKey[candidate.ClientKey] = created.Id;
         }
@@ -168,6 +168,10 @@ public class CreateWorkoutActionExecutor : IAIActionExecutor
             dbContext, exerciseService, payload.Exercises, payload.NewExercises, userId);
         await ProposedExerciseReader.ValidateAsync(dbContext, payload.Exercises, userId);
 
+        // Client keys are now real ids. Writing them back keeps the stored proposal readable — the
+        // detail view resolves exercises from the payload, not from the entity it created.
+        action.PayloadJson = AIJsonSerializer.Serialize(payload);
+
         var created = await workoutService.CreateAsync(
             new SaveWorkoutRequest
             {
@@ -215,6 +219,8 @@ public class CreateWorkoutTemplateActionExecutor : IAIActionExecutor
         await ProposedExerciseReader.CreateNewExercisesAsync(
             dbContext, exerciseService, payload.Exercises, payload.NewExercises, userId);
         await ProposedExerciseReader.ValidateAsync(dbContext, payload.Exercises, userId);
+
+        action.PayloadJson = AIJsonSerializer.Serialize(payload);
 
         // The template service enforces the CustomWorkoutTemplates quota, so a user who has hit
         // their plan limit since the proposal gets a clean 429 instead of a silent extra template.

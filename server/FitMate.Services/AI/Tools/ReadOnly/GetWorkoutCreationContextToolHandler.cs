@@ -3,6 +3,7 @@ using FitMate.Services.AI.Context;
 using FitMate.Services.MuscleGroups;
 using FitMate.Services.ProgramPlans.Plans;
 using FitMate.Services.TrainingProfiles;
+using FitMate.Services.Workouts;
 
 namespace FitMate.Services.AI.Tools.ReadOnly;
 
@@ -33,17 +34,20 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
     private readonly IMuscleGroupService muscleGroupService;
     private readonly IProgramPlanService programPlanService;
     private readonly IAITrainingContextQuery contextQuery;
+    private readonly IWorkoutService workoutService;
 
     public GetWorkoutCreationContextToolHandler(
         ITrainingProfileService trainingProfileService,
         IMuscleGroupService muscleGroupService,
         IProgramPlanService programPlanService,
-        IAITrainingContextQuery contextQuery)
+        IAITrainingContextQuery contextQuery,
+        IWorkoutService workoutService)
     {
         this.trainingProfileService = trainingProfileService;
         this.muscleGroupService = muscleGroupService;
         this.programPlanService = programPlanService;
         this.contextQuery = contextQuery;
+        this.workoutService = workoutService;
     }
 
     public string Name => "get_workout_creation_context";
@@ -53,11 +57,13 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
         Name = Name,
         Description =
             "Everything needed to draft a workout in one call: the user's training profile, whether "
-            + "today already has a scheduled session, when the focus muscles were last trained, "
-            + "matching templates, and ranked exercise candidates with their latest performance. "
-            + "Call this once when the user asks for a workout, then call propose_workout. Do not "
-            + "call get_training_profile, get_active_program, get_workout_templates, search_exercises "
-            + "or get_exercise_history as well — this already covers them.",
+            + "today already has a scheduled session, any workout they are part-way through, when the "
+            + "focus muscles were last trained, matching templates, and ranked exercise candidates "
+            + "with their latest performance. Call this once when the user asks for a workout, then "
+            + "call propose_workout. Do not call get_training_profile, get_active_program, "
+            + "get_workout_templates, search_exercises or get_exercise_history as well — this already "
+            + "covers them. When today.activeWorkout is present the user is mid-session: say so, and "
+            + "tell them they can add the suggestion to that session instead of starting a new one.",
         ParametersJsonSchema = """
         {
           "type": "object",
@@ -95,6 +101,7 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
 
         var profile = await trainingProfileService.GetAsync(context.UserId);
         var today = await programPlanService.GetTodayAsync(context.UserId, DateOnly.FromDateTime(date));
+        var activeWorkout = await workoutService.GetActiveAsync(context.UserId, cancellationToken);
 
         // Pull more than we return so previously-performed exercises can be ranked to the top.
         var candidates = await contextQuery.GetExerciseCandidatesAsync(
@@ -137,6 +144,15 @@ public class GetWorkoutCreationContextToolHandler : IAIToolHandler
             {
                 hasScheduledWorkout = today != null,
                 scheduled = today,
+                activeWorkout = activeWorkout == null
+                    ? null
+                    : new
+                    {
+                        activeWorkout.Id,
+                        activeWorkout.Title,
+                        activeWorkout.ExerciseCount,
+                        startedAt = activeWorkout.StartedAt?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    },
             },
             recentMuscleExposure = exposure
                 .Select(entry => new

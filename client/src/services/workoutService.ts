@@ -1,5 +1,6 @@
 import api from "@/lib/api";
 import type {
+  ActiveWorkoutModel,
   ExerciseHistoryResponse,
   JsonData,
   SaveWorkoutRequest,
@@ -15,6 +16,11 @@ export const workoutService = {
 
   async getById(id: number) {
     return api.get<JsonData<WorkoutModel>>(`workouts/${id}`);
+  },
+
+  /** The session already running, or null. Data is null when nothing is in progress. */
+  async getActive() {
+    return api.get<JsonData<ActiveWorkoutModel | null>>("workouts/active");
   },
 
   async getCalendar(year: number, month: number) {

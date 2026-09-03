@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { unwrap } from "@/lib/unwrap";
 import { aiService } from "@/services/aiService";
+import { workoutService } from "@/services/workoutService";
+import {
+  expandActiveWorkoutIfPresent,
+  useActiveWorkoutStore,
+} from "@/stores/activeWorkoutStore";
 import type {
+  ActiveWorkoutModel,
   AIActionModel,
   AIConversationModel,
   AIConversationSummaryModel,
@@ -9,9 +16,11 @@ import type {
 import { useAIRunProgress } from "./useAIRunProgress";
 
 export function useAICoachPage() {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<AIConversationSummaryModel[]>([]);
   const [activeConversation, setActiveConversation] = useState<AIConversationModel | null>(null);
   const [actions, setActions] = useState<AIActionModel[]>([]);
+  const [activeWorkout, setActiveWorkout] = useState<ActiveWorkoutModel | null>(null);
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [busyActionId, setBusyActionId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +31,17 @@ export function useAICoachPage() {
     const loaded = unwrap(response.data, "Unable to load conversations.");
     setConversations(loaded);
     return loaded;
+  }, []);
+
+  // Drives the "add to the session you're in" choice on a workout card. A failure here must not
+  // break the chat, so it degrades to the plain confirm rather than surfacing an error.
+  const loadActiveWorkout = useCallback(async () => {
+    try {
+      const response = await workoutService.getActive();
+      setActiveWorkout(response.data.success ? (response.data.data ?? null) : null);
+    } catch {
+      setActiveWorkout(null);
+    }
   }, []);
 
   // Everything the UI needs comes from this one read, so a reload, a refresh or a return from
@@ -59,7 +79,11 @@ export function useAICoachPage() {
 
     await openConversation(conversationId);
     await loadConversations();
-  }, [activeConversation?.id, loadConversations, openConversation]);
+
+    // A run may have proposed a workout, and the answer to "add it to what I'm doing?" depends on
+    // whether a session is still running by the time the card appears.
+    await loadActiveWorkout();
+  }, [activeConversation?.id, loadActiveWorkout, loadConversations, openConversation]);
 
   const { events: progressEvents, currentCode } = useAIRunProgress({
     runId: activeRunId,
@@ -139,12 +163,53 @@ export function useAICoachPage() {
     [resolveAction],
   );
 
+  /**
+   * Adds a workout suggestion to the session already running instead of creating a second one. The
+   * server resolves the exercises and marks the suggestion done; the exercises then travel through
+   * the active-workout store into the live draft, which is what actually persists them.
+   */
+  const mergeActionIntoActiveWorkout = useCallback(
+    async (actionId: number) => {
+      const target = activeWorkout;
+      if (!target) {
+        return;
+      }
+
+      setBusyActionId(actionId);
+      setError(null);
+
+      try {
+        const response = await aiService.mergeActionIntoWorkout(actionId, { workoutId: target.id });
+        const merged = unwrap(response.data, "The suggestion could not be added.");
+
+        setActions((current) =>
+          current.map((x) => (x.id === merged.action.id ? merged.action : x)),
+        );
+
+        // Queued before anything navigates, so the exercises cannot be lost in between.
+        useActiveWorkoutStore.getState().enqueueProposalExercises(merged.detail.exercises);
+
+        if (!expandActiveWorkoutIfPresent()) {
+          navigate(`/workouts/${target.id}`);
+        }
+      } catch (mergeError) {
+        setError(
+          mergeError instanceof Error ? mergeError.message : "The suggestion could not be added.",
+        );
+      } finally {
+        setBusyActionId(null);
+      }
+    },
+    [activeWorkout, navigate],
+  );
+
   useEffect(() => {
     async function load() {
       setIsLoading(true);
       setError(null);
       try {
         const loaded = await loadConversations();
+        await loadActiveWorkout();
 
         // Land in the thread the user was last in. Without this, returning to the coach always
         // shows the welcome screen, which reads as "my conversation disappeared".
@@ -159,13 +224,14 @@ export function useAICoachPage() {
     }
 
     void load();
-  }, [loadConversations, openConversation]);
+  }, [loadActiveWorkout, loadConversations, openConversation]);
 
   return {
     state: {
       conversations,
       activeConversation,
-      pendingActions: actions,
+      actions,
+      activeWorkout,
       busyActionId,
       isLoading,
       isSending: activeRunId != null,
@@ -173,6 +239,13 @@ export function useAICoachPage() {
       currentProgressCode: currentCode,
       error,
     },
-    actions: { openConversation, startConversation, send, confirmAction, rejectAction },
+    actions: {
+      openConversation,
+      startConversation,
+      send,
+      confirmAction,
+      rejectAction,
+      mergeActionIntoActiveWorkout,
+    },
   };
 }

@@ -7,6 +7,9 @@ public interface IWorkoutService
     Task<IReadOnlyList<WorkoutModel>> ListAsync(long userId);
     Task<IReadOnlyList<WorkoutCalendarDayModel>> GetCalendarMonthAsync(long userId, int year, int month);
     Task<WorkoutModel?> GetByIdAsync(long workoutId, long userId);
+
+    /// <summary>The session currently running, or null when the user is not mid-workout.</summary>
+    Task<ActiveWorkoutModel?> GetActiveAsync(long userId, CancellationToken cancellationToken = default);
     Task<long> StartFromTemplateAsync(long templateId, long userId, long? programPlanDayId = null);
     Task<long> DuplicateAsync(long workoutId, long userId);
     Task<WorkoutCreatedModel> CreateAsync(SaveWorkoutRequest request, long userId);

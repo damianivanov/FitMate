@@ -311,6 +311,13 @@ export namespace JsonModels.WorkoutTemplates {
 	}
 }
 export namespace JsonModels.Workouts {
+	export interface ActiveWorkoutModel
+	{
+		id: number;
+		title: string;
+		startedAt?: string;
+		exerciseCount: number;
+	}
 	export interface CreateWorkoutExerciseRequest
 	{
 		groupType: Enums.ExerciseGroupType;
@@ -1056,6 +1063,7 @@ export namespace JsonModels.AI {
 		role: Enums.AIMessageRole;
 		content: string;
 		toolName?: string;
+		aiRunId?: number;
 		dateCreated: string;
 	}
 	export interface AIProgressEventModel
@@ -1103,10 +1111,45 @@ export namespace JsonModels.AI {
 	}
 }
 export namespace JsonModels.AIActions {
+	export interface AIActionDetailModel
+	{
+		actionId: number;
+		actionType: Enums.AIActionType;
+		status: Enums.AIActionStatus;
+		title: string;
+		notes?: string;
+		estimatedDurationMinutes: number;
+		exercises: JsonModels.AIActions.AIProposalExerciseModel[];
+	}
+	export interface AIProposalExerciseModel
+	{
+		exerciseId: number;
+		name: string;
+		imageUrl?: string;
+		primaryMuscleGroupName?: string;
+		secondaryMuscleGroupName?: string;
+		equipment?: Enums.ExerciseEquipment;
+		isNew: boolean;
+		sets: JsonModels.AIActions.AIProposalSetModel[];
+	}
+	export interface AIProposalSetModel
+	{
+		setType: Enums.ExerciseSetType;
+		reps?: number;
+		weightKg?: number;
+		rpe?: number;
+		restSeconds?: number;
+	}
+	export interface AIActionMergeResultModel
+	{
+		action: JsonModels.AIActions.AIActionModel;
+		detail: JsonModels.AIActions.AIActionDetailModel;
+	}
 	export interface AIActionModel
 	{
 		id: number;
 		conversationId: number;
+		aiRunId: number;
 		actionType: Enums.AIActionType;
 		status: Enums.AIActionStatus;
 		preview: JsonModels.AIActions.AIActionPreviewModel;
@@ -1127,6 +1170,10 @@ export namespace JsonModels.AIActions {
 	{
 		label: string;
 		value: string;
+	}
+	export interface MergeAIActionRequest
+	{
+		workoutId: number;
 	}
 	export interface AIActionResultModel
 	{

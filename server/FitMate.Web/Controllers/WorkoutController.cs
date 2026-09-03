@@ -38,6 +38,18 @@ public class WorkoutController : BaseApiController
         return this.ReturnJson(items);
     }
 
+    [HttpGet("active")]
+    public async Task<ActionResult> GetActive(CancellationToken cancellationToken)
+    {
+        var userId = UserService.LoggedInUserId;
+        if (!userId.HasValue)
+        {
+            return this.ReturnJsonError("Unauthorized.");
+        }
+
+        return this.ReturnJson(await workoutService.GetActiveAsync(userId.Value, cancellationToken));
+    }
+
     [HttpGet("previous-sets")]
     public async Task<ActionResult> GetPreviousSets([FromQuery] PreviousExerciseSetsQueryRequest request)
     {

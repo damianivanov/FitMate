@@ -71,12 +71,16 @@ public class SearchExercisesToolHandler : IAIToolHandler
 
         foreach (var term in terms)
         {
-            var matches = await exerciseService.GetAllAsync(new ExerciseLookupRequest
-            {
-                Search = term,
-                MuscleGroupIds = arguments.MuscleGroupIds,
-                Take = take,
-            });
+            // The AI loop runs in a background worker with no request principal, so the user id
+            // travels explicitly. The ambient overload would throw "Unauthorized." here.
+            var matches = await exerciseService.GetAllAsync(
+                new ExerciseLookupRequest
+                {
+                    Search = term,
+                    MuscleGroupIds = arguments.MuscleGroupIds,
+                    Take = take,
+                },
+                context.UserId);
 
             groups.Add(new
             {

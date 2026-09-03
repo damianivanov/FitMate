@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { AIProposalExerciseModel } from "@/types";
 
 /**
  * Lifecycle of the app-level (mobile) workout sheet.
@@ -31,6 +32,15 @@ export interface ActiveWorkoutState {
   title: string;
   startedAt?: string;
 
+  /**
+   * Exercises an accepted AI suggestion is handing to the live session. The builder drains this
+   * into its draft and autosave persists them — appending them server-side instead would be wiped
+   * by the builder's next autosave, which writes its whole draft over the workout.
+   */
+  pendingProposalExercises: AIProposalExerciseModel[];
+  enqueueProposalExercises: (exercises: AIProposalExerciseModel[]) => void;
+  takeProposalExercises: () => AIProposalExerciseModel[];
+
   openNewWorkout: () => void;
   openExistingWorkout: (workoutId: number) => void;
   startFromTemplate: (templateId: number) => void;
@@ -56,9 +66,27 @@ const CLEARED_IDENTITY: ActiveWorkoutIdentity = {
   startedAt: undefined,
 };
 
-export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set) => ({
+export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set, get) => ({
   status: WorkoutSheetStatus.Closed,
   ...CLEARED_IDENTITY,
+
+  // Deliberately outside CLEARED_IDENTITY: the queue is filled before the sheet or the builder
+  // route opens, and opening resets the identity.
+  pendingProposalExercises: [],
+
+  enqueueProposalExercises: (exercises) =>
+    set((state) => ({
+      pendingProposalExercises: [...state.pendingProposalExercises, ...exercises],
+    })),
+
+  takeProposalExercises: () => {
+    const queued = get().pendingProposalExercises;
+    if (queued.length > 0) {
+      set({ pendingProposalExercises: [] });
+    }
+
+    return queued;
+  },
 
   // One-active-workout invariant: while a session exists, the open actions only
   // expand it — they never clobber the current identity.
@@ -100,7 +128,9 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set) => ({
       state.status !== WorkoutSheetStatus.Closed ? { status: WorkoutSheetStatus.Open } : {},
     ),
 
-  close: () => set({ status: WorkoutSheetStatus.Closed, ...CLEARED_IDENTITY }),
+  // Anything still queued belongs to the session being closed, so it goes with it.
+  close: () =>
+    set({ status: WorkoutSheetStatus.Closed, ...CLEARED_IDENTITY, pendingProposalExercises: [] }),
 
   restoreMinimized: (workoutId) =>
     set((state) =>
