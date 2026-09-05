@@ -1,5 +1,6 @@
 using FitMate.DB;
 using FitMate.DB.Enums;
+using FitMate.Services.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -12,15 +13,18 @@ public class AIRunQueue : IAIRunQueue
     private readonly AppDbContext dbContext;
     private readonly IAIProgressService progressService;
     private readonly AIRunOptions options;
+    private readonly IUsageService usageService;
 
     public AIRunQueue(
         AppDbContext dbContext,
         IAIProgressService progressService,
-        IOptions<AIRunOptions> options)
+        IOptions<AIRunOptions> options,
+        IUsageService usageService)
     {
         this.dbContext = dbContext;
         this.progressService = progressService;
         this.options = options.Value;
+        this.usageService = usageService;
     }
 
     public async Task<long?> ClaimNextAsync(string workerId, DateTime utcNow, CancellationToken cancellationToken)
@@ -39,7 +43,8 @@ public class AIRunQueue : IAIRunQueue
         foreach (var candidateId in candidates)
         {
             var claimed = await dbContext.AIRuns
-                .Where(x => x.Id == candidateId && x.Status == AIRunStatus.Queued)
+                .Where(x => x.Id == candidateId && x.Status == AIRunStatus.Queued
+                    && (x.NextAttemptAt == null || x.NextAttemptAt <= utcNow))
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(x => x.Status, AIRunStatus.Running)
                     .SetProperty(x => x.LeaseOwner, workerId)
@@ -107,67 +112,64 @@ public class AIRunQueue : IAIRunQueue
             {
                 x.Id,
                 x.ConversationId,
-                x.HasSideEffects,
-                x.AttemptCount,
+                x.UsageReservationId,
             })
             .ToListAsync(cancellationToken);
 
-        if (stale.Count == 0)
+        var reclaimed = 0;
+        foreach (var run in stale)
         {
-            return 0;
-        }
+            // Recheck the live row at the UPDATE. The initial read is only a candidate list:
+            // a worker may have renewed its lease, completed, or started a tool since then.
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var expired = dbContext.AIRuns.Where(x => x.Id == run.Id
+                && x.Status == AIRunStatus.Running
+                && x.LeaseExpiresAt != null && x.LeaseExpiresAt < utcNow);
 
-        var safeIds = stale
-            .Where(x => !x.HasSideEffects && x.AttemptCount < options.MaximumSafeAttempts)
-            .Select(x => x.Id)
-            .ToList();
-
-        // Anything past a tool call cannot be replayed: a second pass could create a duplicate
-        // proposal or charge generation quota twice. Fail it and let the user retry deliberately.
-        var abandoned = stale.Where(x => !safeIds.Contains(x.Id)).ToList();
-
-        if (safeIds.Count > 0)
-        {
-            await dbContext.AIRuns
-                .Where(x => safeIds.Contains(x.Id))
+            var requeued = await expired
+                .Where(x => !x.HasSideEffects && x.AttemptCount < options.MaximumSafeAttempts)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(x => x.Status, AIRunStatus.Queued)
                     .SetProperty(x => x.LeaseOwner, (string?)null)
                     .SetProperty(x => x.LeaseExpiresAt, (DateTime?)null)
-                    .SetProperty(x => x.NextAttemptAt, utcNow),
-                    cancellationToken);
-        }
+                    .SetProperty(x => x.NextAttemptAt, utcNow), cancellationToken);
 
-        if (abandoned.Count > 0)
-        {
-            var abandonedIds = abandoned.Select(x => x.Id).ToList();
+            if (requeued == 1)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                reclaimed++;
+                continue;
+            }
 
-            await dbContext.AIRuns
-                .Where(x => abandonedIds.Contains(x.Id))
+            var failed = await expired
+                .Where(x => x.HasSideEffects || x.AttemptCount >= options.MaximumSafeAttempts)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(x => x.Status, AIRunStatus.Failed)
                     .SetProperty(x => x.ErrorCode, "run_interrupted")
                     .SetProperty(x => x.ErrorMessage, "The run was interrupted and could not be resumed.")
                     .SetProperty(x => x.CompletedAt, utcNow)
                     .SetProperty(x => x.LeaseOwner, (string?)null)
-                    .SetProperty(x => x.LeaseExpiresAt, (DateTime?)null),
-                    cancellationToken);
+                    .SetProperty(x => x.LeaseExpiresAt, (DateTime?)null), cancellationToken);
 
-            // Without this the conversation stays locked behind a run that will never finish and
-            // the user can never send another message.
-            var conversationIds = abandoned.Select(x => x.ConversationId).Distinct().ToList();
-            await dbContext.AIConversations
-                .Where(x => conversationIds.Contains(x.Id) && x.ActiveRunId != null
-                    && abandonedIds.Contains(x.ActiveRunId!.Value))
-                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ActiveRunId, (long?)null),
-                    cancellationToken);
-
-            foreach (var run in abandoned)
+            if (failed == 1)
             {
+                // Recovery, quota release and the terminal event either all commit or all retry.
+                if (run.UsageReservationId is { } reservationId)
+                {
+                    await usageService.ReleaseAsync(reservationId);
+                }
+
+                await dbContext.AIConversations
+                    .Where(x => x.Id == run.ConversationId && x.ActiveRunId == run.Id)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ActiveRunId, (long?)null),
+                        cancellationToken);
                 await progressService.PublishAsync(run.Id, AIProgressCodes.RunFailed, null, cancellationToken);
             }
+
+            await transaction.CommitAsync(cancellationToken);
+            reclaimed += failed;
         }
 
-        return stale.Count;
+        return reclaimed;
     }
 }

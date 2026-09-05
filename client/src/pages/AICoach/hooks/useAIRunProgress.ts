@@ -5,6 +5,7 @@ import { AIRunStatus, type AIProgressEventModel } from "@/types";
 import { TERMINAL_PROGRESS_CODES } from "../progressLabels";
 
 const POLL_INTERVAL_MS = 1_200;
+const STREAM_IDLE_MS = 10_000;
 
 type RunEvents = {
   runId: number | null;
@@ -26,9 +27,6 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
   // by clearing state from inside an effect.
   const [received, setReceived] = useState<RunEvents>({ runId: null, events: [] });
 
-  // Kept in a ref so a re-render mid-run cannot rewind the cursor and replay events.
-  const cursorRef = useRef(0);
-
   // Held in a ref so a new callback identity does not tear down and restart the stream.
   const onTerminalRef = useRef(onTerminal);
 
@@ -41,7 +39,9 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
       return;
     }
 
-    cursorRef.current = 0;
+    let cursor = 0;
+    let polling = false;
+    let lastStreamEventAt = Date.now();
 
     let cancelled = false;
     let finished = false;
@@ -49,7 +49,7 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
     let pollTimer: ReturnType<typeof setInterval> | null = null;
 
     function finish() {
-      if (finished) {
+      if (cancelled || finished) {
         return;
       }
 
@@ -66,16 +66,16 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
     }
 
     function accept(incoming: AIProgressEventModel[]) {
-      if (cancelled || incoming.length === 0) {
+      if (cancelled || finished || incoming.length === 0) {
         return;
       }
 
-      const fresh = incoming.filter((event) => event.id > cursorRef.current);
+      const fresh = incoming.filter((event) => event.id > cursor);
       if (fresh.length === 0) {
         return;
       }
 
-      cursorRef.current = Math.max(cursorRef.current, ...fresh.map((event) => event.id));
+      cursor = Math.max(cursor, ...fresh.map((event) => event.id));
 
       setReceived((current) =>
         current.runId === runId
@@ -89,12 +89,14 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
     }
 
     async function pollOnce() {
-      if (cancelled || finished) {
+      if (cancelled || finished || polling) {
         return;
       }
 
+      polling = true;
       try {
-        const response = await aiService.getRunSnapshot(runId!, cursorRef.current);
+        const response = await aiService.getRunSnapshot(runId!, cursor);
+        if (cancelled || finished) return;
         const snapshot = unwrap(response.data, "Unable to read run progress.");
         accept(snapshot.events);
 
@@ -105,16 +107,23 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
           finish();
         }
       } catch {
-        // Polling is the fallback of last resort; a failed tick simply retries on the next one.
+        // A failed tick retries on the next one.
+      } finally {
+        polling = false;
       }
     }
 
     function startPolling() {
-      if (pollTimer != null || finished) {
+      if (pollTimer != null || cancelled || finished) {
         return;
       }
 
-      pollTimer = setInterval(() => void pollOnce(), POLL_INTERVAL_MS);
+      pollTimer = setInterval(() => {
+        // Some proxies hold the connection open without forwarding an event or an error.
+        if (source == null || Date.now() - lastStreamEventAt >= STREAM_IDLE_MS) {
+          void pollOnce();
+        }
+      }, POLL_INTERVAL_MS);
     }
 
     async function start() {
@@ -126,13 +135,19 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
       }
 
       try {
-        source = new EventSource(aiService.runEventsUrl(runId!, cursorRef.current), {
+        source = new EventSource(aiService.runEventsUrl(runId!, cursor), {
           withCredentials: true,
         });
 
         source.addEventListener("progress", (message) => {
-          const parsed = JSON.parse((message as MessageEvent<string>).data) as AIProgressEventModel;
-          accept([parsed]);
+          try {
+            const parsed = JSON.parse((message as MessageEvent<string>).data) as AIProgressEventModel;
+            if (!Number.isFinite(parsed.id) || typeof parsed.code !== "string") return;
+            lastStreamEventAt = Date.now();
+            accept([parsed]);
+          } catch {
+            // Leave the cursor unchanged; the watchdog will recover from a malformed event.
+          }
         });
 
         source.onerror = () => {
@@ -141,8 +156,9 @@ export function useAIRunProgress({ runId, onTerminal }: UseAIRunProgressOptions)
           startPolling();
         };
       } catch {
-        startPolling();
+        source = null;
       }
+      startPolling();
     }
 
     void start();

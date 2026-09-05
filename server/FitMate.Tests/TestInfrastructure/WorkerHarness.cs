@@ -84,7 +84,7 @@ public sealed class WorkerHarness
         var entitlements = new FakeEntitlementService();
         var promptBuilder = new AIPromptBuilder();
         var runService = new AIRunService(context, new AICostCalculator(context), redaction);
-        var queue = new AIRunQueue(context, progress, runOptions);
+        var queue = new AIRunQueue(context, progress, runOptions, usage);
 
         var budgetResolver = new FakeAIBudgetResolver
         {

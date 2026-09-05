@@ -2,6 +2,7 @@ using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.AI.Runs;
+using FitMate.Services.Subscriptions;
 using FitMate.Tests.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -195,11 +196,39 @@ public class AIRunQueueTests
         Assert.Equal(AIRunStatus.Running, (await context.AIRuns.AsNoTracking().SingleAsync()).Status);
     }
 
+    [Fact]
+    public async Task ReclaimStale_ReleasesReservedQuotaExactlyOnce()
+    {
+        using var db = new SqliteTestDatabase();
+        await using var context = db.CreateContext();
+        var usage = new UsageService(context, new FakeEntitlementService());
+        var reservation = await usage.ReserveAsync(SqliteTestDatabase.UserId, SubscriptionFeature.AIChat, 1);
+        var runId = await SeedQueuedRunAsync(context, setActiveRun: true);
+        await context.AIRuns.Where(x => x.Id == runId).ExecuteUpdateAsync(s =>
+            s.SetProperty(x => x.UsageReservationId, reservation.Id));
+        var queue = new AIRunQueue(context, new AIProgressService(context),
+            Options.Create(new AIRunOptions { LeaseSeconds = 180, MaximumSafeAttempts = 1 }), usage);
+        await queue.ClaimNextAsync("worker-a", Now, CancellationToken.None);
+
+        Assert.Equal(1, await queue.ReclaimStaleAsync(Now.AddHours(1), CancellationToken.None));
+        Assert.Equal(0, await queue.ReclaimStaleAsync(Now.AddHours(1), CancellationToken.None));
+
+        var bucket = await context.UsageBuckets.AsNoTracking().SingleAsync();
+        Assert.Equal(0, bucket.Reserved);
+        Assert.Equal(0, bucket.Used);
+        Assert.Equal(UsageReservationStatus.Released,
+            (await context.UsageReservations.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal(1, await context.UsageEntries.CountAsync(x => x.Type == UsageEntryType.Release));
+        Assert.Equal(1, await context.AIProgressEvents.CountAsync(x => x.Code == AIProgressCodes.RunFailed));
+        Assert.Null((await context.AIConversations.AsNoTracking().SingleAsync()).ActiveRunId);
+    }
+
     private static AIRunQueue NewQueue(AppDbContext context, int maximumSafeAttempts = 2) =>
         new(
             context,
             new AIProgressService(context),
-            Options.Create(new AIRunOptions { LeaseSeconds = 180, MaximumSafeAttempts = maximumSafeAttempts }));
+            Options.Create(new AIRunOptions { LeaseSeconds = 180, MaximumSafeAttempts = maximumSafeAttempts }),
+            new FakeUsageService());
 
     private static async Task<long> SeedQueuedRunAsync(
         AppDbContext context,

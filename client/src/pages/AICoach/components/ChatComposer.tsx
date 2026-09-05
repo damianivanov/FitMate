@@ -3,7 +3,7 @@ import { LuArrowUp, LuLoaderCircle } from "react-icons/lu";
 
 type ChatComposerProps = {
   isSending: boolean;
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string) => Promise<boolean>;
   placeholder?: string;
   autoFocus?: boolean;
 };
@@ -37,8 +37,11 @@ export function ChatComposer({
       return;
     }
 
-    setValue("");
-    await onSend(content);
+    const accepted = await onSend(content);
+    if (accepted) {
+      // Keep both a failed submission and anything typed while awaiting acceptance.
+      setValue((current) => current.trim() === content ? "" : current);
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
