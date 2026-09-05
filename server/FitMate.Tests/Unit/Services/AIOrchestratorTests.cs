@@ -7,6 +7,32 @@ namespace FitMate.Tests.Unit.Services;
 
 public class AIOrchestratorTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProviderReturnsAfterLeaseChanges_DoesNotFinalizeAnotherWorkersRun(bool providerFails)
+    {
+        using var db = new SqliteTestDatabase();
+        var provider = new FakeAICompletionProvider().EnqueueText("Stale reply");
+        var harness = await WorkerHarness.CreateAsync(db, provider);
+        provider.BeforeResponseAsync = async () =>
+        {
+            await using var other = db.CreateContext();
+            await other.AIRuns.ExecuteUpdateAsync(s => s.SetProperty(x => x.LeaseOwner, "worker-b"));
+        };
+        if (providerFails) provider.ThrowOnCall = new InvalidOperationException("Stale failure");
+
+        await harness.SendAsync("hello");
+
+        var run = await harness.RunRowAsync();
+        Assert.Equal(AIRunStatus.Running, run.Status);
+        Assert.Equal("worker-b", run.LeaseOwner);
+        Assert.Empty(harness.Usage.Committed);
+        Assert.Empty(harness.Usage.Released);
+        Assert.False(await harness.Context.AIMessages.AnyAsync(x => x.Role == AIMessageRole.Assistant));
+        Assert.False(await harness.Context.AIToolExecutions.AnyAsync());
+    }
+
     // Отговор без инструменти: запазва съобщението и таксува веднъж
     [Fact]
     public async Task Send_NoToolCalls_PersistsAssistantMessageAndCommitsUsage()

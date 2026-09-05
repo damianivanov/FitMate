@@ -47,10 +47,11 @@
      a token: the scroll box reserves exactly this much and nothing has to measure the bar. */
   --app-header-h: calc(4rem + env(safe-area-inset-top, 0px));
 
-  /* Standalone iOS reports no bottom inset without viewport-fit=cover (which stays off — it
-     double-counts everywhere else), so the home-indicator clearance is a shared constant
-     rather than an env() each pinned element hopes will be live. */
-  --app-safe-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  /* The viewport includes the safe area. Use the reported inset once, with a small
+     minimum gap on devices that have no home indicator. */
+  --app-safe-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  --app-bottom-nav-h: 3.5rem;
+  --app-bottom-clearance: calc(var(--app-safe-bottom) + var(--app-bottom-nav-h) + 0.75rem);
 
   /* ── Base colors ── */
   --color-base: #dfe6f0;
@@ -1761,15 +1762,8 @@ textarea { resize: none; }
   max-width: 42rem;
   margin-inline: auto;
   z-index: var(--z-nav-lens);
-  /* Starts at the bar's top edge, not below it. Bar = 2.75rem tab + 2 × 0.375rem shell
-     padding = 3.5rem, plus the 2rem gap under it and the home-indicator inset.
-
-     Covering the bar's own height is what makes this look clean rather than like a pasted-on
-     strip. Two reasons: the mask ramp gets 5.5rem to resolve across instead of 2rem — at the
-     old height it completed in ~9px and read as a seam, which is the line cutting through the
-     figure — and the fully-blurred end of the ramp lands behind the opaque bar, so the
-     transition is hidden by the bar rather than drawn across live content. */
-  height: calc(env(safe-area-inset-bottom, 0px) + 5.6rem);
+  /* Follow the same geometry as the nav, including its single safe-area allowance. */
+  height: calc(var(--app-safe-bottom) + var(--app-bottom-nav-h));
   pointer-events: none;
 }
 
@@ -1870,7 +1864,7 @@ textarea { resize: none; }
    (the builders, the coach) inherit it without opting in. */
 @media (max-width: 767px) {
   .liquid-main-shell {
-    padding-bottom: var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6.25rem));
+    padding-bottom: var(--mobile-bottom-clearance, var(--app-bottom-clearance));
   }
 }
 
@@ -1900,7 +1894,7 @@ textarea { resize: none; }
 @media (max-width: 767px) {
   .liquid-main-shell.liquid-banner-clearance {
     padding-bottom: calc(
-      var(--mobile-bottom-clearance, calc(env(safe-area-inset-bottom, 0px) + 6.25rem)) +
+      var(--mobile-bottom-clearance, var(--app-bottom-clearance)) +
         var(--cookie-banner-height, 0px) + 1rem
     );
   }

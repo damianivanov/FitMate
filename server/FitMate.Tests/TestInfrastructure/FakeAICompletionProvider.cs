@@ -13,6 +13,8 @@ public sealed class FakeAICompletionProvider : IAICompletionProvider
 
     public List<AICompletionRequest> Requests { get; } = [];
 
+    public Func<Task>? BeforeResponseAsync { get; set; }
+
     public Exception? ThrowOnCall { get; set; }
 
     public FakeAICompletionProvider EnqueueText(string text, int inputTokens = 10, int outputTokens = 5)
@@ -63,12 +65,13 @@ public sealed class FakeAICompletionProvider : IAICompletionProvider
         return this;
     }
 
-    public Task<AICompletionResponse> CompleteAsync(
+    public async Task<AICompletionResponse> CompleteAsync(
         AICompletionRequest request,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request);
+        if (BeforeResponseAsync != null) await BeforeResponseAsync();
 
         if (ThrowOnCall != null)
         {
@@ -80,6 +83,6 @@ public sealed class FakeAICompletionProvider : IAICompletionProvider
             throw new InvalidOperationException("FakeAICompletionProvider ran out of scripted responses.");
         }
 
-        return Task.FromResult(responses.Dequeue());
+        return responses.Dequeue();
     }
 }

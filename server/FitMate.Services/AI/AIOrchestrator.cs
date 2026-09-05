@@ -156,15 +156,32 @@ public class AIOrchestrator : IAIOrchestrator
                 null,
                 cancellationToken);
 
-            var providerResponse = await completionProvider.CompleteAsync(
-                new AICompletionRequest
-                {
-                    Messages = messages,
-                    Tools = providerTools,
-                    Model = run.Model,
-                    MaxOutputTokens = budget.MaximumOutputTokens,
-                },
-                timeout.Token);
+            AICompletionResponse providerResponse;
+            try
+            {
+                providerResponse = await completionProvider.CompleteAsync(
+                    new AICompletionRequest
+                    {
+                        Messages = messages,
+                        Tools = providerTools,
+                        Model = run.Model,
+                        MaxOutputTokens = budget.MaximumOutputTokens,
+                    },
+                    timeout.Token);
+            }
+            catch
+            {
+                // Ignore a late provider failure after recovery transferred the run.
+                if (!await OwnsRunAsync(run.Id, workerId)) return;
+                throw;
+            }
+
+            // A provider call can outlive a lease. Check again before recording its result or
+            // starting a proposal; the next iteration's renewal would be too late.
+            if (!await runQueue.RenewLeaseAsync(run.Id, workerId, DateTime.UtcNow, cancellationToken))
+            {
+                return;
+            }
 
             await runService.AddUsageAsync(run.Id, providerResponse.Usage, providerResponse.ProviderRequestId);
 
@@ -319,6 +336,10 @@ public class AIOrchestrator : IAIOrchestrator
             await usageService.ReleaseAsync(reservationId);
         }
     }
+
+    private Task<bool> OwnsRunAsync(long runId, string workerId) =>
+        dbContext.AIRuns.AsNoTracking().AnyAsync(x => x.Id == runId
+            && x.Status == AIRunStatus.Running && x.LeaseOwner == workerId);
 
     private async Task<bool> HasSideEffectsAsync(long runId) =>
         await dbContext.AIRuns.AsNoTracking()

@@ -46,6 +46,8 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // Queued requests get the same one-refresh limit as the request that starts refresh.
+      originalRequest._retry = true;
       if (isRefreshing) {
         await new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -59,7 +61,6 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      originalRequest._retry = true;
       isRefreshing = true;
       refreshAttempts++;
 
