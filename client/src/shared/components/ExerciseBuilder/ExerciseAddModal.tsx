@@ -38,8 +38,37 @@ type ExerciseAddModalProps = {
   feedback?: ExerciseAddFeedback | null;
 };
 
+type MuscleChipProps = {
+  name: string;
+  imageUrl?: string;
+  tone: "primary" | "secondary";
+};
+
+const MUSCLE_CHIP_TONES: Record<MuscleChipProps["tone"], { backgroundColor: string; color: string }> = {
+  primary: { backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" },
+  secondary: { backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" },
+};
+
+function MuscleChip({ name, imageUrl, tone }: MuscleChipProps) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full py-1 pr-2.5 pl-1 text-xs font-medium"
+      style={MUSCLE_CHIP_TONES[tone]}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt="" aria-hidden="true" className="h-5 w-5 rounded-full object-cover" loading="lazy" />
+      ) : (
+        <span className="h-5 w-5 rounded-full bg-current opacity-25" aria-hidden="true" />
+      )}
+      {name}
+    </span>
+  );
+}
+
 type ExerciseLibraryRowProps = {
   exercise: ExerciseLookupModel;
+  primaryMuscleGroupImageUrl?: string;
+  secondaryMuscleGroupImageUrl?: string;
   isAlreadyAdded: boolean;
   isAddAnimating: boolean;
   canRemove: boolean;
@@ -52,6 +81,8 @@ type ExerciseLibraryRowProps = {
 // list, which made the modal visibly "jump" while exercises were added.
 const ExerciseLibraryRow = memo(function ExerciseLibraryRow({
   exercise,
+  primaryMuscleGroupImageUrl,
+  secondaryMuscleGroupImageUrl,
   isAlreadyAdded,
   isAddAnimating,
   canRemove,
@@ -107,20 +138,18 @@ const ExerciseLibraryRow = memo(function ExerciseLibraryRow({
       )}
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{exercise.name}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span
-            className="rounded-full px-2 py-0.5 text-2xs font-medium"
-            style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
-          >
-            {exercise.primaryMuscleGroupName}
-          </span>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <MuscleChip
+            name={exercise.primaryMuscleGroupName}
+            imageUrl={primaryMuscleGroupImageUrl}
+            tone="primary"
+          />
           {exercise.secondaryMuscleGroupName ? (
-            <span
-              className="rounded-full px-2 py-0.5 text-2xs font-medium"
-              style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
-            >
-              {exercise.secondaryMuscleGroupName}
-            </span>
+            <MuscleChip
+              name={exercise.secondaryMuscleGroupName}
+              imageUrl={secondaryMuscleGroupImageUrl}
+              tone="secondary"
+            />
           ) : null}
         </div>
       </div>
@@ -179,6 +208,11 @@ export function ExerciseAddModal({
       label: group.name,
       imageUrl: group.imageUrl ?? undefined,
     })),
+    [muscleGroups],
+  );
+
+  const muscleGroupImageUrlById = useMemo(
+    () => new Map(muscleGroups.map((group) => [group.id, group.imageUrl ?? undefined])),
     [muscleGroups],
   );
 
@@ -542,6 +576,12 @@ export function ExerciseAddModal({
               <ExerciseLibraryRow
                 key={exercise.id}
                 exercise={exercise}
+                primaryMuscleGroupImageUrl={muscleGroupImageUrlById.get(exercise.primaryMuscleGroupId)}
+                secondaryMuscleGroupImageUrl={
+                  exercise.secondaryMuscleGroupId !== undefined
+                    ? muscleGroupImageUrlById.get(exercise.secondaryMuscleGroupId)
+                    : undefined
+                }
                 isAlreadyAdded={selectedExerciseIdSet.has(exercise.id)}
                 isAddAnimating={Boolean(isAddAnimatingByExerciseId[exercise.id])}
                 canRemove={Boolean(onRemoveExercise)}
