@@ -136,6 +136,17 @@ function buildExerciseDraft(
   };
 }
 
+export function hasWorkoutDraftContent(draft: WorkoutDraft): boolean {
+  const title = draft.title.trim();
+  return (
+    Boolean(draft.workoutId)
+    || Boolean(draft.startedAt)
+    || draft.exercises.length > 0
+    || (title !== "" && title !== DEFAULT_NEW_WORKOUT_TITLE)
+    || draft.notes.trim() !== ""
+  );
+}
+
 export function buildEmptyWorkoutDraft(startedAt?: Date): WorkoutDraft {
   return {
     title: DEFAULT_NEW_WORKOUT_TITLE,

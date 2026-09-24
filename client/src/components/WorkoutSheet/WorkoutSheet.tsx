@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuLoaderCircle } from "react-icons/lu";
 import WorkoutBuilder from "@/pages/WorkoutBuilder/WorkoutBuilder";
-import { WorkoutSheetStatus } from "@/stores/activeWorkoutStore";
+import { WorkoutSheetStatus, type WorkoutSessionMeta } from "@/stores/activeWorkoutStore";
 import { lockBodyScroll, unlockBodyScroll } from "@/shared/utils/bodyScrollLock";
 import { useDragToMinimize } from "./useDragToMinimize";
 
@@ -13,7 +13,7 @@ type WorkoutSheetProps = {
   isStarting: boolean;
   onMinimize: () => void;
   onClose: () => void;
-  onMetaChange: (meta: { title: string; startedAt?: string }) => void;
+  onMetaChange: (meta: WorkoutSessionMeta) => void;
 };
 
 function prefersReducedMotion(): boolean {

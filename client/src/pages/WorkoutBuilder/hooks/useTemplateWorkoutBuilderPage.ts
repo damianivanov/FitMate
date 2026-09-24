@@ -10,11 +10,12 @@ import {
 } from "@/lib/workoutSessionStorage";
 import { workoutService } from "@/services/workoutService";
 import { workoutTemplateService } from "@/services/workoutTemplateService";
-import { useActiveWorkoutStore } from "@/stores/activeWorkoutStore";
+import { useActiveWorkoutStore, type WorkoutSessionMeta } from "@/stores/activeWorkoutStore";
 import { getExerciseBlockDragOrderIndexes, type ExerciseMetricMode } from "@/shared/components";
 import { ExerciseGroupType, type ExerciseHistory, type ExerciseLookupModel, type ExerciseSetType } from "@/types";
 import {
   buildEmptyWorkoutDraft,
+  hasWorkoutDraftContent,
   buildWorkoutDraftFromWorkout,
   buildWorkoutDraftFromTemplate,
   buildWorkoutExerciseGroups,
@@ -146,7 +147,7 @@ export interface WorkoutBuilderHookOptions {
   onBack?: () => void;
   onFinished?: (workoutId: number) => void;
   onDeleted?: () => void;
-  onMetaChange?: (meta: { title: string; startedAt?: string }) => void;
+  onMetaChange?: (meta: WorkoutSessionMeta) => void;
 }
 
 export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOptions) {
@@ -614,6 +615,8 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     };
   }, [draft?.startedAt]);
 
+  const hasDraftContent = draft ? hasWorkoutDraftContent(draft) : true;
+
   // Sheet mode: push title/startedAt to the store so the mini-bar (rendered outside this
   // tree) can show them. These change rarely (not per second), so this is cheap.
   useEffect(() => {
@@ -624,8 +627,9 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     sheetOptionsRef.current?.onMetaChange?.({
       title: draft?.title?.trim() || "Untitled Workout",
       startedAt: draft?.startedAt,
+      hasContent: hasDraftContent,
     });
-  }, [isSheetMode, draft?.title, draft?.startedAt]);
+  }, [isSheetMode, draft?.title, draft?.startedAt, hasDraftContent]);
 
   const summary = useMemo(
     () => (draft ? calculateWorkoutSummary(draft) : null),
@@ -756,6 +760,10 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       return;
     }
 
+    if (!hasWorkoutDraftContent(currentDraft)) {
+      return;
+    }
+
     void createWorkoutFromDraft(currentDraft);
   }, [createWorkoutFromDraft, draft, getPersistedWorkoutId, saveWorkoutToBackend]);
 
@@ -775,6 +783,10 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
     if (getPersistedWorkoutId(currentDraft)) {
       void saveWorkoutToBackend(currentDraft);
+      return;
+    }
+
+    if (!hasWorkoutDraftContent(currentDraft)) {
       return;
     }
 

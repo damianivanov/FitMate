@@ -76,7 +76,7 @@ const ExerciseLibraryRow = memo(function ExerciseLibraryRow({
   };
 
   const exerciseItemClassName = [
-    "flex items-center gap-3 rounded-3xl px-2 py-3 transition-all duration-300 ease-out",
+    "flex items-center gap-3 rounded-3xl px-3 py-2.5 transition-all duration-300 ease-out",
     isAlreadyAdded
       ? "cursor-default bg-emerald-300/22 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.55)]"
       : "cursor-pointer hover:bg-white/4",
@@ -97,32 +97,32 @@ const ExerciseLibraryRow = memo(function ExerciseLibraryRow({
         <img
           src={exercise.imageUrl}
           alt=""
-          className="h-10 w-10 shrink-0 rounded-xl object-cover"
+          className="h-12 w-12 shrink-0 rounded-xl object-cover"
           loading="lazy"
         />
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-200 text-sm font-bold text-primary">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-200 text-base font-bold text-primary">
           {exercise.name.charAt(0).toUpperCase()}
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{exercise.name}</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <span
-          className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-          style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
-        >
-          {exercise.primaryMuscleGroupName}
-        </span>
-        {exercise.secondaryMuscleGroupName ? (
+        <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{exercise.name}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span
-            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
+            className="rounded-full px-2 py-0.5 text-2xs font-medium"
+            style={{ backgroundColor: "rgba(255, 115, 55, 0.12)", color: "#FF7337" }}
           >
-            {exercise.secondaryMuscleGroupName}
+            {exercise.primaryMuscleGroupName}
           </span>
-        ) : null}
+          {exercise.secondaryMuscleGroupName ? (
+            <span
+              className="rounded-full px-2 py-0.5 text-2xs font-medium"
+              style={{ backgroundColor: "rgba(125, 211, 252, 0.12)", color: "#7DD3FC" }}
+            >
+              {exercise.secondaryMuscleGroupName}
+            </span>
+          ) : null}
+        </div>
       </div>
       {isAlreadyAdded ? (
         canRemove ? (

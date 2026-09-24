@@ -24,13 +24,22 @@ export enum WorkoutSheetStatus {
  * `title`/`startedAt` change rarely (not per-second), so keeping them here does not
  * cause re-render storms; the mini-bar derives its own 1s tick from `startedAt`.
  */
-export interface ActiveWorkoutState {
+export interface WorkoutSessionMeta {
+  title: string;
+  startedAt?: string;
+  /**
+   * False while the session is still a blank draft: nothing persisted, no exercises, not started,
+   * default title, no notes. Such a draft is not worth keeping — minimizing it closes it, and it
+   * never counts as an active workout for the one-active-workout checks.
+   */
+  hasContent: boolean;
+}
+
+export interface ActiveWorkoutState extends WorkoutSessionMeta {
   status: WorkoutSheetStatus;
   workoutId: number | null;
   templateId: number | null;
   isStarting: boolean;
-  title: string;
-  startedAt?: string;
 
   /**
    * Exercises an accepted AI suggestion is handing to the live session. The builder drains this
@@ -46,7 +55,7 @@ export interface ActiveWorkoutState {
   startFromTemplate: (templateId: number) => void;
   setStartedWorkoutId: (workoutId: number) => void;
   setStartFailed: () => void;
-  setSessionMeta: (meta: { title: string; startedAt?: string }) => void;
+  setSessionMeta: (meta: WorkoutSessionMeta) => void;
   minimize: () => void;
   expand: () => void;
   close: () => void;
@@ -55,7 +64,7 @@ export interface ActiveWorkoutState {
 
 type ActiveWorkoutIdentity = Pick<
   ActiveWorkoutState,
-  "workoutId" | "templateId" | "isStarting" | "title" | "startedAt"
+  "workoutId" | "templateId" | "isStarting" | "title" | "startedAt" | "hasContent"
 >;
 
 const CLEARED_IDENTITY: ActiveWorkoutIdentity = {
@@ -64,7 +73,24 @@ const CLEARED_IDENTITY: ActiveWorkoutIdentity = {
   isStarting: false,
   title: "",
   startedAt: undefined,
+  hasContent: false,
 };
+
+const CLOSED_STATE = {
+  status: WorkoutSheetStatus.Closed,
+  ...CLEARED_IDENTITY,
+  pendingProposalExercises: [] as AIProposalExerciseModel[],
+};
+
+/** A blank draft that has never been persisted or started. Nothing is lost by dropping it. */
+function isBlankDraft(state: ActiveWorkoutState): boolean {
+  return (
+    state.status !== WorkoutSheetStatus.Closed
+    && !state.hasContent
+    && state.workoutId === null
+    && !state.isStarting
+  );
+}
 
 export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set, get) => ({
   status: WorkoutSheetStatus.Closed,
@@ -116,12 +142,16 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set, get) => 
 
   setStartFailed: () => set({ status: WorkoutSheetStatus.Closed, ...CLEARED_IDENTITY }),
 
-  setSessionMeta: ({ title, startedAt }) => set({ title, startedAt }),
+  setSessionMeta: ({ title, startedAt, hasContent }) => set({ title, startedAt, hasContent }),
 
   minimize: () =>
-    set((state) =>
-      state.status === WorkoutSheetStatus.Open ? { status: WorkoutSheetStatus.Minimized } : {},
-    ),
+    set((state) => {
+      if (state.status !== WorkoutSheetStatus.Open) {
+        return {};
+      }
+
+      return isBlankDraft(state) ? CLOSED_STATE : { status: WorkoutSheetStatus.Minimized };
+    }),
 
   expand: () =>
     set((state) =>
@@ -129,8 +159,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>()((set, get) => 
     ),
 
   // Anything still queued belongs to the session being closed, so it goes with it.
-  close: () =>
-    set({ status: WorkoutSheetStatus.Closed, ...CLEARED_IDENTITY, pendingProposalExercises: [] }),
+  close: () => set(CLOSED_STATE),
 
   restoreMinimized: (workoutId) =>
     set((state) =>
@@ -154,6 +183,11 @@ export const selectIsWorkoutRunning = (state: ActiveWorkoutState): boolean =>
 export function expandActiveWorkoutIfPresent(): boolean {
   const state = useActiveWorkoutStore.getState();
   if (state.status === WorkoutSheetStatus.Closed) {
+    return false;
+  }
+
+  if (isBlankDraft(state)) {
+    state.close();
     return false;
   }
 
