@@ -1004,7 +1004,7 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     );
   }, []);
 
-  const handleApplyPreviousSets = useCallback((exerciseDraftId: string) => {
+  const handleApplyPreviousSets = useCallback((exerciseDraftId: string, workoutId: number) => {
     setDraft((current) => {
       if (!current) {
         return current;
@@ -1012,14 +1012,14 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
 
       const exercise = current.exercises.find((item) => item.id === exerciseDraftId);
       const history = exercise ? exerciseHistoryByExerciseId[exercise.exerciseId] : undefined;
-      const latestSessionSets = history?.sessions[0]?.sets ?? [];
-      if (!exercise || latestSessionSets.length === 0) {
+      const selectedSessionSets = history?.sessions.find((session) => session.workoutId === workoutId)?.sets ?? [];
+      if (!exercise || selectedSessionSets.length === 0) {
         return current;
       }
 
       return updateDraftExercise(current, exerciseDraftId, (item) => ({
         ...item,
-        sets: latestSessionSets.map((previousSet, index) =>
+        sets: selectedSessionSets.map((previousSet, index) =>
           createWorkoutSetDraftFromPreviousSet(previousSet, index),
         ),
       }));

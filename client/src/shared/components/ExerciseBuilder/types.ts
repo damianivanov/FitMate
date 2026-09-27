@@ -58,7 +58,7 @@ export interface ExerciseBuilderCallbacks {
   onExerciseGroupingChange: (exerciseId: string, groupType: ExerciseGroupType) => void;
   onRemoveExercise: (exerciseId: string) => void;
   onAddSet: (exerciseId: string) => void;
-  onApplyPreviousSets?: (exerciseId: string) => void;
+  onApplyPreviousSets?: (exerciseId: string, workoutId: number) => void;
   onRemoveSet: (exerciseId: string, setId: string) => void;
   onAddExerciseClick: () => void;
   onAddExerciseToGroup: (

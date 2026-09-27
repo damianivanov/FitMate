@@ -598,6 +598,30 @@ public class WorkoutService : IWorkoutService
             .Distinct()
             .ToList();
 
+        var historyWorkoutIds = sessionsByExercise.Values
+            .SelectMany(sessions => sessions.Select(session => session.WorkoutId))
+            .Distinct()
+            .ToList();
+        var workoutPositions = await dbContext.WorkoutExercises
+            .AsNoTracking()
+            .Where(x => historyWorkoutIds.Contains(x.WorkoutExerciseGroup.WorkoutId))
+            .Select(x => new
+            {
+                x.Id,
+                x.WorkoutExerciseGroup.WorkoutId,
+                GroupOrder = x.WorkoutExerciseGroup.SortOrder,
+                x.OrderIndex,
+            })
+            .ToListAsync();
+        var positionByWorkoutExerciseId = workoutPositions
+            .GroupBy(x => x.WorkoutId)
+            .SelectMany(group => group
+                .OrderBy(x => x.GroupOrder)
+                .ThenBy(x => x.OrderIndex)
+                .ThenBy(x => x.Id)
+                .Select((item, index) => new { item.Id, Position = index + 1 }))
+            .ToDictionary(x => x.Id, x => x.Position);
+
         var historySets = await dbContext.ExerciseSets
             .AsNoTracking()
             .Where(x => workoutExerciseIds.Contains(x.WorkoutExerciseId) && x.IsCompleted)
@@ -655,6 +679,7 @@ public class WorkoutService : IWorkoutService
                                 WorkoutId = session.WorkoutId,
                                 WorkoutTitle = session.WorkoutTitle,
                                 WorkoutStartedAt = EnsureUtcKind(session.WorkoutStartedAt),
+                                ExercisePosition = positionByWorkoutExerciseId[session.WorkoutExerciseId],
                                 Sets = sets ?? [],
                             };
                         })

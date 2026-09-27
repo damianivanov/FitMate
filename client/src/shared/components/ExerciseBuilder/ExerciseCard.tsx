@@ -37,7 +37,7 @@ import { Modal } from "../Modal";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
 import { PreviousSetsButton } from "./PreviousSetsButton";
-import { getLoadBasisLabel, getMetricGridColumnsClass, getWeightColumnLabel } from "./format";
+import { formatMetricValue, getExerciseVolumeKg, getLoadBasisLabel, getMetricGridColumnsClass, getWeightColumnLabel } from "./format";
 import type {
   ExerciseBuilderCallbacks,
   ExerciseBuilderCapabilities,
@@ -121,6 +121,9 @@ export function ExerciseCard({
   // Carried in the title block as well as the weight column: the columns are hidden while the
   // card is collapsed, which is exactly when the load has to be recalled rather than read.
   const loadBasisLabel = getLoadBasisLabel(exercise.loadBasis);
+  const exerciseVolumeKg = capabilities.showCompletionCheckbox
+    ? getExerciseVolumeKg(exercise.sets, exercise.loadBasis)
+    : null;
 
   const handleExerciseMenuClose = useCallback(() => {
     setIsExerciseMenuOpen(false);
@@ -394,9 +397,11 @@ export function ExerciseCard({
                   {exercise.displayName}
                 </span>
               )}
-              {loadBasisLabel ? (
+              {(loadBasisLabel || exerciseVolumeKg != null) ? (
                 <span className="mt-0.5 block truncate text-2xs font-medium text-muted">
                   {loadBasisLabel}
+                  {loadBasisLabel && exerciseVolumeKg != null ? " · " : ""}
+                  {exerciseVolumeKg != null ? `Volume ${formatMetricValue(exerciseVolumeKg)} kg` : ""}
                 </span>
               ) : null}
             </div>
@@ -405,7 +410,7 @@ export function ExerciseCard({
                 <PreviousSetsButton
                   history={history}
                   exerciseName={exercise.displayName}
-                  onFastAdd={() => callbacks.onApplyPreviousSets?.(exercise.id)}
+                  onApplySession={(workoutId) => callbacks.onApplyPreviousSets?.(exercise.id, workoutId)}
                 />
               ) : null}
               <ActionMenu
