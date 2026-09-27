@@ -21,10 +21,10 @@ const VIEWPORT_PADDING_PX = 8;
 type PreviousSetsButtonProps = {
   history: ExerciseHistory;
   exerciseName: string;
-  onFastAdd: () => void;
+  onApplySession: (workoutId: number) => void;
 };
 
-export function PreviousSetsButton({ history, exerciseName, onFastAdd }: PreviousSetsButtonProps) {
+export function PreviousSetsButton({ history, exerciseName, onApplySession }: PreviousSetsButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLButtonElement | null>(null);
   const [panelElement, setPanelElement] = useState<HTMLDivElement | null>(null);
@@ -49,8 +49,8 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
     setIsOpen((previous) => !previous);
   };
 
-  const handleFastAddClick = () => {
-    onFastAdd();
+  const handleAddClick = (workoutId: number) => {
+    onApplySession(workoutId);
     setIsOpen(false);
   };
 
@@ -91,16 +91,6 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
               <p className="text-2xs font-semibold uppercase tracking-widest text-muted">
                 {headingLabel}
               </p>
-              <button
-                type="button"
-                onClick={handleFastAddClick}
-                className="relative flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-primary-300 bg-primary-100/10 px-2.5 text-2xs font-semibold text-[var(--menu-item-primary-fg)] transition before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-[var(--menu-item-primary-hover-bg)]"
-                aria-label={`Add most recent sets to ${exerciseName}`}
-                title="Add the most recent sets"
-              >
-                <LuPlus aria-hidden="true" className="h-3.5 w-3.5" />
-                <span>Add</span>
-              </button>
             </div>
 
             <div className="liquid-scrollbar flex max-h-80 flex-col gap-3 overflow-y-auto">
@@ -109,16 +99,24 @@ export function PreviousSetsButton({ history, exerciseName, onFastAdd }: Previou
                   key={session.workoutId}
                   className={sessionIndex > 0 ? "liquid-divider border-t pt-3" : ""}
                 >
-                  <div className="mb-1.5 flex min-w-0 flex-col gap-0.5">
-                    <p
-                      className="truncate text-sm font-semibold text-foreground"
-                      title={session.workoutTitle}
+                  <div className="mb-1.5 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground" title={session.workoutTitle}>
+                        {session.workoutTitle}
+                      </p>
+                      <p className="text-2xs font-medium text-secondary">
+                        {formatDate(normalizeUtcIsoString(session.workoutStartedAt))} · Exercise #{session.exercisePosition}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAddClick(session.workoutId)}
+                      className="relative flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-full border border-primary-300 bg-primary-100/10 px-2.5 text-2xs font-semibold text-[var(--menu-item-primary-fg)] transition before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-[var(--menu-item-primary-hover-bg)]"
+                      aria-label={`Reuse sets from ${session.workoutTitle}, exercise ${session.exercisePosition}`}
                     >
-                      {session.workoutTitle}
-                    </p>
-                    <p className="text-2xs font-medium text-secondary">
-                      {formatDate(normalizeUtcIsoString(session.workoutStartedAt))}
-                    </p>
+                      <LuPlus aria-hidden="true" className="h-3.5 w-3.5" />
+                      <span>Add</span>
+                    </button>
                   </div>
                   <ul className="flex flex-col gap-1.5">
                     {session.sets.map((set) => (

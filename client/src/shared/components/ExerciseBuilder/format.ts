@@ -1,6 +1,17 @@
 import { ExerciseLoadBasis } from "@/types";
 import type { PreviousExerciseSet } from "@/types";
-import type { ExerciseBuilderCapabilities, ExerciseMetricMode } from "./types";
+import type { ExerciseBuilderCapabilities, ExerciseBuilderSetVM, ExerciseMetricMode } from "./types";
+
+export function getExerciseVolumeKg(sets: ExerciseBuilderSetVM[], loadBasis?: ExerciseLoadBasis): number | null {
+  let volume = 0;
+  let hasVolume = false;
+  for (const set of sets) {
+    if (!set.isCompleted || set.weightKg == null || set.reps == null || set.reps <= 0) continue;
+    volume += set.weightKg * set.reps * (loadBasis === ExerciseLoadBasis.PerSide ? 2 : 1);
+    hasVolume = true;
+  }
+  return hasVolume ? Math.round(volume * 100) / 100 : null;
+}
 
 const GRID_COLUMN_CLASS: Record<number, string> = {
   2: "grid-cols-2",

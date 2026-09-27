@@ -358,6 +358,7 @@ export namespace JsonModels.Workouts {
 		workoutId: number;
 		workoutTitle: string;
 		workoutStartedAt: string;
+		exercisePosition: number;
 		sets: JsonModels.Workouts.PreviousExerciseSetModel[];
 	}
 	export interface PreviousExerciseSetModel

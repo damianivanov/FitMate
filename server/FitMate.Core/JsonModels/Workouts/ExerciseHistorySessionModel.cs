@@ -5,5 +5,6 @@ public class ExerciseHistorySessionModel
     public long WorkoutId { get; set; }
     public string WorkoutTitle { get; set; } = string.Empty;
     public DateTime WorkoutStartedAt { get; set; }
+    public int ExercisePosition { get; set; }
     public List<PreviousExerciseSetModel> Sets { get; set; } = [];
 }
