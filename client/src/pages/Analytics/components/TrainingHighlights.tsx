@@ -1,10 +1,13 @@
 import { LuDumbbell, LuTrophy } from "react-icons/lu";
 import { NativeList, NativeRow, NativeSection } from "@/shared/components";
 import type { FrequentExerciseSummary, PersonalRecordSummary } from "@/types";
+import type { AnalyticsExerciseSelection } from "../types";
+import { formatKg } from "../utils/analyticsFormat";
 
 type TrainingHighlightsProps = {
   frequentExercises: FrequentExerciseSummary[];
   personalRecords: PersonalRecordSummary[];
+  onSelectExercise: (exercise: AnalyticsExerciseSelection) => void;
 };
 
 const HIGHLIGHT_LIMIT = 3;
@@ -13,13 +16,9 @@ function formatCount(value: number, singular: string, plural: string): string {
   return `${value.toLocaleString()} ${value === 1 ? singular : plural}`;
 }
 
-function formatWeight(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg`;
-}
-
 function formatPersonalBest(record: PersonalRecordSummary): string {
   if (record.bestWeightKg != null) {
-    return formatWeight(record.bestWeightKg);
+    return formatKg(record.bestWeightKg);
   }
 
   if (record.bestReps != null) {
@@ -27,7 +26,7 @@ function formatPersonalBest(record: PersonalRecordSummary): string {
   }
 
   if (record.bestEstimatedOneRepMax != null) {
-    return `${formatWeight(record.bestEstimatedOneRepMax)} e1RM`;
+    return `${formatKg(record.bestEstimatedOneRepMax)} e1RM`;
   }
 
   return "Best set";
@@ -36,6 +35,7 @@ function formatPersonalBest(record: PersonalRecordSummary): string {
 export function TrainingHighlights({
   frequentExercises,
   personalRecords,
+  onSelectExercise,
 }: TrainingHighlightsProps) {
   const topFrequentExercises = frequentExercises.slice(0, HIGHLIGHT_LIMIT);
   const topPersonalRecords = personalRecords.slice(0, HIGHLIGHT_LIMIT);
@@ -62,6 +62,11 @@ export function TrainingHighlights({
                     .filter(Boolean)
                     .join(" · ")}
                   value={formatCount(exercise.workoutCount, "workout", "workouts")}
+                  onClick={() => onSelectExercise({
+                    id: exercise.exerciseId,
+                    name: exercise.exerciseName,
+                    muscleGroupName: exercise.primaryMuscleGroupName || undefined,
+                  })}
                 />
               ))}
             </NativeList>
@@ -84,6 +89,11 @@ export function TrainingHighlights({
                   title={record.exerciseName}
                   subtitle={record.primaryMuscleGroupName || "Personal record"}
                   value={formatPersonalBest(record)}
+                  onClick={() => onSelectExercise({
+                    id: record.exerciseId,
+                    name: record.exerciseName,
+                    muscleGroupName: record.primaryMuscleGroupName || undefined,
+                  })}
                 />
               ))}
             </NativeList>

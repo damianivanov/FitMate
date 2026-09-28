@@ -125,6 +125,175 @@
 
 .an-picker { padding: 1.125rem; display: grid; gap: 1rem; }
 
+.an-tabs { width: 100%; }
+
+/* ---------------- Exercise tab ---------------- */
+
+.an-exercise,
+.an-exercise-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.an-exercise-head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+}
+
+.an-exercise-image {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.875rem;
+  object-fit: cover;
+}
+
+.an-exercise-title { flex: 1; min-width: 0; }
+
+.an-exercise-title > h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-primary);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.an-exercise-title > p {
+  margin-top: 0.125rem;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.an-exercise-change {
+  flex: none;
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  color: var(--accent-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.an-change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.an-change > b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.an-change > span { color: var(--text-tertiary); }
+.an-change-up { color: var(--tint-green-fg); }
+.an-change-down { color: var(--tint-rose-fg); }
+.an-change-flat { color: var(--text-secondary); }
+
+.an-sessions { display: grid; gap: 0.625rem; }
+
+.an-session {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem 0.875rem;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--liquid-r-lg);
+  background: var(--glass-bg-card);
+}
+
+.an-session-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.an-session-copy { display: grid; flex: 1; min-width: 0; }
+
+.an-session-copy > b {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.an-session-copy > small {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.an-session-volume {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-pr-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--tint-orange-bg);
+  color: var(--tint-orange-fg);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.an-set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.an-set-chips > li {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 9999px;
+  background: var(--glass-bg-soft);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-set-chips > li.is-top {
+  border-color: transparent;
+  background: var(--tint-purple-bg);
+  color: var(--tint-purple-fg);
+}
+
+.an-sessions-toggle {
+  width: 100%;
+  margin-top: 0.625rem;
+  padding: 0.625rem;
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out);
+}
+
+.an-sessions-toggle:hover { color: var(--accent-strong); }
+
 @media (prefers-reduced-motion: reduce) {
   .an-balance i > b { transition: none; }
 }
@@ -141,7 +310,17 @@
   }
 
   .an-dashboard > .native-stat-grid,
-  .an-dashboard > .an-highlights { grid-column: 1 / -1; }
+  .an-dashboard > .an-highlights,
+  .an-dashboard > .an-wide { grid-column: 1 / -1; }
+
+  .an-exercise-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .an-exercise-body > .native-stat-grid,
+  .an-exercise-body > .native-section:last-child { grid-column: 1 / -1; }
 }
 
 @media (min-width: 640px) {

@@ -522,4 +522,200 @@ public class AnalyticsServiceTests
         Assert.Equal(new DateTime(2026, 3, 4, 0, 0, 0, DateTimeKind.Utc), result.Points[0].Date);
         Assert.Equal(new DateTime(2026, 3, 7, 0, 0, 0, DateTimeKind.Utc), result.Points[1].Date);
     }
+
+    private static long SeedBenchHistory(SqliteTestDatabase db)
+    {
+        using var arrange = db.CreateContext();
+        var exerciseId = SeedExercise(arrange, "Bench Press", SqliteTestDatabase.ChestId);
+
+        var first = SeedWorkout(
+            arrange,
+            SqliteTestDatabase.UserId,
+            new DateTime(2026, 3, 4, 8, 0, 0, DateTimeKind.Utc),
+            finishedAt: new DateTime(2026, 3, 4, 9, 0, 0, DateTimeKind.Utc));
+        first.Title = "Push A";
+        arrange.SaveChanges();
+        AddSets(
+            arrange,
+            first.Id,
+            exerciseId,
+            new ExerciseSet { WeightKg = 80m, Reps = 12, IsCompleted = true },
+            new ExerciseSet { WeightKg = 90m, Reps = 8, IsCompleted = true },
+            new ExerciseSet { WeightKg = 95m, Reps = 6, IsCompleted = false });
+
+        var second = SeedWorkout(
+            arrange,
+            SqliteTestDatabase.UserId,
+            new DateTime(2026, 3, 11, 8, 0, 0, DateTimeKind.Utc),
+            finishedAt: new DateTime(2026, 3, 11, 9, 0, 0, DateTimeKind.Utc));
+        second.Title = "Push B";
+        arrange.SaveChanges();
+        AddSets(arrange, second.Id, exerciseId, new ExerciseSet { WeightKg = 100m, Reps = 5, IsCompleted = true });
+        AddSets(arrange, second.Id, exerciseId, new ExerciseSet { WeightKg = 100m, Reps = 3, IsCompleted = true });
+
+        return exerciseId;
+    }
+
+    // Сесиите са от най-новата към най-старата, с подредени завършени серии
+    [Fact]
+    public async Task GetExerciseProgressionAsync_ReturnsSessionsNewestFirstWithCompletedSets()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedBenchHistory(db);
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetExerciseProgressionAsync(
+            SqliteTestDatabase.UserId,
+            exerciseId,
+            new AnalyticsQueryRequest());
+
+        Assert.Equal(2, result.Sessions.Count);
+
+        var latest = result.Sessions[0];
+        Assert.Equal("Push B", latest.WorkoutTitle);
+        Assert.Equal(new DateTime(2026, 3, 11, 9, 0, 0, DateTimeKind.Utc), latest.Date);
+        Assert.Equal(2, latest.Sets.Count);
+        Assert.Equal(800m, latest.TotalVolumeKg);
+        Assert.Equal(100m, latest.BestWeightKg);
+        Assert.Equal(116.67m, latest.EstimatedOneRepMax);
+
+        var earliest = result.Sessions[1];
+        Assert.Equal("Push A", earliest.WorkoutTitle);
+        Assert.Equal([80m, 90m], earliest.Sets.Select(x => x.WeightKg!.Value));
+        Assert.Equal([12, 8], earliest.Sets.Select(x => x.Reps!.Value));
+        Assert.Equal(1680m, earliest.TotalVolumeKg);
+    }
+
+    // Рекордите сочат серията и сесията, които са ги поставили
+    [Fact]
+    public async Task GetExerciseProgressionAsync_ComputesPersonalRecords()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedBenchHistory(db);
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetExerciseProgressionAsync(
+            SqliteTestDatabase.UserId,
+            exerciseId,
+            new AnalyticsQueryRequest());
+
+        var pushA = result.Sessions.Single(x => x.WorkoutTitle == "Push A");
+        var pushB = result.Sessions.Single(x => x.WorkoutTitle == "Push B");
+
+        var heaviest = result.Records.HeaviestWeight;
+        Assert.NotNull(heaviest);
+        Assert.Equal(100m, heaviest.Value);
+        Assert.Equal(5, heaviest.Reps);
+        Assert.Equal(pushB.WorkoutId, heaviest.WorkoutId);
+
+        var bestOneRepMax = result.Records.BestEstimatedOneRepMax;
+        Assert.NotNull(bestOneRepMax);
+        Assert.Equal(116.67m, bestOneRepMax.Value);
+        Assert.Equal(pushB.WorkoutId, bestOneRepMax.WorkoutId);
+
+        var mostReps = result.Records.MostReps;
+        Assert.NotNull(mostReps);
+        Assert.Equal(12m, mostReps.Value);
+        Assert.Equal(80m, mostReps.WeightKg);
+        Assert.Equal(pushA.WorkoutId, mostReps.WorkoutId);
+
+        var bestVolume = result.Records.BestSessionVolume;
+        Assert.NotNull(bestVolume);
+        Assert.Equal(1680m, bestVolume.Value);
+        Assert.Equal(pushA.WorkoutId, bestVolume.WorkoutId);
+        Assert.Equal(new DateTime(2026, 3, 4, 9, 0, 0, DateTimeKind.Utc), bestVolume.AchievedOn);
+
+        Assert.True(pushA.IsPersonalRecord);
+        Assert.True(pushB.IsPersonalRecord);
+    }
+
+    // Равен рекорд остава за първия път, когато е постигнат
+    [Fact]
+    public async Task GetExerciseProgressionAsync_TiedRecordKeepsEarliestSession()
+    {
+        using var db = new SqliteTestDatabase();
+        long exerciseId;
+        long earlierId;
+
+        using (var arrange = db.CreateContext())
+        {
+            exerciseId = SeedExercise(arrange, "Bench Press", SqliteTestDatabase.ChestId);
+
+            var earlier = SeedWorkout(
+                arrange,
+                SqliteTestDatabase.UserId,
+                new DateTime(2026, 3, 4, 8, 0, 0, DateTimeKind.Utc),
+                finishedAt: new DateTime(2026, 3, 4, 9, 0, 0, DateTimeKind.Utc));
+            earlierId = earlier.Id;
+            AddSets(arrange, earlier.Id, exerciseId, new ExerciseSet { WeightKg = 100m, Reps = 5, IsCompleted = true });
+
+            var later = SeedWorkout(
+                arrange,
+                SqliteTestDatabase.UserId,
+                new DateTime(2026, 3, 7, 8, 0, 0, DateTimeKind.Utc),
+                finishedAt: new DateTime(2026, 3, 7, 9, 0, 0, DateTimeKind.Utc));
+            AddSets(arrange, later.Id, exerciseId, new ExerciseSet { WeightKg = 100m, Reps = 5, IsCompleted = true });
+        }
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetExerciseProgressionAsync(
+            SqliteTestDatabase.UserId,
+            exerciseId,
+            new AnalyticsQueryRequest());
+
+        Assert.Equal(earlierId, result.Records.HeaviestWeight!.WorkoutId);
+        Assert.Equal(earlierId, result.Records.BestEstimatedOneRepMax!.WorkoutId);
+        Assert.Equal(earlierId, result.Records.BestSessionVolume!.WorkoutId);
+        Assert.False(result.Sessions[0].IsPersonalRecord);
+        Assert.True(result.Sessions[1].IsPersonalRecord);
+    }
+
+    // Обобщението брои сесии, серии, повторения и обем
+    [Fact]
+    public async Task GetExerciseProgressionAsync_ComputesSummary()
+    {
+        using var db = new SqliteTestDatabase();
+        var exerciseId = SeedBenchHistory(db);
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetExerciseProgressionAsync(
+            SqliteTestDatabase.UserId,
+            exerciseId,
+            new AnalyticsQueryRequest());
+
+        Assert.Equal(2, result.Summary.SessionCount);
+        Assert.Equal(4, result.Summary.TotalSets);
+        Assert.Equal(28, result.Summary.TotalReps);
+        Assert.Equal(2480m, result.Summary.TotalVolumeKg);
+        Assert.Equal(new DateTime(2026, 3, 4, 9, 0, 0, DateTimeKind.Utc), result.Summary.FirstTrainedOn);
+        Assert.Equal(new DateTime(2026, 3, 11, 9, 0, 0, DateTimeKind.Utc), result.Summary.LastTrainedOn);
+    }
+
+    // Без завършени серии няма сесии и рекорди
+    [Fact]
+    public async Task GetExerciseProgressionAsync_NoCompletedSets_ReturnsEmptyDetail()
+    {
+        using var db = new SqliteTestDatabase();
+        long exerciseId;
+
+        using (var arrange = db.CreateContext())
+        {
+            exerciseId = SeedExercise(arrange, "Bench Press", SqliteTestDatabase.ChestId);
+        }
+
+        var service = new AnalyticsService(db.CreateContext());
+        var result = await service.GetExerciseProgressionAsync(
+            SqliteTestDatabase.UserId,
+            exerciseId,
+            new AnalyticsQueryRequest());
+
+        Assert.Empty(result.Sessions);
+        Assert.Null(result.Records.HeaviestWeight);
+        Assert.Null(result.Records.BestEstimatedOneRepMax);
+        Assert.Null(result.Records.MostReps);
+        Assert.Null(result.Records.BestSessionVolume);
+        Assert.Equal(0, result.Summary.SessionCount);
+        Assert.Null(result.Summary.FirstTrainedOn);
+        Assert.Null(result.Summary.LastTrainedOn);
+    }
 }

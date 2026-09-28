@@ -928,67 +928,6 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
     setScrollToExerciseId(nextExercise ? nextExercise.id : null);
   }, [commitDraft]);
 
-  // Card-level "done": marks every set complete (or clears them if already complete), then
-  // mirrors completing the last set — collapse this exercise and focus the next incomplete one.
-  const handleCompleteExercise = useCallback((exerciseDraftId: string) => {
-    const currentDraft = draftRef.current;
-    const targetExercise = currentDraft?.exercises.find((exercise) => exercise.id === exerciseDraftId);
-    if (!currentDraft || !targetExercise || targetExercise.sets.length === 0) {
-      return;
-    }
-
-    const isAlreadyComplete = targetExercise.sets.every((set) => set.isCompleted);
-
-    if (isAlreadyComplete) {
-      // Toggle off: clear completion and re-open the card for editing.
-      commitDraft((current) =>
-        updateDraftExercise(current, exerciseDraftId, (exercise) => ({
-          ...exercise,
-          sets: exercise.sets.map((set) => ({ ...set, isCompleted: false })),
-        })),
-      );
-      setCollapsedExerciseIds((collapsed) => {
-        const next = new Set(collapsed);
-        next.delete(exerciseDraftId);
-        return next;
-      });
-      return;
-    }
-
-    // Same guard as per-set completion: every set needs a logged metric to count as done.
-    if (targetExercise.sets.some((set) => !hasMainMetric(set))) {
-      toast.error("Add a weight, reps, or duration to every set before completing.");
-      return;
-    }
-
-    const nextDraft = commitDraft((current) =>
-      updateDraftExercise(current, exerciseDraftId, (exercise) => ({
-        ...exercise,
-        sets: exercise.sets.map((set) => ({ ...set, isCompleted: true })),
-      })),
-    );
-
-    // Auto-start the first time an exercise is marked done. Pass the fresh draft so the session
-    // starts before React has committed it.
-    if (nextDraft && !nextDraft.startedAt) {
-      startWorkoutSessionRef.current?.(nextDraft);
-    }
-
-    const nextExercise = findNextIncompleteWorkoutExercise(currentDraft.exercises, targetExercise);
-
-    setCollapsedExerciseIds((collapsed) => {
-      const next = new Set(collapsed);
-      next.add(exerciseDraftId);
-      if (nextExercise) {
-        next.delete(nextExercise.id);
-      }
-
-      return next;
-    });
-
-    setScrollToExerciseId(nextExercise ? nextExercise.id : null);
-  }, [commitDraft]);
-
   const handleExerciseScrolled = useCallback(() => {
     setScrollToExerciseId(null);
   }, []);
@@ -1682,7 +1621,6 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       handleExerciseMetricModeChange,
       handleSetTypeChange,
       handleSetCompletedToggle,
-      handleCompleteExercise,
       handleAddSet,
       handleApplyPreviousSets,
       handleRemoveSet,
@@ -1719,7 +1657,6 @@ export function useTemplateWorkoutBuilderPage(options?: WorkoutBuilderHookOption
       handleExerciseMetricModeChange,
       handleSetTypeChange,
       handleSetCompletedToggle,
-      handleCompleteExercise,
       handleAddSet,
       handleApplyPreviousSets,
       handleRemoveSet,
