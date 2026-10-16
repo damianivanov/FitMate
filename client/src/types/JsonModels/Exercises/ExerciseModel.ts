@@ -23,6 +23,8 @@ export interface ExerciseModel
 	loadBasis?: ExerciseLoadBasis;
 	aliases: string[];
 	creatorDisplayName?: string;
+	lastUsedAt?: string;
+	lastUsedByDisplayName?: string;
 	dateCreated: string;
 	dateModified?: string;
 }

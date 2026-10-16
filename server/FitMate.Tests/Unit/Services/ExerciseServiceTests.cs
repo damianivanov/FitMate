@@ -12,6 +12,63 @@ namespace FitMate.Tests.Unit.Services;
 
 public class ExerciseServiceTests
 {
+    [Fact]
+    public async Task ListAsync_ReturnsLatestCompletedUsageAndCreator_WithoutCountingUnperformedExercises()
+    {
+        using var db = new SqliteTestDatabase();
+        using var context = db.CreateContext();
+        var service = BuildService(context, FakeUserService.ForAdmin(SqliteTestDatabase.AdminUserId));
+        var used = await service.CreatePersonalAsync(NewRequest(name: "Used"), SqliteTestDatabase.UserId);
+        var unused = await service.CreatePersonalAsync(NewRequest(name: "Unused"), SqliteTestDatabase.UserId);
+        var latestUsedAt = new DateTime(2026, 10, 16, 12, 0, 0, DateTimeKind.Utc);
+
+        Workout NewWorkout(long userId, DateTime startedAt, bool isCompleted) => new()
+        {
+            UserId = userId,
+            Title = "Session",
+            StartedAt = startedAt,
+            ExerciseGroups =
+            [
+                new()
+                {
+                    Exercises =
+                    [
+                        new()
+                        {
+                            ExerciseId = used.Id,
+                            Sets = [new() { IsCompleted = isCompleted, Reps = 10 }],
+                        },
+                        new()
+                        {
+                            ExerciseId = unused.Id,
+                            OrderIndex = 1,
+                            Sets = [new() { IsCompleted = false }],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        context.Workouts.AddRange(
+            NewWorkout(SqliteTestDatabase.UserId, latestUsedAt.AddDays(-1), true),
+            NewWorkout(SqliteTestDatabase.OtherUserId, latestUsedAt, true),
+            NewWorkout(SqliteTestDatabase.AdminUserId, latestUsedAt.AddDays(1), false));
+        await context.SaveChangesAsync();
+
+        var result = await service.ListAsync(new ExerciseQueryRequest());
+
+        var usedItem = Assert.Single(result.Items, x => x.Id == used.Id);
+        Assert.Equal(latestUsedAt, usedItem.LastUsedAt);
+        Assert.Equal("Test User2", usedItem.LastUsedByDisplayName);
+        Assert.Equal("Test User1", usedItem.CreatorDisplayName);
+        var unusedItem = Assert.Single(result.Items, x => x.Id == unused.Id);
+        Assert.Null(unusedItem.LastUsedAt);
+        Assert.Null(unusedItem.LastUsedByDisplayName);
+
+        var emptyPage = await service.ListAsync(new ExerciseQueryRequest { Page = 2 });
+        Assert.Empty(emptyPage.Items);
+    }
+
     private static ExerciseService BuildService(AppDbContext context, FakeUserService userService)
     {
         return new ExerciseService(

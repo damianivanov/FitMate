@@ -816,6 +816,8 @@ export namespace JsonModels.Exercises {
 		loadBasis?: Enums.ExerciseLoadBasis;
 		aliases: string[];
 		creatorDisplayName?: string;
+		lastUsedAt?: string;
+		lastUsedByDisplayName?: string;
 		dateCreated: string;
 		dateModified?: string;
 	}

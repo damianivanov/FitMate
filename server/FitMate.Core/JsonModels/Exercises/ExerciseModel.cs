@@ -21,6 +21,8 @@ public class ExerciseModel
     public ExerciseLoadBasis? LoadBasis { get; set; }
     public List<string> Aliases { get; set; } = [];
     public string? CreatorDisplayName { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+    public string? LastUsedByDisplayName { get; set; }
     public DateTime DateCreated { get; set; }
     public DateTime? DateModified { get; set; }
 }

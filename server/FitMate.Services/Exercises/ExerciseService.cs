@@ -82,8 +82,36 @@ public class ExerciseService : IExerciseService
             .Select(MapToModelExpression())
             .ToListAsync();
 
+        var exerciseIds = items.Select(x => x.Id).ToList();
+        var lastUsageByExercise = await dbContext.WorkoutExercises
+            .AsNoTracking()
+            .Where(x => exerciseIds.Contains(x.ExerciseId) && x.Sets.Any(set => set.IsCompleted))
+            .Select(x => new
+            {
+                x.ExerciseId,
+                UsedAt = x.WorkoutExerciseGroup.Workout.StartedAt
+                    ?? x.WorkoutExerciseGroup.Workout.FinishedAt
+                    ?? x.DateCreated,
+                x.WorkoutExerciseGroup.WorkoutId,
+                WorkoutExerciseId = x.Id,
+                x.WorkoutExerciseGroup.Workout.User,
+            })
+            .GroupBy(x => x.ExerciseId)
+            .Select(group => group
+                .OrderByDescending(x => x.UsedAt)
+                .ThenByDescending(x => x.WorkoutId)
+                .ThenByDescending(x => x.WorkoutExerciseId)
+                .First())
+            .ToDictionaryAsync(x => x.ExerciseId);
+
         foreach (var item in items)
         {
+            if (lastUsageByExercise.TryGetValue(item.Id, out var usage))
+            {
+                item.LastUsedAt = usage.UsedAt;
+                item.LastUsedByDisplayName = ResolveUserDisplayName(usage.User);
+            }
+
             await ResolveModelUrlsAsync(item);
         }
 
@@ -750,7 +778,7 @@ public class ExerciseService : IExerciseService
             Category = entity.Category,
             LoadBasis = entity.LoadBasis,
             Aliases = entity.Aliases.OrderBy(a => a.Alias).Select(a => a.Alias).ToList(),
-            CreatorDisplayName = ResolveCreatorName(entity.User),
+            CreatorDisplayName = ResolveUserDisplayName(entity.User),
             DateCreated = entity.DateCreated,
             DateModified = entity.DateModified,
         };
@@ -793,7 +821,7 @@ public class ExerciseService : IExerciseService
         };
     }
 
-    private static string? ResolveCreatorName(User? user)
+    private static string? ResolveUserDisplayName(User? user)
     {
         if (user == null)
         {

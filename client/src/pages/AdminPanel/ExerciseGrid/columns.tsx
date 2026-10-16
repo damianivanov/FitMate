@@ -66,8 +66,8 @@ export function createExerciseGridColumns({
     {
       field: "name",
       headerName: "Name",
-      flex: 1,
-      minWidth: 240,
+      width: 224,
+      minWidth: 192,
       sortable: false,
       disableColumnMenu: true,
       renderHeader: () => <ExerciseSearchHeader onChange={onSearchChange} />,
@@ -76,8 +76,21 @@ export function createExerciseGridColumns({
     {
       field: "slug",
       headerName: "Slug",
-      flex: 1,
-      minWidth: 190,
+      width: 160,
+      minWidth: 128,
+    },
+    {
+      field: "lastUsedAt",
+      headerName: "Last used",
+      width: 144,
+      valueGetter: (_value, row) => (row.lastUsedAt ? formatDate(row.lastUsedAt) : "Never"),
+    },
+    {
+      field: "lastUsedByDisplayName",
+      headerName: "Last used by",
+      width: 176,
+      sortable: false,
+      valueGetter: (_value, row) => row.lastUsedByDisplayName?.trim() || "—",
     },
     {
       field: "primaryMuscleGroupId",
@@ -112,13 +125,6 @@ export function createExerciseGridColumns({
       headerName: "Modified",
       minWidth: 130,
       valueGetter: (_value, row) => formatDate(row.dateModified),
-    },
-    {
-      field: "creatorDisplayName",
-      headerName: "Created by",
-      minWidth: 160,
-      sortable: false,
-      valueGetter: (_value, row) => row.creatorDisplayName?.trim() || "—",
     },
     {
       field: "actions",
@@ -171,6 +177,14 @@ export function createExerciseGridColumns({
           </div>
         );
       },
+    },
+    {
+      field: "creatorDisplayName",
+      headerName: "Added by",
+      minWidth: 160,
+      sortable: false,
+      valueGetter: (_value, row) =>
+        row.userId == null ? "System" : row.creatorDisplayName?.trim() || "—",
     },
   ];
 }
