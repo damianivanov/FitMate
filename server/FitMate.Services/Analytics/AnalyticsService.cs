@@ -83,11 +83,18 @@ public class AnalyticsService : IAnalyticsService
             })
             .ToList();
 
+        var sessions = BuildSessions(entries);
+        var records = BuildRecords(entries, sessions);
+        MarkRecordSessions(sessions, records);
+
         return new ExerciseProgressionModel
         {
             ExerciseId = exerciseId,
             ExerciseName = exerciseName,
             Points = points,
+            Summary = BuildSummary(entries, sessions),
+            Records = records,
+            Sessions = sessions,
         };
     }
 
@@ -128,11 +135,11 @@ public class AnalyticsService : IAnalyticsService
         {
             var date = (workout.FinishedAt ?? workout.StartedAt)!.Value;
 
-            foreach (var group in workout.ExerciseGroups)
+            foreach (var group in workout.ExerciseGroups.OrderBy(x => x.SortOrder))
             {
-                foreach (var exercise in group.Exercises)
+                foreach (var exercise in group.Exercises.OrderBy(x => x.OrderIndex))
                 {
-                    foreach (var set in exercise.Sets)
+                    foreach (var set in exercise.Sets.OrderBy(x => x.OrderIndex))
                     {
                         if (!set.IsCompleted)
                         {
@@ -146,7 +153,9 @@ public class AnalyticsService : IAnalyticsService
                         entries.Add(new SetEntry
                         {
                             WorkoutId = workout.Id,
+                            WorkoutTitle = workout.Title,
                             Date = date,
+                            DurationSeconds = set.DurationSeconds,
                             ExerciseId = exercise.ExerciseId,
                             ExerciseName = exercise.Exercise?.Name ?? string.Empty,
                             MuscleGroupId = exercise.Exercise?.PrimaryMuscleGroupId ?? 0,
@@ -272,6 +281,139 @@ public class AnalyticsService : IAnalyticsService
             .ToList();
     }
 
+    private static List<ExerciseSessionModel> BuildSessions(IEnumerable<SetEntry> entries)
+    {
+        return entries
+            .GroupBy(x => x.WorkoutId)
+            .Select(group =>
+            {
+                var sets = group.ToList();
+
+                return new ExerciseSessionModel
+                {
+                    WorkoutId = group.Key,
+                    WorkoutTitle = sets[0].WorkoutTitle,
+                    Date = AsUtc(sets[0].Date),
+                    TotalVolumeKg = Round(sets.Sum(x => x.VolumeKg)),
+                    BestWeightKg = sets.Where(x => x.WeightKg.HasValue).Max(x => x.WeightKg),
+                    EstimatedOneRepMax = MaxOrNull(sets.Select(EstimateOneRepMax)),
+                    Sets = sets
+                        .Select(x => new ExerciseSessionSetModel
+                        {
+                            WeightKg = x.WeightKg,
+                            Reps = x.Reps,
+                            DurationSeconds = x.DurationSeconds,
+                        })
+                        .ToList(),
+                };
+            })
+            .OrderByDescending(x => x.Date)
+            .ThenByDescending(x => x.WorkoutId)
+            .ToList();
+    }
+
+    /// <summary>
+    /// A tie goes to the first time it was reached: the candidates are sorted oldest first and the
+    /// stable descending sort keeps that order among equal values.
+    /// </summary>
+    private static ExerciseRecordsModel BuildRecords(
+        IEnumerable<SetEntry> entries,
+        IEnumerable<ExerciseSessionModel> sessions)
+    {
+        var chronological = entries
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.WorkoutId)
+            .ToList();
+
+        var heaviest = chronological
+            .Where(x => x.WeightKg > 0m)
+            .OrderByDescending(x => x.WeightKg)
+            .ThenByDescending(x => x.Reps ?? 0)
+            .FirstOrDefault();
+
+        var bestOneRepMax = chronological
+            .Select(x => new { Entry = x, Estimate = EstimateOneRepMax(x) })
+            .Where(x => x.Estimate.HasValue)
+            .OrderByDescending(x => x.Estimate)
+            .FirstOrDefault();
+
+        var mostReps = chronological
+            .Where(x => x.Reps > 0)
+            .OrderByDescending(x => x.Reps)
+            .ThenByDescending(x => x.WeightKg ?? 0m)
+            .FirstOrDefault();
+
+        var bestVolume = sessions
+            .Where(x => x.TotalVolumeKg > 0m)
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.WorkoutId)
+            .OrderByDescending(x => x.TotalVolumeKg)
+            .FirstOrDefault();
+
+        return new ExerciseRecordsModel
+        {
+            HeaviestWeight = heaviest == null ? null : ToRecord(heaviest, heaviest.WeightKg!.Value),
+            BestEstimatedOneRepMax = bestOneRepMax == null
+                ? null
+                : ToRecord(bestOneRepMax.Entry, bestOneRepMax.Estimate!.Value),
+            MostReps = mostReps == null ? null : ToRecord(mostReps, mostReps.Reps!.Value),
+            BestSessionVolume = bestVolume == null
+                ? null
+                : new ExerciseRecordModel
+                {
+                    WorkoutId = bestVolume.WorkoutId,
+                    AchievedOn = bestVolume.Date,
+                    Value = bestVolume.TotalVolumeKg,
+                },
+        };
+    }
+
+    private static ExerciseRecordModel ToRecord(SetEntry entry, decimal value)
+    {
+        return new ExerciseRecordModel
+        {
+            WorkoutId = entry.WorkoutId,
+            AchievedOn = AsUtc(entry.Date),
+            Value = value,
+            WeightKg = entry.WeightKg,
+            Reps = entry.Reps,
+        };
+    }
+
+    private static void MarkRecordSessions(IEnumerable<ExerciseSessionModel> sessions, ExerciseRecordsModel records)
+    {
+        var recordWorkoutIds = new[]
+            {
+                records.HeaviestWeight,
+                records.BestEstimatedOneRepMax,
+                records.MostReps,
+                records.BestSessionVolume,
+            }
+            .Where(x => x != null)
+            .Select(x => x!.WorkoutId)
+            .ToHashSet();
+
+        foreach (var session in sessions)
+        {
+            session.IsPersonalRecord = recordWorkoutIds.Contains(session.WorkoutId);
+        }
+    }
+
+    private static ExerciseProgressionSummaryModel BuildSummary(
+        IReadOnlyCollection<SetEntry> entries,
+        IReadOnlyCollection<ExerciseSessionModel> sessions)
+    {
+        return new ExerciseProgressionSummaryModel
+        {
+            SessionCount = sessions.Count,
+            TotalSets = entries.Count,
+            TotalReps = entries.Sum(x => x.Reps ?? 0),
+            TotalVolumeKg = Round(entries.Sum(x => x.VolumeKg)),
+            FirstTrainedOn = entries.Count == 0 ? null : AsUtc(entries.Min(x => x.Date)),
+            LastTrainedOn = entries.Count == 0 ? null : AsUtc(entries.Max(x => x.Date)),
+        };
+    }
+
     private static decimal? EstimateOneRepMax(SetEntry entry)
     {
         if (!entry.WeightKg.HasValue || !entry.Reps.HasValue || entry.WeightKg.Value <= 0m || entry.Reps.Value <= 0)
@@ -309,7 +451,9 @@ public class AnalyticsService : IAnalyticsService
     private sealed class SetEntry
     {
         public long WorkoutId { get; init; }
+        public string WorkoutTitle { get; init; } = string.Empty;
         public DateTime Date { get; init; }
+        public int? DurationSeconds { get; init; }
         public long ExerciseId { get; init; }
         public string ExerciseName { get; init; } = string.Empty;
         public long MuscleGroupId { get; init; }

@@ -154,7 +154,6 @@ export default function WorkoutBuilder({
     onExerciseReorder: actions.handleExerciseReorder,
     onSetReorder: actions.handleSetReorder,
     onSetCompletedToggle: actions.handleSetCompletedToggle,
-    onCompleteExercise: actions.handleCompleteExercise,
     onSetTypeChange: actions.handleSetTypeChange,
   }), [actions]);
 

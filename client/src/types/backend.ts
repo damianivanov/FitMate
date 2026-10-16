@@ -987,6 +987,9 @@ export namespace JsonModels.Analytics {
 		exerciseId: number;
 		exerciseName: string;
 		points: JsonModels.Analytics.ExerciseProgressionPointModel[];
+		summary: JsonModels.Analytics.ExerciseProgressionSummaryModel;
+		records: JsonModels.Analytics.ExerciseRecordsModel;
+		sessions: JsonModels.Analytics.ExerciseSessionModel[];
 	}
 	export interface ExerciseProgressionPointModel
 	{
@@ -995,6 +998,47 @@ export namespace JsonModels.Analytics {
 		bestReps?: number;
 		estimatedOneRepMax?: number;
 		totalVolumeKg: number;
+	}
+	export interface ExerciseProgressionSummaryModel
+	{
+		sessionCount: number;
+		totalSets: number;
+		totalReps: number;
+		totalVolumeKg: number;
+		firstTrainedOn?: string;
+		lastTrainedOn?: string;
+	}
+	export interface ExerciseRecordModel
+	{
+		workoutId: number;
+		achievedOn: string;
+		value: number;
+		weightKg?: number;
+		reps?: number;
+	}
+	export interface ExerciseRecordsModel
+	{
+		heaviestWeight?: JsonModels.Analytics.ExerciseRecordModel;
+		bestEstimatedOneRepMax?: JsonModels.Analytics.ExerciseRecordModel;
+		mostReps?: JsonModels.Analytics.ExerciseRecordModel;
+		bestSessionVolume?: JsonModels.Analytics.ExerciseRecordModel;
+	}
+	export interface ExerciseSessionModel
+	{
+		workoutId: number;
+		workoutTitle: string;
+		date: string;
+		totalVolumeKg: number;
+		bestWeightKg?: number;
+		estimatedOneRepMax?: number;
+		isPersonalRecord: boolean;
+		sets: JsonModels.Analytics.ExerciseSessionSetModel[];
+	}
+	export interface ExerciseSessionSetModel
+	{
+		weightKg?: number;
+		reps?: number;
+		durationSeconds?: number;
 	}
 	export interface FrequentExerciseSummaryModel
 	{

@@ -19,15 +19,16 @@ import {
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
-  LuCheck,
   LuChevronDown,
   LuEllipsis,
   LuGripVertical,
+  LuHistory,
   LuLayers,
   LuNotebookPen,
   LuPlus,
   LuSlidersHorizontal,
   LuTrash2,
+  LuWeight,
   LuX,
 } from "react-icons/lu";
 import { useIsMobileViewport } from "@/hooks/useIsMobileViewport";
@@ -36,7 +37,7 @@ import { ActionMenu, type ActionMenuItem } from "../ActionMenu";
 import { Modal } from "../Modal";
 import { ExerciseGroupType } from "@/types";
 import { ExerciseSetRow } from "./ExerciseSetRow";
-import { PreviousSetsButton } from "./PreviousSetsButton";
+import { PreviousSetsModal } from "./PreviousSetsModal";
 import { formatMetricValue, getExerciseVolumeKg, getLoadBasisLabel, getMetricGridColumnsClass, getWeightColumnLabel } from "./format";
 import type {
   ExerciseBuilderCallbacks,
@@ -76,6 +77,7 @@ export function ExerciseCard({
 
   const [isExerciseMenuOpen, setIsExerciseMenuOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isPreviousSetsOpen, setIsPreviousSetsOpen] = useState(false);
   const [isNotesVisible, setIsNotesVisible] = useState(() => exercise.notes.trim().length > 0);
   const [isSetEditMode, setIsSetEditMode] = useState(false);
   const [showAllSets, setShowAllSets] = useState(false);
@@ -100,10 +102,7 @@ export function ExerciseCard({
     exercise.groupId == null || exercise.groupType === ExerciseGroupType.Straight;
   // `reorderMode === false` hides the handle (reorder mode off); `undefined` keeps it always on.
   const showDragHandle = capabilities.allowExerciseDnd && reorderMode !== false;
-  // The "ready" (complete-all) control sits at the front; it only yields its slot while
-  // actively reordering (a mobile-only state). `undefined`/`false` reorderMode => still shown,
-  // so the desktop builder (handles always on) keeps the complete button.
-  const showCompleteButton = capabilities.showCompletionCheckbox && reorderMode !== true;
+  const showCompletedState = capabilities.showCompletionCheckbox && isExerciseCompleted;
 
   const showRest = capabilities.showRestColumn;
   const showRpe = capabilities.showRpeColumn;
@@ -216,15 +215,22 @@ export function ExerciseCard({
     setActiveDragSetId(null);
   };
 
-  const exerciseMenuItems: ActionMenuItem[] = [
-    {
-      key: "notes",
-      label: noteButtonText,
-      icon: <LuNotebookPen className="h-4 w-4" />,
-      onSelect: handleNotesMenuClick,
-      selected: isNotesVisible,
-    },
-  ];
+  const exerciseMenuItems: ActionMenuItem[] = [];
+  if (showPreviousSets) {
+    exerciseMenuItems.push({
+      key: "previous-sets",
+      label: "Last sets",
+      icon: <LuHistory className="h-4 w-4" />,
+      onSelect: () => setIsPreviousSetsOpen(true),
+    });
+  }
+  exerciseMenuItems.push({
+    key: "notes",
+    label: noteButtonText,
+    icon: <LuNotebookPen className="h-4 w-4" />,
+    onSelect: handleNotesMenuClick,
+    selected: isNotesVisible,
+  });
   if (hasSetEditing) {
     exerciseMenuItems.push({
       key: "edit-sets",
@@ -317,7 +323,14 @@ export function ExerciseCard({
           isDragging && !isDragOverlay ? "opacity-25" : "opacity-100",
         ].join(" ")}
       >
-        <div className={`py-2 pl-2 pr-3 md:py-2.5 md:pl-3 md:pr-4 ${!isCollapsed ? "liquid-divider border-b" : ""}`}>
+        <div
+          className={[
+            "py-2 pl-2 pr-3 transition-[background-color,border-color] duration-300 ease-out md:py-2.5 md:pl-3 md:pr-4",
+            isCollapsed ? "rounded-3xl" : "liquid-divider rounded-t-3xl border-b",
+            showCompletedState ? "bg-linear-to-r from-success/20 via-success/10 to-success/5" : "",
+            showCompletedState && !isCollapsed ? "border-success/30" : "",
+          ].join(" ")}
+        >
           <div className="flex items-center gap-2">
             {showDragHandle ? (
               <button
@@ -331,27 +344,6 @@ export function ExerciseCard({
                 aria-label={`Drag to reorder ${exercise.displayName}`}
               >
                 <LuGripVertical className="h-5 w-5" />
-              </button>
-            ) : null}
-            {showCompleteButton ? (
-              <button
-                type="button"
-                onClick={() => callbacks.onCompleteExercise?.(exercise.id)}
-                className={[
-                  "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-95",
-                  isExerciseCompleted
-                    ? "border-success bg-success/15 text-success"
-                    : "border-(--glass-divider) text-secondary hover:border-success/60 hover:text-success",
-                ].join(" ")}
-                aria-pressed={isExerciseCompleted}
-                aria-label={
-                  isExerciseCompleted
-                    ? `Mark ${exercise.displayName} not done`
-                    : `Mark all sets in ${exercise.displayName} done`
-                }
-                title={isExerciseCompleted ? "Completed — tap to undo" : "Mark all sets done"}
-              >
-                <LuCheck className="h-4 w-4" />
               </button>
             ) : null}
             {exercise.imageUrl ? (
@@ -369,20 +361,12 @@ export function ExerciseCard({
                 />
               </button>
             ) : null}
-            {isExerciseCompleted && !showCompleteButton ? (
-              <span
-                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success"
-                aria-hidden="true"
-              >
-                <LuCheck className="h-3.5 w-3.5" />
-              </span>
-            ) : null}
             <div className="min-w-0 flex-1">
               {isCollapseEnabled ? (
                 <button
                   type="button"
                   onClick={handleCollapseClick}
-                  className={`block w-full cursor-pointer truncate text-left text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                  className="block w-full cursor-pointer truncate text-left text-sm font-semibold text-foreground"
                   title={exercise.displayName}
                   aria-expanded={!isCollapsed}
                   aria-label={isCollapsed ? `Expand ${exercise.displayName}` : `Collapse ${exercise.displayName}`}
@@ -391,28 +375,29 @@ export function ExerciseCard({
                 </button>
               ) : (
                 <span
-                  className={`block w-full truncate text-sm font-semibold ${isExerciseCompleted ? "text-muted line-through" : "text-foreground"}`}
+                  className="block w-full truncate text-sm font-semibold text-foreground"
                   title={exercise.displayName}
                 >
                   {exercise.displayName}
                 </span>
               )}
               {(loadBasisLabel || exerciseVolumeKg != null) ? (
-                <span className="mt-0.5 block truncate text-2xs font-medium text-muted">
-                  {loadBasisLabel}
-                  {loadBasisLabel && exerciseVolumeKg != null ? " · " : ""}
-                  {exerciseVolumeKg != null ? `Volume ${formatMetricValue(exerciseVolumeKg)} kg` : ""}
+                <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-muted">
+                  {loadBasisLabel ? <span className="truncate">{loadBasisLabel}</span> : null}
+                  {loadBasisLabel && exerciseVolumeKg != null ? <span aria-hidden="true">·</span> : null}
+                  {exerciseVolumeKg != null ? (
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 tabular-nums"
+                      aria-label={`Total volume ${formatMetricValue(exerciseVolumeKg)} kg`}
+                    >
+                      <LuWeight className="h-3 w-3" aria-hidden="true" />
+                      {formatMetricValue(exerciseVolumeKg)} kg
+                    </span>
+                  ) : null}
                 </span>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
-              {showPreviousSets && history ? (
-                <PreviousSetsButton
-                  history={history}
-                  exerciseName={exercise.displayName}
-                  onApplySession={(workoutId) => callbacks.onApplyPreviousSets?.(exercise.id, workoutId)}
-                />
-              ) : null}
               <ActionMenu
                 items={exerciseMenuItems}
                 open={isExerciseMenuOpen}
@@ -512,6 +497,15 @@ export function ExerciseCard({
           </div>
         ) : null}
       </article>
+      {showPreviousSets && history ? (
+        <PreviousSetsModal
+          isOpen={isPreviousSetsOpen}
+          history={history}
+          exerciseName={exercise.displayName}
+          onClose={() => setIsPreviousSetsOpen(false)}
+          onApplySession={(workoutId) => callbacks.onApplyPreviousSets?.(exercise.id, workoutId)}
+        />
+      ) : null}
       {exercise.imageUrl ? (
         <Modal
           isOpen={isImageModalOpen}

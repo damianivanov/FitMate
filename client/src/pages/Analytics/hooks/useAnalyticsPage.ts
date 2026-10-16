@@ -8,10 +8,13 @@ import type {
   ExerciseLookupModel,
   ExerciseProgression,
 } from "@/types";
-import { toProgressionPoints, toVolumePoints } from "../utils/analyticsFormat";
-
-export type AnalyticsRangePreset = "all" | "4w" | "12w" | "1y";
-export type AnalyticsTab = "overview" | "progression" | "muscleGroups" | "records";
+import type {
+  AnalyticsExerciseSelection,
+  AnalyticsRangePreset,
+  AnalyticsTab,
+  ProgressionMetric,
+} from "../types";
+import { getProgressionChange, toProgressionPoints, toVolumePoints } from "../utils/analyticsFormat";
 
 const RANGE_DAYS: Record<AnalyticsRangePreset, number | null> = {
   all: null,
@@ -35,11 +38,12 @@ export function useAnalyticsPage() {
   const [rangePreset, setRangePreset] = useState<AnalyticsRangePreset>("12w");
   const range = useMemo(() => buildRange(rangePreset), [rangePreset]);
 
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>("overview");
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("exercise");
 
   const [searchValue, setSearchValue] = useState("");
   const [muscleGroupFilterId, setMuscleGroupFilterId] = useState("");
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseLookupModel | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<AnalyticsExerciseSelection | null>(null);
+  const [progressionMetric, setProgressionMetric] = useState<ProgressionMetric>("oneRepMax");
 
   const [recordsMuscleGroupId, setRecordsMuscleGroupId] = useState("");
 
@@ -51,31 +55,48 @@ export function useAnalyticsPage() {
   const [reloadIndex, setReloadIndex] = useState(0);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadOverview() {
       setIsLoadingOverview(true);
       setOverviewError(null);
 
       try {
         const response = await analyticsService.getOverview(range);
-        setOverview(unwrap(response.data, "Unable to load analytics."));
+        const nextOverview = unwrap(response.data, "Unable to load analytics.");
+        if (!isCancelled) {
+          setOverview(nextOverview);
+        }
       } catch (loadError) {
-        setOverviewError(loadError instanceof Error ? loadError.message : "Unable to load analytics.");
-        setOverview(null);
+        if (!isCancelled) {
+          setOverviewError(loadError instanceof Error ? loadError.message : "Unable to load analytics.");
+          setOverview(null);
+        }
       } finally {
-        setIsLoadingOverview(false);
+        if (!isCancelled) {
+          setIsLoadingOverview(false);
+        }
       }
     }
 
     void loadOverview();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [range, reloadIndex]);
 
   const [progression, setProgression] = useState<ExerciseProgression | null>(null);
   const [isLoadingProgression, setIsLoadingProgression] = useState(false);
   const [progressionError, setProgressionError] = useState<string | null>(null);
+  const [progressionReloadIndex, setProgressionReloadIndex] = useState(0);
+  const selectedExerciseId = selectedExercise?.id ?? null;
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadProgression() {
-      if (!selectedExercise) {
+      if (selectedExerciseId == null) {
         setProgression(null);
         setProgressionError(null);
         setIsLoadingProgression(false);
@@ -86,18 +107,29 @@ export function useAnalyticsPage() {
       setProgressionError(null);
 
       try {
-        const response = await analyticsService.getExerciseProgression(selectedExercise.id, range);
-        setProgression(unwrap(response.data, "Unable to load progression."));
+        const response = await analyticsService.getExerciseProgression(selectedExerciseId, range);
+        const nextProgression = unwrap(response.data, "Unable to load progression.");
+        if (!isCancelled) {
+          setProgression(nextProgression);
+        }
       } catch (loadError) {
-        setProgressionError(loadError instanceof Error ? loadError.message : "Unable to load progression.");
-        setProgression(null);
+        if (!isCancelled) {
+          setProgressionError(loadError instanceof Error ? loadError.message : "Unable to load progression.");
+          setProgression(null);
+        }
       } finally {
-        setIsLoadingProgression(false);
+        if (!isCancelled) {
+          setIsLoadingProgression(false);
+        }
       }
     }
 
     void loadProgression();
-  }, [selectedExercise, range]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedExerciseId, range, progressionReloadIndex]);
 
   const setRange = useCallback((preset: AnalyticsRangePreset) => {
     setRangePreset(preset);
@@ -112,7 +144,17 @@ export function useAnalyticsPage() {
   }, []);
 
   const selectExercise = useCallback((exercise: ExerciseLookupModel) => {
+    setSelectedExercise({
+      id: exercise.id,
+      name: exercise.name,
+      muscleGroupName: exercise.primaryMuscleGroupName,
+      imageUrl: exercise.imageUrl,
+    });
+  }, []);
+
+  const openExercise = useCallback((exercise: AnalyticsExerciseSelection) => {
     setSelectedExercise(exercise);
+    setActiveTab("exercise");
   }, []);
 
   const clearExercise = useCallback(() => {
@@ -124,12 +166,23 @@ export function useAnalyticsPage() {
     setActiveTab(tab);
   }, []);
 
+  const selectProgressionMetric = useCallback((metric: ProgressionMetric) => {
+    setProgressionMetric(metric);
+  }, []);
+
   const filterRecordsByMuscleGroup = useCallback((value: string) => {
     setRecordsMuscleGroupId(value);
   }, []);
 
   const volumePoints = useMemo(() => toVolumePoints(overview), [overview]);
-  const progressionPoints = useMemo(() => toProgressionPoints(progression), [progression]);
+  const progressionPoints = useMemo(
+    () => toProgressionPoints(progression, progressionMetric),
+    [progression, progressionMetric],
+  );
+  const progressionChange = useMemo(
+    () => getProgressionChange(progression, progressionMetric),
+    [progression, progressionMetric],
+  );
 
   const personalRecords = useMemo(() => overview?.personalRecords ?? [], [overview]);
 
@@ -175,7 +228,9 @@ export function useAnalyticsPage() {
       progression,
       isLoadingProgression,
       progressionError,
+      progressionMetric,
       progressionPoints,
+      progressionChange,
       personalRecords: filteredPersonalRecords,
       recordsMuscleGroups,
       recordsMuscleGroupId,
@@ -194,7 +249,9 @@ export function useAnalyticsPage() {
       progression,
       isLoadingProgression,
       progressionError,
+      progressionMetric,
       progressionPoints,
+      progressionChange,
       filteredPersonalRecords,
       recordsMuscleGroups,
       recordsMuscleGroupId,
@@ -205,11 +262,14 @@ export function useAnalyticsPage() {
     () => ({
       setRange,
       reloadOverview: () => setReloadIndex((index) => index + 1),
+      reloadProgression: () => setProgressionReloadIndex((index) => index + 1),
       selectTab,
       search,
       filterByMuscleGroup,
       selectExercise,
+      openExercise,
       clearExercise,
+      selectProgressionMetric,
       filterRecordsByMuscleGroup,
     }),
     [
@@ -218,7 +278,9 @@ export function useAnalyticsPage() {
       search,
       filterByMuscleGroup,
       selectExercise,
+      openExercise,
       clearExercise,
+      selectProgressionMetric,
       filterRecordsByMuscleGroup,
     ],
   );
