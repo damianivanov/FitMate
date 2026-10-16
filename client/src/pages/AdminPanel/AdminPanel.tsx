@@ -112,7 +112,7 @@ function AdminGrid({ links }: { links: AdminLink[] }) {
   const navigate = useNavigate();
 
   return (
-    <div className="ad-grid">
+    <div className="admin-grid">
       {links.map((link) => {
         const Icon = link.icon;
 
@@ -121,7 +121,7 @@ function AdminGrid({ links }: { links: AdminLink[] }) {
             type="button"
             key={link.to}
             onClick={() => navigate(link.to)}
-            className="ad-tile"
+            className="admin-tile"
           >
             <NativeGlyph tint={link.tint}>
               <Icon className="h-5 w-5" />
@@ -149,7 +149,7 @@ export default function AdminPanel() {
           <AdminGrid links={AI_LINKS} />
         </NativeSection>
 
-        <NativeCard className="ad-build">
+        <NativeCard className="admin-build">
           <BuildInfoPanel />
         </NativeCard>
       </NativePage>

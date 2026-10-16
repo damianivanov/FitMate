@@ -1,10 +1,10 @@
 /* ----------------------------------------------------------------
-   ADMIN — page-scoped material. Everything here is prefixed ad-.
+   ADMIN — page-scoped material. Everything here is prefixed admin-.
 ---------------------------------------------------------------- */
 
-.ad-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
 
-.ad-tile {
+.admin-tile {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 0.25rem;
@@ -19,12 +19,12 @@
   transition: transform 180ms var(--ease-out);
 }
 
-.ad-tile:active { transform: scale(0.97); }
-.ad-tile > b { margin-top: 0.375rem; font-size: 0.8125rem; font-weight: 650; }
-.ad-tile > small { color: var(--text-tertiary); font-size: 0.6875rem; line-height: 1.3; }
+.admin-tile:active { transform: scale(0.97); }
+.admin-tile > b { margin-top: 0.375rem; font-size: 0.8125rem; font-weight: 650; }
+.admin-tile > small { color: var(--text-tertiary); font-size: 0.6875rem; line-height: 1.3; }
 
-.ad-build { padding: 0.875rem 1rem; }
+.admin-build { padding: 0.875rem 1rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ad-tile:active { transform: none; }
+  .admin-tile:active { transform: none; }
 }
