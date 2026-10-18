@@ -232,8 +232,52 @@ public class ProgramPlanServiceTests
         Assert.Equal(8, context.ProgramPlanDays.Count(d => d.ProgramPlanId == created.Id));
     }
 
+    [Theory]
+    [InlineData(ProgramPlanStatus.Draft)]
+    [InlineData(ProgramPlanStatus.Active)]
+    [InlineData(ProgramPlanStatus.Paused)]
+    [InlineData(ProgramPlanStatus.Completed)]
+    [InlineData(ProgramPlanStatus.Cancelled)]
+    public async Task Delete_OwnPlan_RemovesPlanAndSchedule(ProgramPlanStatus status)
+    {
+        using var db = new SqliteTestDatabase();
+        var templateId = await SeedTemplateAsync(db, SqliteTestDatabase.UserId, "Upper A");
+        var service = CreateService(db);
+        var created = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
+        if (status != ProgramPlanStatus.Draft)
+        {
+            await service.ActivateAsync(created.Id, SqliteTestDatabase.UserId);
+            await using var updateContext = db.CreateContext();
+            var plan = await updateContext.ProgramPlans.FindAsync(created.Id);
+            plan!.Status = status;
+            await updateContext.SaveChangesAsync();
+        }
+
+        Assert.True(await CreateService(db).DeleteAsync(created.Id, SqliteTestDatabase.UserId));
+        await using var context = db.CreateContext();
+        Assert.Empty(context.ProgramPlans);
+        Assert.Empty(context.ProgramPlanScheduleRules);
+        Assert.Empty(context.ProgramPlanDays);
+        Assert.Single(context.WorkoutTemplates);
+    }
+
     [Fact]
-    public async Task DeleteDraft_ActivePlan_ReturnsFalse()
+    public async Task Delete_OtherUsersPlanOrMissingPlan_ReturnsFalse()
+    {
+        using var db = new SqliteTestDatabase();
+        var templateId = await SeedTemplateAsync(db, SqliteTestDatabase.UserId, "Upper A");
+        var service = CreateService(db);
+        var created = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
+
+        Assert.False(await service.DeleteAsync(created.Id, SqliteTestDatabase.OtherUserId));
+        Assert.False(await service.DeleteAsync(long.MaxValue, SqliteTestDatabase.UserId));
+        await using var context = db.CreateContext();
+        Assert.Single(context.ProgramPlans);
+        Assert.Equal(2, context.ProgramPlanScheduleRules.Count());
+    }
+
+    [Fact]
+    public async Task Delete_ProgramWithRecordedWorkout_PreservesWorkoutAndTemplate()
     {
         using var db = new SqliteTestDatabase();
         var templateId = await SeedTemplateAsync(db, SqliteTestDatabase.UserId, "Upper A");
@@ -241,9 +285,40 @@ public class ProgramPlanServiceTests
         var created = await service.CreateDraftAsync(FixedWeekdayRequest(templateId), SqliteTestDatabase.UserId);
         await service.ActivateAsync(created.Id, SqliteTestDatabase.UserId);
 
-        Assert.False(await service.DeleteDraftAsync(created.Id, SqliteTestDatabase.UserId));
+        long workoutId;
+        await using (var seedContext = db.CreateContext())
+        {
+            var day = seedContext.ProgramPlanDays.First(d => d.ProgramPlanId == created.Id);
+            var workout = new Workout
+            {
+                UserId = SqliteTestDatabase.UserId,
+                WorkoutTemplateId = templateId,
+                ProgramPlanDayId = day.Id,
+                Title = "Completed session",
+                FinishedAt = DateTime.UtcNow,
+                TotalVolumeKg = 960m,
+            };
+            seedContext.Workouts.Add(workout);
+            await seedContext.SaveChangesAsync();
+            workoutId = workout.Id;
+            day.Status = ProgramPlanDayStatus.Completed;
+            day.StartedWorkoutId = workoutId;
+            day.CompletedWorkoutId = workoutId;
+            await seedContext.SaveChangesAsync();
+        }
+
+        Assert.True(await CreateService(db).DeleteAsync(created.Id, SqliteTestDatabase.UserId));
+
         await using var context = db.CreateContext();
-        Assert.Equal(1, context.ProgramPlans.Count());
+        var preserved = await context.Workouts.FindAsync(workoutId);
+        Assert.NotNull(preserved);
+        Assert.Null(preserved.ProgramPlanDayId);
+        Assert.Equal(templateId, preserved.WorkoutTemplateId);
+        Assert.NotNull(preserved.FinishedAt);
+        Assert.Equal(960m, preserved.TotalVolumeKg);
+        Assert.Single(context.WorkoutTemplates);
+        Assert.Empty(context.ProgramPlans);
+        Assert.Empty(context.ProgramPlanDays);
     }
 
     [Fact]

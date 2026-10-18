@@ -171,7 +171,7 @@ export function useProgramDetailPage() {
     try {
       const response = await programPlanService.remove(numericPlanId);
       unwrap(response.data, "Unable to delete program.");
-      toast.success("Draft deleted.");
+      toast.success("Program deleted.");
       navigate("/program");
     } catch (deleteError) {
       toast.error(deleteError instanceof Error ? deleteError.message : "Unable to delete program.");

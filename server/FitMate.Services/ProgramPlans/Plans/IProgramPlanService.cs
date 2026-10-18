@@ -23,7 +23,7 @@ public interface IProgramPlanService
     Task PauseAsync(long planId, long userId);
     Task CompleteAsync(long planId, long userId);
     Task CancelAsync(long planId, long userId);
-    Task<bool> DeleteDraftAsync(long planId, long userId);
+    Task<bool> DeleteAsync(long planId, long userId);
     Task<ProgramPlanModel?> GetActiveAsync(long userId);
     Task<ProgramTodayModel> GetTodayAsync(long userId, DateOnly date);
     Task<IReadOnlyList<ProgramPlanDayModel>> GetCalendarAsync(long planId, long userId, int year, int month);

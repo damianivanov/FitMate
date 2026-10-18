@@ -296,11 +296,11 @@ public class ProgramPlanService : IProgramPlanService
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<bool> DeleteDraftAsync(long planId, long userId)
+    public async Task<bool> DeleteAsync(long planId, long userId)
     {
         var plan = await dbContext.ProgramPlans
             .FirstOrDefaultAsync(p => p.Id == planId && p.UserId == userId);
-        if (plan == null || plan.Status != ProgramPlanStatus.Draft)
+        if (plan == null)
         {
             return false;
         }

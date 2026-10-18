@@ -25,10 +25,11 @@ import {
   SectionAction,
   type ActionMenuItem,
 } from "@/shared/components";
-import { formatDateOnly, parseDateOnly, todayDateOnlyString } from "@/shared/utils/dateOnly";
+import { parseDateOnly, todayDateOnlyString } from "@/shared/utils/dateOnly";
 import { ProgramPlanStatus } from "@/types";
 import type { ProgramPlan, ProgramPlanDayModel } from "@/types";
 import { useProgramPage } from "./hooks/useProgramPage";
+import { ProgramCard } from "./components/ProgramCard";
 
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "long" });
 
@@ -36,14 +37,6 @@ function describeDay(day: ProgramPlanDayModel, today: string): string {
   return day.scheduledDate === today
     ? "Today"
     : WEEKDAY_FORMATTER.format(parseDateOnly(day.scheduledDate));
-}
-
-function describeStatus(plan: ProgramPlan): string {
-  if (plan.status === ProgramPlanStatus.Completed) {
-    return "Completed";
-  }
-
-  return plan.status === ProgramPlanStatus.Draft ? "Draft" : "Archived";
 }
 
 export default function Program() {
@@ -57,12 +50,12 @@ export default function Program() {
   );
 
   const buildPlanMenu = (plan: ProgramPlan): ActionMenuItem[] => [
-    {
+    ...(plan.status === ProgramPlanStatus.Draft ? [{
       key: "edit",
       label: "Edit program",
       icon: <LuPencil className="h-4 w-4 shrink-0" />,
       onSelect: () => actions.edit(plan),
-    },
+    }] : []),
     {
       key: "calendar",
       label: "View schedule",
@@ -250,28 +243,12 @@ export default function Program() {
               >
                 <div className="native-tile-grid">
                   {state.otherPlans.map((plan) => (
-                    <button
-                      type="button"
-                      className="native-tile"
+                    <ProgramCard
                       key={plan.id}
-                      onClick={() => actions.open(plan)}
-                    >
-                      <NativeGlyph
-                        tint={plan.status === ProgramPlanStatus.Completed ? "blue" : "purple"}
-                      >
-                        {plan.status === ProgramPlanStatus.Completed ? (
-                          <LuHistory className="h-5 w-5" />
-                        ) : (
-                          <LuDumbbell className="h-5 w-5" />
-                        )}
-                      </NativeGlyph>
-                      <b>{plan.name}</b>
-                      <small>
-                        {plan.targetWorkoutsPerWeek} days/week · from{" "}
-                        {formatDateOnly(plan.startDate)}
-                      </small>
-                      <em>{describeStatus(plan)}</em>
-                    </button>
+                      plan={plan}
+                      menuItems={buildPlanMenu(plan)}
+                      onOpen={actions.open}
+                    />
                   ))}
                 </div>
               </NativeSection>
@@ -283,7 +260,8 @@ export default function Program() {
       <DeleteConfirmationModal
         isOpen={Boolean(state.planPendingDelete)}
         itemName={state.planPendingDelete?.name ?? ""}
-        title="Delete draft"
+        title="Delete program"
+        description="This permanently removes the program and its schedule. Recorded workouts and workout templates are kept."
         isDeleting={state.deletingPlanId !== null}
         onCancel={actions.cancelDelete}
         onConfirm={actions.confirmDelete}

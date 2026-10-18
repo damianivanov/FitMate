@@ -203,9 +203,9 @@ public class ProgramPlanController : BaseApiController
             return this.ReturnJsonError("Unauthorized.");
         }
 
-        var deleted = await programPlanService.DeleteDraftAsync(id, userId.Value);
+        var deleted = await programPlanService.DeleteAsync(id, userId.Value);
         return deleted
             ? this.ReturnJson(true)
-            : this.ReturnJsonError("Only draft plans can be deleted.");
+            : this.ReturnJsonError("Program plan not found.");
     }
 }

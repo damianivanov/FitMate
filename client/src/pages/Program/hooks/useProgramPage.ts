@@ -110,7 +110,7 @@ export function useProgramPage() {
     try {
       const response = await programPlanService.remove(planPendingDelete.id);
       unwrap(response.data, "Unable to delete program.");
-      toast.success("Draft deleted.");
+      toast.success("Program deleted.");
       setPlanPendingDelete(null);
       setReloadIndex((index) => index + 1);
     } catch (deleteError) {

@@ -154,14 +154,6 @@ export function ProgramDetail() {
                       >
                         Activate program
                       </button>
-                      <button
-                        type="button"
-                        onClick={actions.requestDelete}
-                        disabled={isBusy}
-                        className="native-ghost-action tp-delete"
-                      >
-                        Delete draft
-                      </button>
                     </>
                   ) : null}
 
@@ -222,6 +214,14 @@ export function ProgramDetail() {
                       </button>
                     </>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={actions.requestDelete}
+                    disabled={isBusy}
+                    className="native-ghost-action tp-delete"
+                  >
+                    Delete program
+                  </button>
                 </div>
               </>
             ) : null}
@@ -240,7 +240,8 @@ export function ProgramDetail() {
       <DeleteConfirmationModal
         isOpen={state.isDeleteConfirmationOpen}
         itemName={plan?.name ?? ""}
-        title="Delete draft"
+        title="Delete program"
+        description="This permanently removes the program and its schedule. Recorded workouts and workout templates are kept."
         isDeleting={state.busyAction === "delete"}
         onCancel={actions.cancelDelete}
         onConfirm={actions.confirmDelete}
