@@ -15,6 +15,7 @@ import {
 import { LuCheck, LuDumbbell, LuX } from "react-icons/lu";
 import { SET_TYPE_LABELS, getSetValueText } from "@/shared/utils/workoutSetDisplay";
 import type { WorkoutExercise } from "@/types";
+import { ExerciseSetType } from "@/types";
 
 type ExerciseChipProps = {
   exercise: WorkoutExercise;
@@ -22,6 +23,12 @@ type ExerciseChipProps = {
 
 const POPOVER_OFFSET_PX = 10;
 const VIEWPORT_PADDING_PX = 12;
+const SET_TYPE_ABBREVIATIONS: Record<ExerciseSetType, string> = {
+  [ExerciseSetType.Warmup]: "WU",
+  [ExerciseSetType.Working]: "WS",
+  [ExerciseSetType.Dropset]: "DS",
+  [ExerciseSetType.Failure]: "F",
+};
 
 function totalVolume(exercise: WorkoutExercise): number {
   return exercise.sets.reduce((total, set) => total + (set.weightKg ?? 0) * (set.reps ?? 0), 0);
@@ -64,6 +71,10 @@ export function ExerciseChip({ exercise }: ExerciseChipProps) {
   const volume = totalVolume(exercise);
   const sortedSets = exercise.sets.slice().sort((left, right) => left.orderIndex - right.orderIndex);
 
+  function handleClose() {
+    setIsOpen(false);
+  }
+
   return (
     <>
       <button
@@ -99,43 +110,28 @@ export function ExerciseChip({ exercise }: ExerciseChipProps) {
               <div className="xp-pop">
                 <div className="xp-head">
                   <b>{name}</b>
-                  <button type="button" onClick={() => setIsOpen(false)} aria-label="Close">
+                  <button type="button" onClick={handleClose} aria-label="Close">
                     <LuX className="h-4 w-4" />
                   </button>
                 </div>
 
                 <div className="xp-body">
-                  {/* The picture is the fastest way to confirm you opened the right exercise,
-                      so it holds its own column at full height rather than sitting above the
-                      list and pushing the numbers off the bottom. */}
-                  <div className="xp-side">
-                    <span className="xp-photo">
-                      {exercise.exerciseImageUrl ? (
-                        <img src={exercise.exerciseImageUrl} alt="" loading="lazy" />
-                      ) : (
-                        <LuDumbbell className="h-7 w-7" aria-hidden="true" />
-                      )}
-                    </span>
-                    <p>
-                      <b>
-                        {completedCount}/{exercise.sets.length}
-                      </b>
-                      <small>sets</small>
-                    </p>
-                    {volume > 0 ? (
-                      <p>
-                        <b>{Math.round(volume).toLocaleString()}</b>
-                        <small>kg</small>
-                      </p>
-                    ) : null}
-                  </div>
+                  <span className="xp-photo">
+                    {exercise.exerciseImageUrl ? (
+                      <img src={exercise.exerciseImageUrl} alt="" loading="lazy" />
+                    ) : (
+                      <LuDumbbell className="h-7 w-7" aria-hidden="true" />
+                    )}
+                  </span>
 
                   {sortedSets.length > 0 ? (
                     <ol className="xp-sets">
                       {sortedSets.map((set, index) => (
                         <li key={set.id} className={set.isCompleted ? "is-done" : ""}>
                           <span>{index + 1}</span>
-                          <em>{SET_TYPE_LABELS[set.setType]}</em>
+                          <abbr title={SET_TYPE_LABELS[set.setType]} aria-label={SET_TYPE_LABELS[set.setType]}>
+                            {SET_TYPE_ABBREVIATIONS[set.setType]}
+                          </abbr>
                           <b>{getSetValueText(set)}</b>
                           {set.isCompleted ? (
                             <LuCheck className="h-3 w-3" strokeWidth={3} aria-label="Completed" />
@@ -148,6 +144,18 @@ export function ExerciseChip({ exercise }: ExerciseChipProps) {
                   ) : (
                     <p className="xp-empty">No sets recorded.</p>
                   )}
+                </div>
+                <div className="xp-summary">
+                  <p>
+                    <b>{completedCount}/{exercise.sets.length}</b>
+                    <small>sets completed</small>
+                  </p>
+                  {volume > 0 ? (
+                    <p>
+                      <b>{Math.round(volume).toLocaleString()}</b>
+                      <small>kg volume</small>
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
