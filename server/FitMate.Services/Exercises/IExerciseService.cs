@@ -5,6 +5,8 @@ namespace FitMate.Services.Exercises;
 
 public interface IExerciseService
 {
+    Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync();
+
     /// <summary>
     /// Resolves the caller from the request principal. Only safe inside an HTTP request — background
     /// work has no principal and must call the overload that takes the user id.

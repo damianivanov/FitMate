@@ -3,6 +3,7 @@ using FitMate.Core.JsonModels.AdminAI;
 using FitMate.Core.JsonModels.Common;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Services.Grids;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.AdminAI;
@@ -45,7 +46,7 @@ public class AdminUnsupportedRequestService : IAdminUnsupportedRequestService
         }
 
         // Most-wanted first: demand is the reason this backlog exists.
-        query = query
+        query = GridFilters.Apply(query, request.ColumnFilters, UnsupportedRequestGridColumns.All)
             .OrderByDescending(x => x.OccurrenceCount)
             .ThenByDescending(x => x.LastRequestedAt)
             .ThenByDescending(x => x.Id);
@@ -74,6 +75,9 @@ public class AdminUnsupportedRequestService : IAdminUnsupportedRequestService
             PageSize = pageSize,
         };
     }
+
+    public Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync() =>
+        GridFilters.GetOptionsAsync(dbContext.UnsupportedAIRequests.AsNoTracking(), UnsupportedRequestGridColumns.All);
 
     public async Task<UnsupportedAIRequestModel?> GetByIdAsync(long id)
     {

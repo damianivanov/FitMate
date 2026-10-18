@@ -1,3 +1,4 @@
+import { useGridFilters } from "@/shared/components/tables/useGridFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { useSearchParams } from "react-router";
@@ -84,7 +85,15 @@ export function useExerciseGridPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadIndex, setReloadIndex] = useState(0);
 
+  const gridFilters = useGridFilters("exercises", reloadIndex, setPaginationModel);
+
   useEffect(() => {
+    if (!gridFilters.ready) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadExercises() {
       setIsLoading(true);
       setError(null);
@@ -94,18 +103,37 @@ export function useExerciseGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
+          columnFilters: gridFilters.selections,
         });
+        if (cancelled) {
+          return;
+        }
         setExercises(unwrap(response.data, "Unable to load exercises."));
       } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Unable to load exercises.");
         setExercises(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadExercises();
-  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize, reloadIndex]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gridFilters.ready,
+    gridFilters.selections,
+    debouncedSearch,
+    paginationModel.page,
+    paginationModel.pageSize,
+    reloadIndex,
+  ]);
 
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
@@ -148,6 +176,20 @@ export function useExerciseGridPage() {
     () => new Map(muscleGroups.map((group) => [group.id, group])),
     [muscleGroups],
   );
+
+  const filterOptionImages = useMemo(() => {
+    const imagesByName = new Map<string, string>();
+    for (const group of muscleGroups) {
+      if (group.imageUrl) {
+        imagesByName.set(group.name, group.imageUrl);
+      }
+    }
+
+    return {
+      primaryMuscleGroupId: imagesByName,
+      secondaryMuscleGroupId: imagesByName,
+    };
+  }, [muscleGroups]);
 
   const resolveMuscleGroupName = useCallback(
     (id?: number) => {
@@ -273,6 +315,8 @@ export function useExerciseGridPage() {
 
   const state = useMemo(
     () => ({
+      gridFilters,
+      filterOptionImages,
       rows: exercises?.items ?? [],
       rowCount: exercises?.totalCount ?? 0,
       loading: isLoading,
@@ -290,6 +334,8 @@ export function useExerciseGridPage() {
       bulkUpload: bulkImageUpload.state,
     }),
     [
+      gridFilters,
+      filterOptionImages,
       exercises,
       isLoading,
       error,

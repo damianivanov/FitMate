@@ -25,6 +25,18 @@ public class AdminExerciseController : BaseApiController
         this.exerciseService = exerciseService;
     }
 
+    [HttpGet("options")]
+    public async Task<ActionResult> GetGridOptions()
+    {
+        return this.ReturnJson(await exerciseService.GetGridOptionsAsync());
+    }
+
+    [HttpPost("query")]
+    public async Task<ActionResult> Query([FromBody] ExerciseQueryRequest request)
+    {
+        return this.ReturnJson(await exerciseService.ListAsync(request));
+    }
+
     [HttpGet]
     public async Task<ActionResult> List([FromQuery] ExerciseQueryRequest request)
     {

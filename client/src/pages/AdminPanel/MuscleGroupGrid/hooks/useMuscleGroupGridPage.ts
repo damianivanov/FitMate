@@ -1,3 +1,4 @@
+import { useGridFilters } from "@/shared/components/tables/useGridFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
@@ -48,7 +49,15 @@ export function useMuscleGroupGridPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadIndex, setReloadIndex] = useState(0);
 
+  const gridFilters = useGridFilters("muscleGroups", reloadIndex, setPaginationModel);
+
   useEffect(() => {
+    if (!gridFilters.ready) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadRows() {
       setIsLoading(true);
       setError(null);
@@ -58,18 +67,37 @@ export function useMuscleGroupGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
+          columnFilters: gridFilters.selections,
         });
+        if (cancelled) {
+          return;
+        }
         setPagedMuscleGroups(unwrap(response.data, "Unable to load muscle groups."));
       } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Unable to load muscle groups.");
         setPagedMuscleGroups(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadRows();
-  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize, reloadIndex]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gridFilters.ready,
+    gridFilters.selections,
+    debouncedSearch,
+    paginationModel.page,
+    paginationModel.pageSize,
+    reloadIndex,
+  ]);
 
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
@@ -181,6 +209,7 @@ export function useMuscleGroupGridPage() {
 
   const state = useMemo(
     () => ({
+      gridFilters,
       rows: pagedMuscleGroups?.items ?? [],
       rowCount: pagedMuscleGroups?.totalCount ?? 0,
       loading: isLoading,
@@ -196,6 +225,7 @@ export function useMuscleGroupGridPage() {
       editorError,
     }),
     [
+      gridFilters,
       pagedMuscleGroups,
       isLoading,
       error,

@@ -24,6 +24,7 @@ export default function MuscleGroupGrid() {
           {state.error && <p className="mb-4 text-sm text-danger">{state.error}</p>}
 
           <EntityGrid
+            filters={state.gridFilters}
             rows={state.rows}
             columns={state.columns}
             loading={state.loading}

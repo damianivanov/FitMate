@@ -1,3 +1,4 @@
+import { useGridFilters } from "@/shared/components/tables/useGridFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
@@ -24,7 +25,15 @@ export function useErrorGridPage() {
   const [viewingError, setViewingError] = useState<ErrorModel | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
+  const gridFilters = useGridFilters("errors", reloadIndex, setPaginationModel);
+
   useEffect(() => {
+    if (!gridFilters.ready) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadRows() {
       setIsLoading(true);
       setError(null);
@@ -34,18 +43,37 @@ export function useErrorGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
+          columnFilters: gridFilters.selections,
         });
+        if (cancelled) {
+          return;
+        }
         setPagedErrors(unwrap(response.data, "Unable to load errors."));
       } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Unable to load errors.");
         setPagedErrors(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadRows();
-  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize, reloadIndex]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gridFilters.ready,
+    gridFilters.selections,
+    debouncedSearch,
+    paginationModel.page,
+    paginationModel.pageSize,
+    reloadIndex,
+  ]);
 
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
@@ -114,6 +142,7 @@ export function useErrorGridPage() {
 
   const state = useMemo(
     () => ({
+      gridFilters,
       rows: pagedErrors?.items ?? [],
       rowCount: pagedErrors?.totalCount ?? 0,
       loading: isLoading,
@@ -126,6 +155,7 @@ export function useErrorGridPage() {
       hasRows: (pagedErrors?.totalCount ?? 0) > 0,
     }),
     [
+      gridFilters,
       pagedErrors,
       isLoading,
       error,

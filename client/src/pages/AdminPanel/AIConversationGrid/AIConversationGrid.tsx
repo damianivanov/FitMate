@@ -27,6 +27,7 @@ export default function AIConversationGrid() {
           {state.error ? <p className="mb-4 text-sm text-danger">{state.error}</p> : null}
 
           <EntityGrid
+            filters={state.gridFilters}
             rows={state.rows}
             columns={state.columns}
             loading={state.loading}

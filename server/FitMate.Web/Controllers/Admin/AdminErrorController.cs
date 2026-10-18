@@ -25,6 +25,18 @@ public class AdminErrorController : BaseApiController
         this.adminErrorService = adminErrorService;
     }
 
+    [HttpGet("options")]
+    public async Task<ActionResult> GetGridOptions()
+    {
+        return this.ReturnJson(await adminErrorService.GetGridOptionsAsync());
+    }
+
+    [HttpPost("query")]
+    public async Task<ActionResult> Query([FromBody] ErrorQueryRequest request)
+    {
+        return this.ReturnJson(await adminErrorService.ListAsync(request));
+    }
+
     [HttpGet]
     public async Task<ActionResult> List([FromQuery] ErrorQueryRequest request)
     {

@@ -24,6 +24,18 @@ public class AdminUserController : BaseApiController
         this.adminUserService = adminUserService;
     }
 
+    [HttpGet("options")]
+    public async Task<ActionResult> GetGridOptions()
+    {
+        return this.ReturnJson(await adminUserService.GetGridOptionsAsync());
+    }
+
+    [HttpPost("query")]
+    public async Task<ActionResult> Query([FromBody] UserQueryRequest request)
+    {
+        return this.ReturnJson(await adminUserService.ListAsync(request));
+    }
+
     [HttpGet]
     public async Task<ActionResult> List([FromQuery] UserQueryRequest request)
     {

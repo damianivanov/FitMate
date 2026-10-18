@@ -5,6 +5,8 @@ namespace FitMate.Services.AdminAI;
 
 public interface IAdminAIService
 {
+    Task<IReadOnlyList<GridColumnOptionsModel>> GetConversationGridOptionsAsync();
+
     Task<AIAdminOverviewModel> GetOverviewAsync(int days);
 
     Task<PagedResponse<AIConversationListItemModel>> ListConversationsAsync(AIConversationQueryRequest request);

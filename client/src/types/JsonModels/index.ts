@@ -115,6 +115,10 @@ export type { FeatureAvailabilityModel } from "./Subscriptions/FeatureAvailabili
 export type { ForgotPasswordRequest } from "./Auth/ForgotPasswordRequest";
 export type { FrequentExerciseSummaryModel } from "./Analytics/FrequentExerciseSummaryModel";
 export type { GoogleLoginRequest } from "./Auth/GoogleLoginRequest";
+export type { GridColumnOptionsModel } from "./Common/GridColumnOptionsModel";
+export type { GridColumnSelectionModel } from "./Common/GridColumnSelectionModel";
+export type { GridFilterOptionModel } from "./Common/GridFilterOptionModel";
+export type { GridQueryRequest } from "./Common/GridQueryRequest";
 export type { ImageUploadTicketModel } from "./Common/ImageUploadTicketModel";
 export type { ImageUploadTicketRequest } from "./Common/ImageUploadTicketRequest";
 export type { JsonData } from "./JsonData";

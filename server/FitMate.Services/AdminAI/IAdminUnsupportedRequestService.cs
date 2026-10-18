@@ -5,6 +5,8 @@ namespace FitMate.Services.AdminAI;
 
 public interface IAdminUnsupportedRequestService
 {
+    Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync();
+
     Task<PagedResponse<UnsupportedAIRequestModel>> ListAsync(UnsupportedRequestQueryRequest request);
 
     Task<UnsupportedAIRequestModel?> GetByIdAsync(long id);

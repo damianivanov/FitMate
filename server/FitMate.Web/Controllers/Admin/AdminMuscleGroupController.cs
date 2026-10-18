@@ -25,6 +25,18 @@ public class AdminMuscleGroupController : BaseApiController
         this.muscleGroupService = muscleGroupService;
     }
 
+    [HttpGet("options")]
+    public async Task<ActionResult> GetGridOptions()
+    {
+        return this.ReturnJson(await muscleGroupService.GetGridOptionsAsync());
+    }
+
+    [HttpPost("query")]
+    public async Task<ActionResult> Query([FromBody] MuscleGroupQueryRequest request)
+    {
+        return this.ReturnJson(await muscleGroupService.ListAsync(request));
+    }
+
     [HttpGet]
     public async Task<ActionResult> List([FromQuery] MuscleGroupQueryRequest request)
     {

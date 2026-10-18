@@ -4,6 +4,8 @@ using FitMate.DB;
 using FitMate.DB.Enums;
 using FitMate.Services.AI;
 using FitMate.Services.Subscriptions;
+using FitMate.Services.Grids;
+using FitMate.DB.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.AdminAI;
@@ -267,38 +269,34 @@ public class AdminAIService : IAdminAIService
             query = query.Where(x => x.LastMessageAt <= to);
         }
 
-        var totalCount = await query.CountAsync();
-        var conversations = await query
-            .OrderByDescending(x => x.LastMessageAt)
-            .ThenByDescending(x => x.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(x => new AIConversationListItemModel
-            {
-                Id = x.Id,
-                UserId = x.UserId,
-                UserEmail = x.User.Email,
-                Title = x.Title,
-                Status = x.Status,
-                MessageCount = x.Messages.Count,
-                LastMessageAt = x.LastMessageAt,
-                DateCreated = x.DateCreated,
-            })
-            .ToListAsync();
-
-        var ids = conversations.Select(x => x.Id).ToList();
-        var runs = await dbContext.AIRuns
-            .AsNoTracking()
-            .Where(x => ids.Contains(x.ConversationId))
-            .Select(x => new { x.ConversationId, x.EstimatedCost })
-            .ToListAsync();
-
-        foreach (var conversation in conversations)
+        query = query.OrderByDescending(x => x.LastMessageAt).ThenByDescending(x => x.Id);
+        var filters = request.ColumnFilters ?? [];
+        var metadataFilters = filters.Where(x => x?.Field != "estimatedCost").ToList();
+        if (metadataFilters.Count > 0)
         {
-            var conversationRuns = runs.Where(x => x.ConversationId == conversation.Id).ToList();
-            conversation.RunCount = conversationRuns.Count;
-            conversation.EstimatedCost = conversationRuns.Sum(x => x.EstimatedCost ?? 0m);
+            var metadata = GridFilters.Apply(QueryConversationGridRows(query), metadataFilters, ConversationGridColumns.All);
+            query = query.Where(x => metadata.Select(row => row.Id).Contains(x.Id));
         }
+        var costFilters = filters.Where(x => x.Field == "estimatedCost").ToList();
+        if (costFilters.Count > 0)
+        {
+            var ids = await query.Select(x => x.Id).ToListAsync();
+            var costs = await dbContext.AIRuns.AsNoTracking()
+                .Where(x => ids.Contains(x.ConversationId))
+                .Select(x => new { x.ConversationId, x.EstimatedCost }).ToListAsync();
+            var totals = costs.GroupBy(x => x.ConversationId)
+                .ToDictionary(group => group.Key, group => group.Sum(x => x.EstimatedCost ?? 0m));
+            var costRows = ids.Select(id => new AIConversationListItemModel
+            {
+                Id = id, EstimatedCost = totals.GetValueOrDefault(id),
+            }).AsQueryable();
+            var matchingIds = GridFilters.Apply(costRows, costFilters, ConversationGridColumns.All)
+                .Select(x => x.Id).ToList();
+            query = query.Where(x => matchingIds.Contains(x.Id));
+        }
+
+        var totalCount = await query.CountAsync();
+        var conversations = await LoadConversationGridRowsAsync(query.Skip((page - 1) * pageSize).Take(pageSize));
 
         return new PagedResponse<AIConversationListItemModel>
         {
@@ -308,6 +306,47 @@ public class AdminAIService : IAdminAIService
             PageSize = pageSize,
         };
     }
+
+    public async Task<IReadOnlyList<GridColumnOptionsModel>> GetConversationGridOptionsAsync() =>
+        await GridFilters.GetOptionsAsync(
+            (await LoadConversationGridRowsAsync(dbContext.AIConversations.AsNoTracking())).AsQueryable(),
+            ConversationGridColumns.All);
+
+    private async Task<List<AIConversationListItemModel>> LoadConversationGridRowsAsync(IQueryable<AIConversation> query)
+    {
+        var conversations = await QueryConversationGridRows(query).ToListAsync();
+
+        var ids = conversations.Select(x => x.Id).ToList();
+        var runs = await dbContext.AIRuns
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.ConversationId))
+            .Select(x => new { x.ConversationId, x.EstimatedCost })
+            .ToListAsync();
+
+        var runsByConversation = runs.ToLookup(x => x.ConversationId);
+        foreach (var conversation in conversations)
+        {
+            var conversationRuns = runsByConversation[conversation.Id];
+            conversation.RunCount = conversationRuns.Count();
+            conversation.EstimatedCost = conversationRuns.Sum(x => x.EstimatedCost ?? 0m);
+        }
+
+        return conversations;
+    }
+
+    private IQueryable<AIConversationListItemModel> QueryConversationGridRows(IQueryable<AIConversation> query) =>
+        query.Select(x => new AIConversationListItemModel
+            {
+                Id = x.Id,
+                UserId = x.UserId,
+                UserEmail = x.User.Email,
+                Title = x.Title,
+                Status = x.Status,
+                MessageCount = x.Messages.Count,
+                RunCount = dbContext.AIRuns.Count(run => run.ConversationId == x.Id),
+                LastMessageAt = x.LastMessageAt,
+                DateCreated = x.DateCreated,
+            });
 
     public async Task<AIConversationDetailModel?> GetConversationAsync(long conversationId)
     {

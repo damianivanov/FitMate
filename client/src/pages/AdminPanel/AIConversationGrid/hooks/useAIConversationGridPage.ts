@@ -1,3 +1,4 @@
+import { useGridFilters } from "@/shared/components/tables/useGridFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridPaginationModel } from "@mui/x-data-grid";
@@ -26,7 +27,15 @@ export function useAIConversationGridPage() {
   const [detail, setDetail] = useState<AIConversationDetailModel | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
+  const gridFilters = useGridFilters("conversations", 0, setPaginationModel);
+
   useEffect(() => {
+    if (!gridFilters.ready) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function load() {
       setIsLoading(true);
       setError(null);
@@ -36,18 +45,36 @@ export function useAIConversationGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
+          columnFilters: gridFilters.selections,
         });
+        if (cancelled) {
+          return;
+        }
         setPaged(unwrap(response.data, "Unable to load conversations."));
       } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Unable to load conversations.");
         setPaged(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void load();
-  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gridFilters.ready,
+    gridFilters.selections,
+    debouncedSearch,
+    paginationModel.page,
+    paginationModel.pageSize,
+  ]);
 
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
@@ -83,6 +110,7 @@ export function useAIConversationGridPage() {
 
   return {
     state: {
+      gridFilters,
       searchInput,
       columns,
       rows: paged?.items ?? [],

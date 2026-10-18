@@ -5,6 +5,8 @@ namespace FitMate.Services.Errors;
 
 public interface IAdminErrorService
 {
+    Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync();
+
     Task<PagedResponse<ErrorModel>> ListAsync(ErrorQueryRequest request);
     Task<bool> DeleteAsync(long id);
     Task<int> ClearAllAsync();

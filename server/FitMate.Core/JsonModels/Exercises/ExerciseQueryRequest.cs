@@ -3,7 +3,7 @@ using FitMate.Core.JsonModels.Common;
 
 namespace FitMate.Core.JsonModels.Exercises;
 
-public class ExerciseQueryRequest : PagedRequest
+public class ExerciseQueryRequest : GridQueryRequest
 {
     [StringLength(200)]
     public string? Search { get; set; }

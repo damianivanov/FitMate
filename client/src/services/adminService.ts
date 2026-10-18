@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type {
   AdminUserModel,
+  GridColumnOptionsModel,
   AIAdminOverviewModel,
   AIAdminRunModel,
   AIConversationDetailModel,
@@ -40,14 +41,29 @@ import type {
   UserUsageAdminModel,
 } from "@/types";
 
+const gridPaths = {
+  users: "admin/users",
+  muscleGroups: "admin/musclegroups",
+  exercises: "admin/exercises",
+  errors: "admin/errors",
+  conversations: "admin/ai/conversations",
+  unsupportedRequests: "admin/ai/unsupported-requests",
+} as const;
+
+export type AdminGridResource = keyof typeof gridPaths;
+
 export const adminService = {
+  async gridOptions(resource: AdminGridResource) {
+    return api.get<JsonData<GridColumnOptionsModel[]>>(`${gridPaths[resource]}/options`);
+  },
+
   async buildInfo() {
     return api.get<JsonData<BuildInfoModel>>("admin/build-info");
   },
 
   users: {
     async list(params: UserQueryRequest) {
-      return api.get<JsonData<PagedResponse<AdminUserModel>>>("admin/users", { params });
+      return api.post<JsonData<PagedResponse<AdminUserModel>>>("admin/users/query", params);
     },
 
     async update(id: number, payload: UpdateUserRequest) {
@@ -61,7 +77,7 @@ export const adminService = {
 
   muscleGroups: {
     async list(params: MuscleGroupQueryRequest) {
-      return api.get<JsonData<PagedResponse<MuscleGroup>>>("admin/musclegroups", { params });
+      return api.post<JsonData<PagedResponse<MuscleGroup>>>("admin/musclegroups/query", params);
     },
 
     async update(id: number, payload: CreateMuscleGroupRequest) {
@@ -75,7 +91,7 @@ export const adminService = {
 
   exercises: {
     async list(params: ExerciseQueryRequest) {
-      return api.get<JsonData<PagedResponse<Exercise>>>("admin/exercises", { params });
+      return api.post<JsonData<PagedResponse<Exercise>>>("admin/exercises/query", params);
     },
 
     // Slug-addressed image upload, reserved for the super administrator. Same two-step
@@ -97,7 +113,7 @@ export const adminService = {
 
   errors: {
     async list(params: ErrorQueryRequest) {
-      return api.get<JsonData<PagedResponse<ErrorModel>>>("admin/errors", { params });
+      return api.post<JsonData<PagedResponse<ErrorModel>>>("admin/errors/query", params);
     },
 
     async remove(id: number) {
@@ -115,9 +131,7 @@ export const adminService = {
     },
 
     async listConversations(params: AIConversationQueryRequest) {
-      return api.get<JsonData<PagedResponse<AIConversationListItemModel>>>("admin/ai/conversations", {
-        params,
-      });
+      return api.post<JsonData<PagedResponse<AIConversationListItemModel>>>("admin/ai/conversations/query", params);
     },
 
     async getConversation(id: number) {
@@ -161,9 +175,9 @@ export const adminService = {
 
   unsupportedRequests: {
     async list(params: UnsupportedRequestQueryRequest) {
-      return api.get<JsonData<PagedResponse<UnsupportedAIRequestModel>>>(
-        "admin/ai/unsupported-requests",
-        { params },
+      return api.post<JsonData<PagedResponse<UnsupportedAIRequestModel>>>(
+        "admin/ai/unsupported-requests/query",
+        params,
       );
     },
 

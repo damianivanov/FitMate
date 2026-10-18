@@ -1,3 +1,4 @@
+import { useGridFilters } from "@/shared/components/tables/useGridFilters";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEventHandler } from "react";
 import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
@@ -39,6 +40,8 @@ export function useUserGridPage() {
   const [planTarget, setPlanTarget] = useState<AssignPlanTarget | null>(null);
   const [isAssigningPlan, setIsAssigningPlan] = useState(false);
 
+  const gridFilters = useGridFilters("users", reloadIndex, setPaginationModel);
+
   useEffect(() => {
     async function loadPlans() {
       try {
@@ -53,6 +56,12 @@ export function useUserGridPage() {
   }, []);
 
   useEffect(() => {
+    if (!gridFilters.ready) {
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadRows() {
       setIsLoading(true);
       setError(null);
@@ -62,18 +71,37 @@ export function useUserGridPage() {
           page: paginationModel.page + 1,
           pageSize: paginationModel.pageSize,
           search: debouncedSearch || undefined,
+          columnFilters: gridFilters.selections,
         });
+        if (cancelled) {
+          return;
+        }
         setPagedUsers(unwrap(response.data, "Unable to load users."));
       } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Unable to load users.");
         setPagedUsers(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadRows();
-  }, [debouncedSearch, paginationModel.page, paginationModel.pageSize, reloadIndex]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gridFilters.ready,
+    gridFilters.selections,
+    debouncedSearch,
+    paginationModel.page,
+    paginationModel.pageSize,
+    reloadIndex,
+  ]);
 
   useEffect(() => {
     setPaginationModel((current) => (current.page === 0 ? current : { ...current, page: 0 }));
@@ -240,6 +268,7 @@ export function useUserGridPage() {
 
   const state = useMemo(
     () => ({
+      gridFilters,
       rows: pagedUsers?.items ?? [],
       rowCount: pagedUsers?.totalCount ?? 0,
       loading: isLoading,
@@ -258,6 +287,7 @@ export function useUserGridPage() {
       isAssigningPlan,
     }),
     [
+      gridFilters,
       pagedUsers,
       isLoading,
       error,

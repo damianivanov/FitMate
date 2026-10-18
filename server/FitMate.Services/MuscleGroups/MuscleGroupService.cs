@@ -4,6 +4,7 @@ using FitMate.Core.JsonModels.Common;
 using FitMate.Core.JsonModels.MuscleGroups;
 using FitMate.DB;
 using FitMate.DB.Entities;
+using FitMate.Services.Grids;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.MuscleGroups;
@@ -30,7 +31,8 @@ public class MuscleGroupService : IMuscleGroupService
             query = query.Where(x => x.Name.Contains(search));
         }
 
-        query = query.OrderBy(x => x.Name).ThenBy(x => x.Id);
+        query = GridFilters.Apply(query, request.ColumnFilters, MuscleGroupGridColumns.All)
+            .OrderBy(x => x.Name).ThenBy(x => x.Id);
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -47,6 +49,9 @@ public class MuscleGroupService : IMuscleGroupService
             PageSize = pageSize,
         };
     }
+
+    public Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync() =>
+        GridFilters.GetOptionsAsync(dbContext.MuscleGroups.AsNoTracking(), MuscleGroupGridColumns.All);
 
     public async Task<MuscleGroupModel> UpdateAsync(
         long id,

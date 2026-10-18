@@ -1,5 +1,6 @@
 using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.Exercises;
+using FitMate.Core.JsonModels.Common;
 using FitMate.DB;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
@@ -67,6 +68,20 @@ public class ExerciseServiceTests
 
         var emptyPage = await service.ListAsync(new ExerciseQueryRequest { Page = 2 });
         Assert.Empty(emptyPage.Items);
+
+        var options = await service.GetGridOptionsAsync();
+        var lastUser = Assert.Single(options, x => x.Field == "lastUsedByDisplayName")
+            .Options.Single(x => x.Label == "Test User2");
+        var filtered = await service.ListAsync(new ExerciseQueryRequest
+        {
+            PageSize = 1,
+            ColumnFilters = [new GridColumnSelectionModel
+            {
+                Field = "lastUsedByDisplayName", Values = [lastUser.Value],
+            }],
+        });
+        Assert.Equal(1, filtered.TotalCount);
+        Assert.Equal(used.Id, Assert.Single(filtered.Items).Id);
     }
 
     private static ExerciseService BuildService(AppDbContext context, FakeUserService userService)

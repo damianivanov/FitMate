@@ -22,30 +22,33 @@ export default function ExerciseGrid() {
         </div>
 
         <section className="liquid-surface w-full rounded-3xl p-5 md:p-6">
-          <div className="mb-4 flex flex-wrap justify-end gap-2">
-            {state.isSuperAdmin && (
-              <button
-                type="button"
-                onClick={actions.openBulkUpload}
-                className="liquid-pill inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold text-primary"
-              >
-                <LuFolderUp className="h-4 w-4" />
-                <span>Bulk upload images</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={actions.openCreateEditor}
-              className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
-            >
-              <LuPlus className="h-4 w-4" />
-              <span>New Exercise</span>
-            </button>
-          </div>
-
           {state.pageError && <p className="mb-4 text-sm text-danger">{state.pageError}</p>}
 
           <EntityGrid
+            toolbarActions={
+              <>
+                {state.isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={actions.openBulkUpload}
+                    className="liquid-pill inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold text-primary"
+                  >
+                    <LuFolderUp className="h-4 w-4" />
+                    <span>Bulk upload images</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={actions.openCreateEditor}
+                  className="liquid-primary-btn inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                >
+                  <LuPlus className="h-4 w-4" />
+                  <span>New Exercise</span>
+                </button>
+              </>
+            }
+            filters={state.gridFilters}
+            filterOptionImages={state.filterOptionImages}
             rows={state.rows}
             columns={state.columns}
             loading={state.loading}

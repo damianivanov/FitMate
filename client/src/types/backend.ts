@@ -492,7 +492,7 @@ export namespace JsonModels.Users {
 		isAdmin: boolean;
 		isActive: boolean;
 	}
-	export interface UserQueryRequest extends JsonModels.Common.PagedRequest
+	export interface UserQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 	}
@@ -712,7 +712,7 @@ export namespace JsonModels.MuscleGroups {
 		name: string;
 		imageUrl?: string;
 	}
-	export interface MuscleGroupQueryRequest extends JsonModels.Common.PagedRequest
+	export interface MuscleGroupQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 	}
@@ -821,7 +821,7 @@ export namespace JsonModels.Exercises {
 		dateCreated: string;
 		dateModified?: string;
 	}
-	export interface ExerciseQueryRequest extends JsonModels.Common.PagedRequest
+	export interface ExerciseQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 		isGlobal?: boolean;
@@ -842,7 +842,7 @@ export namespace JsonModels.Errors {
 		createdById?: number;
 		createdByEmail?: string;
 	}
-	export interface ErrorQueryRequest extends JsonModels.Common.PagedRequest
+	export interface ErrorQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 	}
@@ -851,6 +851,25 @@ export namespace JsonModels.Common {
 	export interface ConfirmImageUploadRequest
 	{
 		blobName: string;
+	}
+	export interface GridColumnOptionsModel
+	{
+		field: string;
+		options: JsonModels.Common.GridFilterOptionModel[];
+	}
+	export interface GridColumnSelectionModel
+	{
+		field: string;
+		values: string[];
+	}
+	export interface GridFilterOptionModel
+	{
+		value: string;
+		label: string;
+	}
+	export interface GridQueryRequest extends JsonModels.Common.PagedRequest
+	{
+		columnFilters?: JsonModels.Common.GridColumnSelectionModel[];
 	}
 	export interface ImageUploadTicketModel
 	{
@@ -1585,7 +1604,7 @@ export namespace JsonModels.AdminAI {
 		lastMessageAt: string;
 		dateCreated: string;
 	}
-	export interface AIConversationQueryRequest extends JsonModels.Common.PagedRequest
+	export interface AIConversationQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 		userId?: number;
@@ -1732,7 +1751,7 @@ export namespace JsonModels.AdminAI {
 		conversationId: number;
 		reportedAt: string;
 	}
-	export interface UnsupportedRequestQueryRequest extends JsonModels.Common.PagedRequest
+	export interface UnsupportedRequestQueryRequest extends JsonModels.Common.GridQueryRequest
 	{
 		search?: string;
 		category?: string;

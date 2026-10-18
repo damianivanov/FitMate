@@ -4,7 +4,7 @@ using FitMate.DB.Enums;
 
 namespace FitMate.Core.JsonModels.AdminAI;
 
-public class AIConversationQueryRequest : PagedRequest
+public class AIConversationQueryRequest : GridQueryRequest
 {
     [StringLength(200)]
     public string? Search { get; set; }

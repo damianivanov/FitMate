@@ -10,6 +10,7 @@ using FitMate.Services.Storage.Blobs;
 using FitMate.Services.Storage.Imaging;
 using FitMate.Services.Storage.Urls;
 using FitMate.Services.Users;
+using FitMate.Services.Grids;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -73,7 +74,8 @@ public class ExerciseService : IExerciseService
                 || (aliasSearch != "" && x.Aliases.Any(a => a.NormalizedAlias.Contains(aliasSearch))));
         }
 
-        query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
+        query = GridFilters.Apply(query, request.ColumnFilters, ExerciseGridColumns.All)
+            .OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -123,6 +125,9 @@ public class ExerciseService : IExerciseService
             PageSize = pageSize,
         };
     }
+
+    public Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync() =>
+        GridFilters.GetOptionsAsync(dbContext.Exercises.AsNoTracking(), ExerciseGridColumns.All);
 
     public async Task<ExerciseModel> CreatePersonalAsync(CreateExerciseRequest request)
     {

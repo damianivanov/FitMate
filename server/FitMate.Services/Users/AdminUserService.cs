@@ -6,6 +6,7 @@ using FitMate.DB.Constants;
 using FitMate.DB.Entities;
 using FitMate.DB.Enums;
 using FitMate.Services.Subscriptions;
+using FitMate.Services.Grids;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,30 @@ public class AdminUserService : IAdminUserService
 
         query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
 
+        var filters = request.ColumnFilters ?? [];
+        var metadataFilters = filters.Where(x => x?.Field != "effectivePlanName").ToList();
+        if (metadataFilters.Count > 0)
+        {
+            var metadata = GridFilters.Apply(QueryGridRows(query), metadataFilters, UserGridColumns.All);
+            query = query.Where(x => metadata.Select(row => row.Id).Contains(x.Id));
+        }
+
+        IReadOnlyDictionary<long, ResolvedPlan>? resolvedPlans = null;
+        var planFilters = filters.Where(x => x.Field == "effectivePlanName").ToList();
+        if (planFilters.Count > 0)
+        {
+            var candidates = await query.Select(x => x.Id).ToListAsync();
+            resolvedPlans = await planResolver.ResolveManyAsync(candidates);
+            var planRows = candidates.Select(id => new AdminUserModel
+            {
+                Id = id,
+                EffectivePlanName = resolvedPlans.GetValueOrDefault(id)?.EffectivePlanName ?? "",
+            }).AsQueryable();
+            var matchingIds = GridFilters.Apply(planRows, planFilters, UserGridColumns.All)
+                .Select(x => x.Id).ToList();
+            query = query.Where(x => matchingIds.Contains(x.Id));
+        }
+
         var totalCount = await query.CountAsync();
         var users = await query
             .Skip((page - 1) * pageSize)
@@ -55,7 +80,7 @@ public class AdminUserService : IAdminUserService
 
         var userIds = users.Select(x => x.Id).ToList();
         var adminUserIds = await GetAdminUserIdsAsync(userIds);
-        var plans = await planResolver.ResolveManyAsync(userIds);
+        var plans = resolvedPlans ?? await planResolver.ResolveManyAsync(userIds);
 
         return new PagedResponse<AdminUserModel>
         {
@@ -67,6 +92,34 @@ public class AdminUserService : IAdminUserService
             PageSize = pageSize,
         };
     }
+
+    public async Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync() =>
+        await GridFilters.GetOptionsAsync(
+            (await GetGridRowsAsync(dbContext.Users.AsNoTracking())).AsQueryable(), UserGridColumns.All);
+
+    private async Task<List<AdminUserModel>> GetGridRowsAsync(IQueryable<User> query)
+    {
+        var users = await QueryGridRows(query).ToListAsync();
+        var plans = await planResolver.ResolveManyAsync(users.Select(x => x.Id).ToList());
+        foreach (var user in users)
+        {
+            user.EffectivePlanName = plans.GetValueOrDefault(user.Id)?.EffectivePlanName ?? "";
+        }
+        return users;
+    }
+
+    private static IQueryable<AdminUserModel> QueryGridRows(IQueryable<User> query) =>
+        query.Select(x => new AdminUserModel
+        {
+            Id = x.Id,
+            Email = x.Email ?? x.UserName ?? "",
+            FirstName = x.FirstName,
+            LastName = x.LastName,
+            IsActive = x.IsActive,
+            IsAdmin = x.UserRoles.Any(role => role.Role.Name == RoleNames.Admin),
+            DateCreated = x.DateCreated,
+            LastLoginAt = x.LastLoginAt,
+        });
 
     public async Task<AdminUserModel> UpdateAsync(long id, UpdateUserRequest request)
     {

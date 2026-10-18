@@ -2,6 +2,7 @@ using FitMate.Core.Exceptions;
 using FitMate.Core.JsonModels.Common;
 using FitMate.Core.JsonModels.Errors;
 using FitMate.DB;
+using FitMate.Services.Grids;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitMate.Services.Errors;
@@ -31,7 +32,8 @@ public class AdminErrorService : IAdminErrorService
                 || (x.Action != null && x.Action.Contains(search)));
         }
 
-        query = query.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
+        query = GridFilters.Apply(query, request.ColumnFilters, ErrorGridColumns.All)
+            .OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.Id);
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -60,6 +62,9 @@ public class AdminErrorService : IAdminErrorService
             PageSize = pageSize,
         };
     }
+
+    public Task<IReadOnlyList<GridColumnOptionsModel>> GetGridOptionsAsync() =>
+        GridFilters.GetOptionsAsync(dbContext.Errors.AsNoTracking(), ErrorGridColumns.All);
 
     public async Task<bool> DeleteAsync(long id)
     {

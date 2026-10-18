@@ -67,6 +67,30 @@ public class AdminAIController : BaseApiController
         return this.ReturnJson(overview);
     }
 
+    [HttpGet("conversations/options")]
+    public async Task<ActionResult> GetConversationGridOptions()
+    {
+        return this.ReturnJson(await adminAIService.GetConversationGridOptionsAsync());
+    }
+
+    [HttpGet("unsupported-requests/options")]
+    public async Task<ActionResult> GetUnsupportedGridOptions()
+    {
+        return this.ReturnJson(await unsupportedRequestService.GetGridOptionsAsync());
+    }
+
+    [HttpPost("conversations/query")]
+    public async Task<ActionResult> QueryConversations([FromBody] AIConversationQueryRequest request)
+    {
+        return this.ReturnJson(await adminAIService.ListConversationsAsync(request));
+    }
+
+    [HttpPost("unsupported-requests/query")]
+    public async Task<ActionResult> QueryUnsupportedRequests([FromBody] UnsupportedRequestQueryRequest request)
+    {
+        return this.ReturnJson(await unsupportedRequestService.ListAsync(request));
+    }
+
     [HttpGet("conversations")]
     public async Task<ActionResult> ListConversations([FromQuery] AIConversationQueryRequest request)
     {
