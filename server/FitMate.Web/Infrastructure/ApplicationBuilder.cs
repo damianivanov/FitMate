@@ -260,7 +260,7 @@ public static class ApplicationBuilderExtensions
             hasChanges = true;
         }
 
-        if (!string.Equals(entity.ImageUrl, imageUrl, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(entity.ImageUrl) && !string.IsNullOrWhiteSpace(imageUrl))
         {
             entity.ImageUrl = imageUrl;
             hasChanges = true;
